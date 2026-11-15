@@ -2,6 +2,23 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261115.92337 — 2026-11-15
+
+Synced from the Kipory monorepo at `f8652ba78`.
+
+- changed: `skills/kipory-build/references/functions/image.metadata.md`
+- changed: `skills/kipory-build/references/functions/record.count.md`
+- changed: `skills/kipory-build/references/functions/record.list.md`
+- changed: `skills/kipory-build/references/functions/record.teardown.md`
+- changed: `skills/kipory-build/references/functions/text.extract.md`
+- changed: `skills/kipory-build/references/functions/youtube.channel.md`
+- changed: `skills/kipory-build/references/functions/youtube.video.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-model/references/pitfalls.md`
+- changed: `skills/kipory-secrets/SKILL.md`
+
 ## 1.20261114.171241 — 2026-11-14
 
 Synced from the Kipory monorepo at `1cff75ea2`.

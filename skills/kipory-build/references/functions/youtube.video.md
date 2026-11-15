@@ -24,7 +24,7 @@ Takes a video link or id. Each part costs one daily quota unit.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `parts` | string[], at least 1 item | no | `["snippet","contentDetails","statistics"]` | Which parts to fetch; snippet, content details and statistics by default. ⚠️ Each part costs one quota unit per call, against a daily pool. |
+| `parts` | string[] of `snippet` \| `contentDetails` \| `statistics` \| `status` \| `topicDetails` \| `liveStreamingDetails`, at least 1 item | no | `["snippet","contentDetails","statistics"]` | Which parts to fetch; snippet, content details and statistics by default. ⚠️ Each part costs one quota unit per call, against a daily pool. |
 
 ## Worked example
 

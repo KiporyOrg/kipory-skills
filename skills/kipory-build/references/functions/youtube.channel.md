@@ -26,7 +26,7 @@ Takes a channel link, handle or id. Each part you fetch costs one unit of the da
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `listUploads` | boolean | no | `false` | Also list recent uploads, and set lastPostAt to the newest. ⚠️ Costs one extra quota unit, because it takes a second call to the uploads playlist. |
-| `parts` | string[], at least 1 item | no | `["snippet","statistics"]` | Which parts to fetch; snippet and statistics by default. ⚠️ Each part costs one quota unit per call, from a daily pool. |
+| `parts` | string[] of `snippet` \| `statistics` \| `contentDetails` \| `topicDetails` \| `status` \| `brandingSettings` \| `localizations`, at least 1 item | no | `["snippet","statistics"]` | Which parts to fetch; snippet and statistics by default. ⚠️ Each part costs one quota unit per call, from a daily pool. |
 | `uploadsLimit` | integer, 1 to 50 | no | `20` | How many recent uploads to list, up to 50. |
 
 ## Worked example

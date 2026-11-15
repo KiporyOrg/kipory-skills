@@ -1,7 +1,9 @@
 {
-  "source": "1cff75ea24f153b93afa83e29168de8b34c9dfa2",
-  "since": "2026-08-18",
+  "source": "f8652ba789ccb10b3dbf71b452edaea067fdec12",
+  "since": "2026-08-19",
   "history": [
+    {"sha":"f8652ba789cc","skills":"An agent writes its first plan from the primer: each setting's shape for the ten functions most steps use, a block example, and the facts agents went looking for (primer v3) (#3749)"},
+    {"sha":"24d6be26680d"},
     {"sha":"1cff75ea24f1","skills":"A run that failed keeps its values, whatever the sample rate — a synchronous or streaming call included (#3744)"},
     {"sha":"38725acef065"},
     {"sha":"36d816a98f82"},
@@ -999,8 +1001,6 @@
     {"sha":"792906aa160e"},
     {"sha":"5cd74bace5df"},
     {"sha":"03dfc569ebf9"},
-    {"sha":"84c44ff86014"},
-    {"sha":"c2f5b95b4cfa"},
-    {"sha":"9bfbad7a7e61"}
+    {"sha":"84c44ff86014"}
   ]
 }

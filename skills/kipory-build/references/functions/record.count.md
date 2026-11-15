@@ -21,7 +21,7 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 | `createdBefore` | string | no | — | Count only rows created at or before this ISO-8601 date. |
 | `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; an empty list counts zero; a never-produced input skips the step. |
 | `linkFilters` | object[], at least 1 item | no | — | Count only rows carrying a link of these relations. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; a never-produced input skips the step. |
-| `statuses` | string[], at least 1 item | no | — | Count only rows with these statuses; empty counts them all. |
+| `statuses` | string[] of `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` \| `DELETING` \| `MERGED`, at least 1 item | no | — | Count only rows with these statuses; omit it to count all. |
 | `tableKey` | string | yes | — | The table to count. |
 | `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; project-wide tables ignore it. ⚠️ A count can reveal how many records exist outside the user's own. |
 | `vocabularyFilter` | object[], at least 1 item | no | — | Count only rows tagged with all of these vocabulary terms. ⚠️ A nested term slug matches under every parent unless `parentSlug` is set. |

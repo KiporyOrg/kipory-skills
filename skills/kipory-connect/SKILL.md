@@ -1,6 +1,6 @@
 ---
 name: kipory-connect
-description: Start here for any work on a Kipory project — the primer that holds what a build needs before its first plan, in one read - the project document's format with a complete example, the rules that keep a plan from being refused, every function in one line with its settings, and the `kipory` command that ships a document and checks it as test users in single calls. Use at the beginning of any work on a Kipory project, when the user hands over a base URL and an API key, when a call returns 401, 403 or 404 and the cause is unclear, or when you need to know which id, host or role a call wants. Every other kipory skill is a deeper reference this page points to.
+description: Start here for any work on a Kipory project — the primer that holds what a build needs before its first plan, in one read - the project document's format with a complete example, the rules that keep a plan from being refused, every function in one line, the most used with each setting's shape, and the `kipory` command that ships a document and checks it as test users in single calls. Load it and, in the same turn, run its first call from the folder holding `.env`, `node .claude/skills/kipory-connect/scripts/kipory.mjs connect`. Use at the beginning of any work on a Kipory project, when the user hands over a base URL and an API key, when a call returns 401, 403 or 404 and the cause is unclear, or when you need to know which id, host or role a call wants. Every other kipory skill is a deeper reference this page points to.
 license: MIT
 ---
 
@@ -12,7 +12,7 @@ license: MIT
 
 # Kipory: the primer
 
-Kipory is a platform for a product's backend. A product on Kipory is a **project**, and a project is not code: its types, tables, flows, HTTP endpoints, views and schedules are configuration, written as one **project document** (YAML or JSON), planned, then applied. **Plan first.** This page holds what a first document needs: write it, `ship` it, and open a reference only for what a refusal or a failed check names (`kipory docs <words or CODE>` returns that one section).
+Kipory is a platform for a product's backend. A product on Kipory is a **project**, and a project is not code: its types, tables, flows, HTTP endpoints, views and schedules are configuration, written as one **project document** (YAML or JSON), planned, then applied. **Plan first.** This page holds what a first document needs: write it, `ship` it, and open a reference only for what a refusal or a failed check names.
 
 **Two hosts.** The design API answers on the api host with your API key. The product's own endpoints answer on the project's host (`baseUrl` on `GET /v1/grant`) with a person's session. `.env` holds `KIPORY_BASE_URL`, `KIPORY_API_KEY` and `KIPORY_PROJECT_ID`; never print the key or write it into a file you keep.
 
@@ -33,7 +33,7 @@ kipory find "sign a webhook"            can Kipory do it? the functions that do,
 kipory docs record query cursor         the best-matching section of the deeper skills
 ```
 
-**app.mjs** is a script that prints the document as JSON; a `.json` or `.yaml` file works too. Exit 1 means refused or a check failed, 2 a usage problem; `--json` prints the raw answer. If a plan surprises you, `node .claude/skills/kipory-connect/scripts/sync.mjs` compares these skills with the deployment.
+**app.mjs** is a script that prints the document as JSON; a `.json` or `.yaml` file works too. Exit 1 means refused or a check failed, 2 a usage problem; `--json` prints the raw answer.
 
 ## Check: prove it as people, in one call
 
@@ -75,6 +75,7 @@ types:
         title: { type: string, minLength: 1, maxLength: 200 }
         state: { type: string, enum: [open, done] }
         dueOn: { type: string, maxLength: 10 }
+        summary: { type: string, maxLength: 200 }
   Notice:
     definition:
       type: object
@@ -178,6 +179,59 @@ flows:
               - key: drop
                 function: record.delete
                 with: { ids: { expr: "$list(ended.records.id)" } }
+  close-overdue:
+    label: Close my overdue notes, each with a summary
+    inputs: { before: { typeName: string } }
+    outputs: { closed: { typeName: number } }
+    steps:
+      - key: due
+        function: record.query
+        with:
+          tableKey: note
+          clauses: [{ kind: field, field: dueOn, op: lt, value: before }]
+          order: { by: field, field: dueOn, direction: asc }
+          limit: 50
+          pages: { max: 1, onMore: stop }
+      - key: perNote
+        each: due.records                    # one pass per row
+        as: item
+        steps:
+          - key: isOpen
+            if:
+              - test: { eq: [item.state, { literal: open }] }
+                steps:
+                  - key: brief
+                    try:                     # a failed step inside runs `catch` instead
+                      steps:
+                        - key: draft
+                          function: text.generate
+                          with: { prompt: "Summarise in one line: {{item.title}}" }
+                        - key: trim
+                          repeat:            # vars → steps → next → until, at most max passes
+                            vars: { text: draft }
+                            next: { text: shorter }
+                            until: { lte: [{ expr: "$length(text)" }, 200] }
+                            max: 3
+                            onMax: stop
+                          steps:
+                            - key: shorter
+                              function: text.generate
+                              reuseResultsForMinutes: 0
+                              with: { prompt: "Shorten to under 200 characters: {{text}}" }
+                      out: { text: { expr: "$substring(trim.text, 0, 200)" } }
+                    catch:                   # reads error.code, error.message
+                      steps: []
+                      out: { text: item.title }
+                  - key: close
+                    function: record.update
+                    with: { recordId: item.id, fields: { state: { literal: done }, summary: brief.text } }
+                out: { closed: { literal: 1 } }
+            else:
+              steps: []
+              out: { closed: { literal: 0 } }
+        out: { closed: isOpen.closed }
+      - key: done
+        return: { closed: { expr: "$default($sum(perNote.closed), 0)" } }
 surfaces:
   endpoints:
     create-note:
@@ -189,6 +243,9 @@ surfaces:
     list-notes:
       contractConfig: { method: GET, path: /v1/app/notes, successStatus: 200, auth: required, params: {} }
       targetConfig: { kind: flow.invoke, execution: sync, flow: list-notes, inputs: {} }
+    close-overdue:
+      contractConfig: { method: POST, path: /v1/app/notes/close-overdue, successStatus: 202, auth: required, params: { before: { in: query, type: string, required: true } } }
+      targetConfig: { kind: flow.invoke, execution: async, flow: close-overdue, inputs: { before: { from: query.before } } }   # slow steps: async, 202 { id, status, statusPath }
   schedules:
     daily:
       label: Nightly clean-up
@@ -201,15 +258,18 @@ surfaces:
       inputs: {}
 ```
 
-- **A flow is its steps, in the order they run.** A step is a function (`function` + `with`), or a block: `if` (a list of `test` + `steps`), `each` (a list, `as`, `steps`), `repeat`, `parallel`, `try` (`steps`, `catch`, each giving values through `out`), `return`, `fail`. A step's key names its value (`save.recordId`); a value made inside a block is read outside only through the block's `out`. A flow gives outputs only through `return`.
+- **A flow is its steps, in the order they run.** A step is a function (`function` + `with`), `return`, `fail`, or a block: `if`/`else`, `each`, `repeat`, `try`/`catch` (all in `close-overdue`) and `parallel` (steps at once, none reading another). A step's key names its value (`save.recordId`); a value made inside a block is read outside only through the block's `out` (a `repeat`'s is its `vars`), and an `each` gives the list of its passes' `out`. A flow gives outputs only through `return`, never inside an `each`, `repeat` or `parallel`.
+- **What steps give.** A row (from `record.read`, `record.list`, `record.query`, a view) is its fields at the top level plus `id`, `status`, `createdAt`, `updatedAt` (ISO times) and `processing`, none of which makes a project row new (below); a field with no value is left out. `record.list` gives `{ records, nextCursor }` (`nextCursor` while more remain), `record.query` the same plus `bounded` and `explanation`, `record.read` a list of rows, `record.create` `{ recordId, tableKey, keyTaken }`, `record.update` `true`, or `false` when nothing matched.
+- **A run is all or nothing**: its writes are saved together when it ends, and a failed step or a `fail` keeps none of them; mail and requests leave only after the save. So a `record.list` or `record.query` later in the run does not see the rows it created; a `record.read` by id does. A failure inside `try`, a `fail` too, drops what `try` staged and runs `catch`; a failed `each` pass fails the block unless `maxFailedBranches` or `maxFailedShare` lets it go, and gives no `out`.
+- **Endpoint inputs** bind by `from`: `body` (the body field named like the input), `path.<p>`, `query.<p>` (declared in `params`, `type: string`; the value takes its input's type), `header.<name>` (lower case, an optional text input), `rawBody` (the exact text, for `request.verify-signature`), `patch`. A `typeName` is `string`, `number`, `boolean`, `object`, `file`, `probability`, a library type (`RecordRead`) or a type of yours, a list is `isList: true`; there is no `integer`.
 - **An argument** is exactly one of: a path (`title`, `rows.records`), `{ literal: … }`, `{ expr: "<JSONata>" }`, `{ path: x, optional: true }`, `{ path: x, default: … }`. Never mix their keys: a default for an expression goes inside it, `{ expr: "$default(limit, 20)" }`. A setting that names a thing (`tableKey`, `view`, `flow`) is a plain value. A test is one of `has`, `filled`, `eq`, `in`, `gt`, `gte`, `lt`, `lte`, `before`, `after`, `startsWith`, `contains`, `matches`, `expr`, combined with `and`, `or`, `not`. An expression reads `runInfo.now`, `runInfo.nonce`, and `userInfo.userId` (the caller; nothing on a schedule); `$now()` and `$random()` are refused.
 - **An endpoint answers its flow's outputs by name** (`{ "note": {…} }`); `contractConfig.responseBody: note` answers that one output bare, `redirect: { location: url }` answers a redirect to an output.
-- **A list over HTTP is a view**: one `record.view` step; the flow declares `<step>After`, `<step>Before`, `<step>Limit`; the endpoint answers `{ items, nextCursor }` and pages by `?after=`. A view orders by `created`, or by a field with a `filter` use (a text one needs `maxLength` ≤ 500). A list whose filter changes per call (from now on, by a search word) is a flow with `record.query` and a `cursor` input instead.
-- **People's data** lives on `ownerScope: user` tables: reads see only the caller's rows, so write no owner field or filter. Sharing is `sharing: true` on the table plus `record.grant`. `ownerScope: project` rows are shared by everyone, and identical data there is one record: give a row that may repeat a field that tells it apart, such as `ref: { expr: "runInfo.nonce" }`.
+- **A list over HTTP is a view**: one `record.view` step; the flow declares `<step>After`, `<step>Before`, `<step>Limit`; the endpoint answers `{ items, nextCursor }` and pages by `?after=`. A view orders by `created`, or by a field with a `filter` use (a text one needs `maxLength` ≤ 500). Any other list a caller pages is `record.list` (`limit: { path: limit, default: 50 }`; `order: asc` is oldest first by `createdAt`). Use `record.query` for a text range, meaning, or a text or number order; its `by: created` is newest first only, and `createdAt` is no field to order by.
+- **People's data** lives on `ownerScope: user` tables: reads see only the caller's rows, so write no owner field or filter. Sharing is `sharing: true` on the table plus `record.grant`. `ownerScope: project` rows are shared by everyone, and identical data there is one record: an org row holding only an equal name, or two equal transfers at once, share one id. Give each row that may repeat a field that tells it apart, `ref: { expr: "runInfo.nonce" }`. A nonce is for rows meant to be distinct; a once-only row (a payment, a signup) uses `key` with `onKeyTaken: skip`, so a client's retry doesn't duplicate it.
 - **Once, by the platform**: a field with the `key` use, then `record.create` with `onKeyTaken: skip` answers `keyTaken: true` instead of a second row. A counter is `record.update` with `add: { views: { literal: 1 } }`. Calls at once on one record apply in turn: a save another call's change refused runs again (`record.update`'s `ifChangedMeanwhile`), so add no lock or retry; a quota counted with `record.count` holds.
 - **`null` at an endpoint.** An answer carries every field its declared type marks optional, `null` when it has no value — so type a record output with its table's own type (`outputs: {link: {typeName: Link}}`), never plain `object` (a record straight from `record.read` in an `object` output gets nothing filled). An optional input sent as `null` means not sent. To clear vs keep on an update, bind one object input `{"from": "patch"}` — its type's fields all optional, e.g. a `LinkChanges` type beside the table's — and pass it to `record.update` as `data`: a field sent `null` is removed, one left out is kept; `$exists(changes.x)` is true when `x` was sent.
 - **CSV.** Build the text with a `text.csv` step (`rows`, `columns`), return it as a required text output, and set the endpoint's `contractConfig` `responseBody` to it plus `responseType: "text/csv"`; errors stay JSON.
-- **A daily job runs as nobody**: `expire-notices` sees every project row. A start for everyone (`flow.start-per-person`, `people: { kind: project }`) starts real people only and answers `testUsersLeftOut`: while you test, `PATCH /v1/projects/{nodeId}/settings {"testUsersInStarts": true}`, off before real people use it. Rehearse a job with `kipory preview --schedule <key>`, one person's run with `kipory preview <flow> --as alice`.
+- **A daily job runs as nobody**: `expire-notices` sees every project row. A start for everyone (`flow.start-per-person`, `people: { kind: project }`) starts real people only and answers `testUsersLeftOut`: while you test, `PATCH /v1/projects/{nodeId}/settings {"testUsersInStarts": true}`, off before real people use it.
 - **Mail needs an address first**: read `sendableDomains` from `GET /v1/managed-email-addresses?node=<nodeId>`, then `POST /v1/managed-email-addresses { node, localPart, domain, grade: "relay" }` once; `email.send`'s `address` names it. A test user receives no mail. A model call is `text.generate` (a `prompt`, `outputSchema` for a typed answer) or `text.decide` for yes/no, a pick or a score (`kipory-build`'s `references/models.md`).
 
 ## Rules that keep the first plan clean
@@ -219,11 +279,11 @@ surfaces:
 3. **A required output from a receipt is guarded**: before `return { noteId: save.recordId }`, an `if` on `{ not: { has: save.recordId } }` that fails (`FLOW_OUTPUT_MAY_BE_NOTHING`).
 4. **`fail.status` is 400–499**, but not 405, 408 or 426 (left out, 422); there is no 5xx of your own (`FAIL_STATUS_INVALID`). `fail.code` is capitals, digits and underscores, starting with a capital (`TITLE_TOO_LONG`); the caller gets it as `details.reason`.
 5. **Text is `{ literal: … }`**: a bare string is always a path, and an unknown one is `STEP_READS_UNKNOWN`.
-6. **A function's settings are its own**: the catalog line below lists what `with` takes (`*` required). A caller's page size is `limit: { path: limit, default: 50 }` (1–100, else 50). `record.delete` takes `ids`, not `tableKey`. Settings a function does not take are `STEP_SETTING_UNKNOWN`.
+6. **A function's settings are its own** (its catalog lines below): one it does not take is `STEP_SETTING_UNKNOWN`; `record.delete` takes `ids`, not `tableKey`.
 7. **Queried, ordered or totalled fields carry a `filter` use** on the table; on a table that already holds records, apply the new use before planning the steps that read it. An expression names a record's fields exactly as its type has them (`JSONATA_FIELD_UNKNOWN`). `record.list`, `record.count` and `record.aggregate` compare text only with `eq` or `in`; a range on text is `record.query`'s.
 8. **Expressions**: wrap a list one builds in `$list(…)` (JSONata gives one item as the item, none as nothing); `x != "v"` is false when `x` is missing, so write `$not(x = "v")`; a yes/no pattern test is `$contains(s, /re/)`, not `$match`; read a `cursor` from the previous page's `nextCursor` or an input, never a value step.
 9. **Keys**: step, table and input keys are camelCase, and no two steps of a flow share a key at any depth (`STEP_KEY_TAKEN`); flow and relation keys are kebab-case; type keys are PascalCase. Record fields never use `id`, `status`, `createdAt`, `updatedAt`, `processing` or `statusError`.
-10. **Blocks nest at most 4 deep** (move the inside to a flow and `flow.invoke` it); `repeat.max` is at most 50; a schedule's `failurePolicy` is `pause` or `keep-running`. A credential an outside call needs is stored and named in `url.send`'s or `url.fetch`'s `secret`, never written into its `headers`.
+10. **Blocks nest at most 4 deep** (move the inside to a flow and `flow.invoke` it); `repeat.max` is at most 50; a schedule's `failurePolicy` is `pause` or `keep-running`. A credential goes in `url.send`'s or `url.fetch`'s `secret`, never in `headers`.
 11. **Endpoints**: method GET, POST, PATCH or DELETE (no PUT); a path starts `/v1/<a word of yours>/` (`/v1/boxes` collides with a platform route, `/v1/app/boxes` does not); every query parameter an input reads is declared in `params`, and one feeding a required input is `required: true` (`ENDPOINT_INPUT_UNSATISFIED`); `successStatus` is 200, 201, 202, 204 or 206. A public endpoint (`auth: none`) is refused until the project's `publicSpendCapCredits` is set with `PATCH /v1/projects/{nodeId}/settings`.
 12. **Changing a flow or a type an endpoint already serves**: adding optional fields is adopted by itself; any other change needs `adoptSnapshots: true` on the element you change (`FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS`, `TYPE_RESHAPES_BOUND_SNAPSHOTS`).
 
@@ -231,14 +291,22 @@ surfaces:
 
 ## Every function, one line
 
-`name — title · what with takes (* required; a function's first words are the values it reads) → what it gives`. Write a step from its line; open a function's page (`kipory docs <key>`) only when a refusal names one of its settings. The deployment's catalog (`GET /v1/functions`) may hold functions added since this was written.
+`name — title · what with takes (* required; a function's first words are the values it reads) → what it gives`. The functions most steps use name their inputs and prompt on the line and each setting below it, with its shape: `*` required, `= x` a default, `a|b` values, `{a*: t}` an object's members (deeper, only its `kind`, then `…`), `‹name›` a key you choose, `[…]` or `t[]` a list, `x or y` alternatives, `1–100`, `≥1`, `<5` bounds, in `items` or `chars` for a size, `value` an argument (a path, `{ literal }`, `{ expr }`), `⚠` what tells values apart; then what it `gives` and a worked `with`. Write a step from its lines; open a function's page (`kipory docs <key>`) only when a refusal names one of its settings. The deployment's catalog (`GET /v1/functions`) may hold functions added since this was written.
 
 <!-- generated: the function catalog, one line each, from the deployment's catalog; regenerated on every publish, so an edit inside this block is overwritten -->
 
 **ai** — Model calls: answer typed questions (the cheapest), generate text, or rank a list.
 
 - text.decide — Answer typed questions · message* model outputSchema → the step's outputSchema
-- text.generate — Generate text · prompt* system model outputSchema reasoningEffort task temperature vocabularyFields → the step's outputSchema
+- text.generate — Generate text · prompt* system → the step's outputSchema
+  - `model: value` — The model to use; empty uses this step's model.
+  - `outputSchema: {kind*: ref, ref*: string} or {kind*: list, element*: …} or {kind*: optional, inner*: …} or {kind*: union, members*: … ≥2 items} or {kind*: record, valueType*: …} or {kind*: recordRef, tableKey*: string}` — The answer's type; empty means the answer is text.
+  - `reasoningEffort: none|low|medium|high` — How hard the model thinks first; `none` where it allows. ⚠ Reasoning is billed as output; left out, the model runs at its own default effort.
+  - `task: string` — The AI task whose model answers; empty uses `extraction`.
+  - `temperature: number 0–2` — How much the answer may vary; empty uses the model's own.
+  - `vocabularyFields: [{field*: string, vocabularyKey*: string}]` — Which answer fields hold vocabulary values to resolve into terms.
+  - gives: The model's answer: text, or a value of the declared shape. A misfit is never repaired: the model is asked once more, and a second miss fails the try.
+  - e.g. `with: {"prompt":"Summarize in three sentences:\n\n{{article}}"}`
 - text.rerank — Rank by relevance · documentItems* queryStreams* maxDocumentChars maxDocuments model topN → RerankHit[]
 
 **text** — Work on text without a model: split, match, fill a template, clean.
@@ -340,7 +408,15 @@ surfaces:
 - record.aggregate — Total records · measures* tableKey* clauses groupBy limit order timeZone userId → RecordAggregate
 - record.append — Add events to a record · event* field* recordId* tableKey* eventId userId → string
 - record.count — Count records · tableKey* createdAfter createdBefore fieldFilters linkFilters statuses userId vocabularyFilter → number
-- record.create — Create a record · tableKey* data fields fileIds onKeyTaken userId → RecordCreate
+- record.create — Create a record → RecordCreate
+  - `tableKey*: string` — The table to create a record in.
+  - `data: value` — The new record's data object, whole; or use `fields`.
+  - `fields: object` — The new record's fields, each a slot path, fixed value or expression.
+  - `fileIds: value` — The uploaded file ids to attach to the new record.
+  - `onKeyTaken: refuse|skip` — What to do when another record already holds the natural key. ⚠ With `skip`, a key another record holds adds nothing and answers `keyTaken`; two payloads claiming one key fail.
+  - `userId: value` — The person a run that acts for nobody writes for.
+  - gives: A `RecordCreate` — the new record's id and what it was created as. A retry under the same key reuses that id rather than minting another.
+  - e.g. `with: {"tableKey":"item","data":"submission"}`
 - record.delete — Delete records · ids* userId → boolean
 - record.enqueue-process — Queue for processing · recordId* mode replay userId → boolean
 - record.grant — Share a record · recordId* principal* level memberLevel userId → boolean
@@ -349,13 +425,78 @@ surfaces:
 - record.link-counts — Count a record's links · recordIds* relationKey* direction → RecordLinkCount[]
 - record.link-retract — Remove a link · sourceRecordId* targetRecordId* actor* relationKey* userId → RelationRetraction
 - record.links — Read a record's links · recordId* includeExpired limit relationKey → RecordLink[]
-- record.list — List records · tableKey* createdAfter createdBefore cursor dataContains dataContainsPath dataEquals dataEqualsPath dataNullChecks fieldFilters fields include limit linkFilters linked order pages scalars sort sortField statuses userId vocabularyFilter whose (dataEqualsPath+dataEquals together; dataContainsPath+dataContains together) → RecordPage
+- record.list — List records (dataEqualsPath+dataEquals together; dataContainsPath+dataContains together) → RecordPage
+  - `tableKey*: string` — The table to list.
+  - `createdAfter: string` — Keep only rows created at or after this fixed ISO-8601 date.
+  - `createdBefore: string` — Keep only rows created at or before this date.
+  - `cursor: value` — A previous page's cursor; empty for the first page.
+  - `dataContains: value` — The object to look for in that list.
+  - `dataContainsPath: string` — Keep only rows whose list at this `data` path contains `dataContains`.
+  - `dataEquals: value` — The value to compare: text, number or true/false.
+  - `dataEqualsPath: string` — Keep only rows whose value at this `data` path equals `dataEquals`.
+  - `dataNullChecks: [{field*: string, op*: isNull|isNotNull}] ≥1 item` — Keep rows by whether a field inside `data` is empty or filled.
+  - `fieldFilters: [{field*: string, op*: eq|lt|lte|gt|gte|in, value*: value}] ≥1 item` — Filters on the table's queryable fields, including ranges.
+  - `fields: string[]` — Which fields each row carries; empty means all of them.
+  - `include: {vocabularies: boolean = true, links: boolean, files: boolean, cost: boolean}` — Extra details per row; terms come by default, the rest opt-in.
+  - `limit: value` — Rows per page, 1 to 100; otherwise 50.
+  - `linkFilters: [{relationKey*: string, peerRecordId: value}] ≥1 item` — Keep only rows carrying a link of these relations.
+  - `linked: {‹name›: {relation*: string, direction: outgoing|incoming = outgoing, peerTable: string, fields: string[], include: {…}, limit: integer 1–100, sortField: string, order: desc|asc, onMore: fail|stop, when: value, linked: {‹name›: {…}}}}` — Linked records each record carries, under `linked.<name>`.
+  - `order: asc|desc = desc` — Sort direction: `desc` (default, newest first) or `asc`.
+  - `pages: {max*: integer 1–500, onMore: fail|stop = fail}` — Read every page, from `cursor` if set; unset reads one page.
+  - `scalars: {statusError: boolean, fileCount: boolean}` — Extra values per row: failure summary and file count.
+  - `sort: createdAt|updatedAt = createdAt` — Order by when a row was created (default) or last changed.
+  - `sortField: string` — Order by one of the table's queryable fields instead of `sort`.
+  - `statuses: [PENDING|PROCESSING|READY|FAILED|DELETING|MERGED] ≥1 item` — Keep only rows with these statuses; omit it for every status.
+  - `userId: value = userInfo.userId` — The signed-in user's id; only user-owned types use it.
+  - `vocabularyFilter: [{vocabularyKey*: string, slug*: string, parentSlug: string}] ≥1 item` — Keep only rows tagged with all of these vocabulary terms.
+  - `whose: all|own|shared = all` — Sharing tables: `all` (default), `own`, or `shared` (newest share first).
+  - gives: A `RecordPage`: the rows, newest first, each record's fields flattened to the top level, and a cursor when more remain — with `pages`, only under `onMore: "stop"`.
+  - e.g. `with: {"tableKey":"item","userId":"userInfo.userId","limit":50}`
 - record.merge — Merge records · keep* merge* userId → RecordMerge
-- record.query — Query records · clauses* cursor fields limit linked order pages tableKey tableKeys userId → RecordQueryPage
-- record.read — Read records · ids* tableKey* dataNullChecks failIfEmpty fields include linked redirect scalars userId → RecordRead[]
+- record.query — Query records → RecordQueryPage
+  - `clauses*: [{kind*: field, field*: string, op*: eq|lt|lte|gt|gte|in|not-in|contains, value*: value} or {kind*: term, vocabularyKey*: string, slug*: value} or {kind*: link, relation*: string, direction: outgoing|incoming|either, where: [{…}] 1–16 items, count: {…}, peer: [{kind: field, …} or {kind: term, …} or {kind: semantic, …}] 1–16 items} or {kind*: stream, field*: string, window: {…}, where: [{…}] 1–16 items, count: {…} or exists or none} or {kind*: semantic, field: string, text: value, likeRecordId: value, likeTableKey: string, topK: integer 1–200, minScore: number -1–1, passage: boolean} or {kind*: any, of*: [{kind: field, …} or {kind: term, …} or {kind: link, …} or {kind: stream, …}] 2–8 items}] 1–16 items` — Clauses every record must match; values are paths, literals or expressions.
+  - `cursor: value` — A prior answer's cursor; empty for the first page.
+  - `fields: string[]` — Which fields each row carries; empty means all of them.
+  - `limit: value` — Rows per page, 1 to 100; otherwise 50.
+  - `linked: {‹name›: {relation*: string, direction: outgoing|incoming = outgoing, peerTable: string, fields: string[], include: {…}, limit: integer 1–100, sortField: string, order: desc|asc, onMore: fail|stop, when: value, linked: {‹name›: {…}}}}` — Linked records each record carries, under `linked.<name>`.
+  - `order: {by*: created} or {by*: meaning} or {by*: field, field*: string, direction: asc|desc = desc}` — Order by `created`, `meaning`, or a filterable field.
+  - `pages: {max*: integer 1–500, onMore: fail|stop = fail}` — Read every page of an exact question, from `cursor` if set.
+  - `tableKey: string` — The table to query; set exactly one of this and `tableKeys`.
+  - `tableKeys: string[] 2–8 items` — 2 to 8 tables ranked in one answer, in place of `tableKey`.
+  - `userId: value` — The person whose records to query; empty means the signed-in user.
+  - gives: A `RecordQueryPage`: the records satisfying every clause, a `nextCursor` when an exact-only query has more, and `bounded` plus `explanation` on every answer.
+  - e.g. `with: {"tableKey":"person","userId":"userInfo.userId","clauses":[{"kind":"term","vocabularyKey":"language","slug":{"literal":"hebrew"}},{"kind":"link","relation":"friend-of","where":[{"property":"tag","op":"eq","value":{"literal":"close"}}]},{"kind":"semantic","text":{"literal":"loves hiking"}}]}`
+- record.read — Read records → RecordRead[]
+  - `ids*: value` — A list of ids, or a path like `hits[].recordId`.
+  - `tableKey*: string` — The table to read.
+  - `dataNullChecks: [{field*: string, op*: isNull|isNotNull}] ≥1 item` — Keep rows by whether a field inside `data` is empty or filled.
+  - `failIfEmpty: boolean` — Fail when nothing is found instead of returning an empty list.
+  - `fields: string[]` — Which fields each row carries; empty means all of them.
+  - `include: {vocabularies: boolean = true, links: boolean, files: boolean, cost: boolean}` — Extra details per row; terms come by default, the rest opt-in.
+  - `linked: {‹name›: {relation*: string, direction: outgoing|incoming = outgoing, peerTable: string, fields: string[], include: {…}, limit: integer 1–100, sortField: string, order: desc|asc, onMore: fail|stop, when: value, linked: {‹name›: {…}}}}` — Linked records each record carries, under `linked.<name>`.
+  - `redirect: follow|report = follow` — A merged id: `follow` reads its survivor; `report` fails the read. ⚠ With `follow`, two ids merged into one record read as that record once.
+  - `scalars: {statusError: boolean, fileCount: boolean}` — Extra values per row: failure summary and file count.
+  - `userId: value = userInfo.userId` — The signed-in user's id; others' ids are dropped.
+  - gives: A `RecordRead` per record, its fields flattened to the top level, in the order asked and deduplicated; unresolved ids drop, and a merged id reads its survivor.
+  - e.g. `with: {"ids":"candidates","tableKey":"item"}`
 - record.revoke — Stop sharing a record · recordId* principal* ifAbsent userId → boolean
 - record.teardown — Clear generated data · recordId* targets userId → object
-- record.update — Update a record · recordId* add clearDerived data derived failIfPreconditionUnmet fields fileIds ifChangedMeanwhile mode requireStatus setStatus userId → boolean
+- record.update — Update a record → boolean
+  - `recordId*: value` — The id of the record to patch.
+  - `add: object` — Numbers to add to declared number fields, not fixed lists; negative subtracts.
+  - `clearDerived: boolean` — Empty the record's derived output in the same write.
+  - `data: value` — The new fields as one object, or use `fields`; empty changes nothing.
+  - `derived: value` — The new derived output; empty leaves it alone.
+  - `failIfPreconditionUnmet: boolean` — Fail with a conflict when nothing matched, instead of reporting no change.
+  - `fields: object` — The fields to write, each a slot path, fixed value or expression.
+  - `fileIds: value` — The file ids to attach to the record.
+  - `ifChangedMeanwhile: start-again|apply` — When another run changed the record since this run read it. ⚠ On a conflict `start-again` writes nothing, while `apply` (merge only) overwrites what another run wrote to these fields meanwhile.
+  - `mode: merge|replace = merge` — `merge` (default) merges over existing values; `replace` overwrites them. ⚠ In `merge`, a key set to `null` is removed from the record.
+  - `requireStatus: PENDING|PROCESSING|READY|FAILED` — Only write when the record currently has this status.
+  - `setStatus: PENDING|PROCESSING|READY|FAILED` — Set the record to this status, clearing any earlier error. ⚠ Setting it to pending does not start processing on its own — a separate `record.enqueue-process` step does that.
+  - `userId: value` — The person a run that acts for nobody writes for.
+  - gives: A bare boolean — `true` iff a row was patched, `false` when the record was absent, foreign, or failed the status precondition (mirrors `record.delete`).
+  - e.g. `with: {"recordId":"patch.recordId","data":"patch.data","mode":"merge"}`
 - record.view — Read a view · view* → object
 - term.threshold-gate — Decide: match or new term · candidates parentTermId proposalLabel proposalSlug thresholds vocabulary vocabularyKey → GateDecision
 - term.upsert — Save terms · resolutions* → nothing
@@ -364,18 +505,56 @@ surfaces:
 
 **outbound** — Reach a person or a system outside the platform. Nothing is sent until the run's changes are saved.
 
-- email.send — Send an email · address* subject* text* to* html replyTo → string
+- email.send — Send an email → string
+  - `address*: string` — The address the message comes from.
+  - `subject*: value` — The subject line.
+  - `text*: value` — The plain-text body, required even with HTML.
+  - `to*: value` — The address to send to.
+  - `html: value` — Optional HTML version of the message.
+  - `replyTo: string` — Optional address replies go to, instead of the sending address.
+  - gives: The message's id — not a receipt: it leaves only if the run finishes and saves. Past the project's daily mail cap the step fails (`project-mail-cap-reached`).
+  - e.g. `with: {"address":"digest@example.com","to":"draft.to","subject":"draft.subject","text":"draft.body"}`
 - push.send — Send a push notification · badge body collapseKey data expiresIn kind recipient sound threadId title urgency → PushSendResult
-- url.send — Send a request · url* body bodyAs contentType headers idempotencyKey method query secret sign timeoutMs → boolean
+- url.send — Send a request · url* → boolean
+  - `body: value` — The request body, usually built by an earlier step.
+  - `bodyAs: json|form|text` — How to send the body: `json` (default), `form` or `text`. ⚠ Under `json` a string is sent quoted; for your own text use `text` and `contentType`.
+  - `contentType: string ≤128 chars` — The content type of a `text` body.
+  - `headers: object` — Headers by name; an empty value omits one; credentials go in `secret`.
+  - `idempotencyKey: value` — A repeat key, sent as the `Idempotency-Key` header.
+  - `method: POST|PUT|PATCH|DELETE = POST` — The request method.
+  - `query: object` — Query parameters for the address by name; an empty value omits one.
+  - `secret: string ≤128 chars` — The name of a stored request credential to send.
+  - `sign: {header: string ≤128 chars, secret: value, storedSecret: string ≤128 chars, algorithm: sha256|sha1|sha512, encoding: hex|base64, prefix: string, format: plain|timestamped|standard}` — Sign the body sent with a shared secret.
+  - `timeoutMs: integer >0 ≤60000 = 15000` — How long one delivery attempt waits for an answer.
+  - gives: `true` once queued, not a receipt; it leaves after the run saves. No flow reads the answer: to act on one, the receiver calls an endpoint back.
+  - e.g. `with: {"url":"targetUrl","method":"POST","body":"notice","secret":"harbour-office","idempotencyKey":"notice.id","timeoutMs":15000}`
 
 **flow** — Steer the run: branch, loop, call another flow, keep state between steps.
 
 - event.emit — Send an event · category* event* payload → nothing
 - flow.continue — Continue with the next page · cursor* cursorInput* inputs → ContinueResult
-- flow.invoke — Run another flow · flow* inputs → the called flow's outputs
+- flow.invoke — Run another flow → the called flow's outputs
+  - `flow*: string` — The key of another saved flow to run, like `score-article`.
+  - `inputs: object` — Each input of the called flow: a path, fixed value or expression.
+  - gives: What the called flow's `return` gives, one field per output of its signature; `{}` when it returns nothing.
+  - e.g. `with: {"flow":"article-scrape-summarize","inputs":{"entryUrl":"currentUrl","window":"dateRange"}}`
 - flow.start-per-person — Start a flow for each person · flow* people* inputs → PeopleStartResult
 - request.refuse — Refuse the call · code* status* message retryAfterSeconds → nothing
-- request.verify-signature — Check a call's signature · payload* signature* algorithm encoding format messageId onMismatch prefix secret storedSecret timestamp toleranceSeconds (one of secret|storedSecret) → boolean
+- request.verify-signature — Check a call's signature (one of secret|storedSecret) → boolean
+  - `payload*: value` — The text that was signed, usually the call's raw body.
+  - `signature*: value` — The signature the caller sent, usually from a header.
+  - `algorithm: sha256|sha1|sha512` — The hash: sha256 (the default), sha1 or sha512.
+  - `encoding: hex|base64` — How the signature is written: hex (the default) or base64.
+  - `format: plain|timestamped|standard` — `plain` (the default), `timestamped` for `t=…,v1=…` signatures, or `standard` for Standard Webhooks.
+  - `messageId: value` — Standard Webhooks only: the `webhook-id` header the caller sent.
+  - `onMismatch: refuse|output` — `refuse` (the default) answers 401; `output` gives the flow true or false.
+  - `prefix: string ≤32 chars` — Text before the signature to remove, such as `sha256=`.
+  - `secret: value` — The shared secret, such as a field of the call's record.
+  - `storedSecret: string ≤128 chars` — Or the name of a signing secret stored on the Secrets page.
+  - `timestamp: value` — Standard Webhooks only: the `webhook-timestamp` header the caller sent.
+  - `toleranceSeconds: integer 1–86400` — How old a timed signature may be, in seconds; 300 unless set.
+  - gives: A `boolean`: `true` when the signature matches. A wrong or missing one answers 401 `SIGNATURE_INVALID` and stops the run (the default), or gives `false` with `onMismatch: output`.
+  - e.g. `with: {"payload":"raw","signature":"sig","secret":"shop.record.data.paymentSecret"}`
 - state.read — Recall a saved value · key* → string, or string[] for an append or union cell
 - state.write — Save a value for later · value* key* op* → string
 
