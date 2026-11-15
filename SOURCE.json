@@ -1,7 +1,8 @@
 {
-  "source": "5d33a3484d1f66258a4d3b12c532bc38e72af170",
+  "source": "9d264ed6432d760d83aff8e79833642365731ce2",
   "since": "2026-08-19",
   "history": [
+    {"sha":"9d264ed6432d","skills":"The primer says record.query orders by creation oldest first too, and that a flow clears a field with a fixed null (#3752)"},
     {"sha":"5d33a3484d1f","skills":"The engine reads time from one injected clock, route tests load the app once per file, an organization switches its connection's daily tests from the page, and an endpoint run is charged once and closed once per attempt (engine-hardening follow-ups, round 2) (#3748)"},
     {"sha":"aef00dc9b79f","skills":"record.query orders by creation oldest first too, a record.update merge clears a field with a fixed null, and five refusals say what is true with the edit that clears them (tidy-up) (#3751)"},
     {"sha":"73da2b513265"},
@@ -1000,7 +1001,6 @@
     {"sha":"c8e4364c8ba6"},
     {"sha":"d6a750a1057e"},
     {"sha":"e048822c2886"},
-    {"sha":"53046b00db67"},
-    {"sha":"792906aa160e"}
+    {"sha":"53046b00db67"}
   ]
 }
