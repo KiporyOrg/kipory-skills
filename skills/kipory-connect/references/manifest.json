@@ -1432,7 +1432,7 @@
       "page": "kipory-gather/references/api/connections.md"
     },
     "PATCH /v1/nodes/{nodeId}/connections/{slug}/daily-tests": {
-      "hash": "a1b54fdf706b",
+      "hash": "88ff2499d52b",
       "page": "kipory-gather/references/api/connections.md"
     },
     "PATCH /v1/nodes/{nodeId}/members/{userId}": {

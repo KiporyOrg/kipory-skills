@@ -302,7 +302,7 @@ Check the connection's source now, as the daily check does: it is read again and
 
 ### `PATCH /v1/nodes/{nodeId}/connections/{slug}/daily-tests`
 
-Switch the connection's daily tests on or off, with its lock: once a day each reading function is called on your own account at the source, and a change in its answer is shown on the connection. Off until you turn them on; a function that sends is never tested (422). ADMIN at the organization.
+Switch the connection's daily tests on or off, with its lock: once a day each reading function is called on your own account at the source, and a change in its answer is shown on the connection. Off until you turn them on; a function that sends is never tested. 422 when `input` names a function that sends or one the connection does not serve, on or off; turning them on is also refused (422) when nothing would be tested. ADMIN at the organization.
 
 **Path parameters**
 
