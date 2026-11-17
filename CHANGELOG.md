@@ -2,6 +2,18 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261117.100949 — 2026-11-17
+
+Synced from the Kipory monorepo at `6606dc88c`.
+
+- changed: `skills/kipory-build/references/answers.md`
+- changed: `skills/kipory-build/references/endpoint-answers.md`
+- changed: `skills/kipory-build/references/functions/url.fetch.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+
 ## 1.20261117.34546 — 2026-11-17
 
 Synced from the Kipory monorepo at `88e1efad3`.

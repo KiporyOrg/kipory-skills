@@ -10,7 +10,7 @@ Reads JSON, plain text or an XML feed. A 4xx answer fails the step; its failure 
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
 - **Also found as:** http, api call, json, rest api, get request, download text
-- **Reads:** One URL to fetch. Anything that is not `http` or `https`, resolves to a private address, or does not resolve at all is refused as a blocked request. _(shape hint: `string`)_
+- **Reads:** One `http` or `https` URL; another scheme, or a private or unresolvable address, is a blocked request. The answer is reused for a day; to poll, set `reuseResultsForMinutes: 0`. _(shape hint: `string`)_
 - **Emits:** The body as text, or parsed: an object under `json`, a list of objects under `json-list`. Empty, with a warning, on no URL or a 5xx; a 4xx fails.
 - **Softens these failures:** `error` — the step does not fail: the run's warnings carry the code with the step's key, and the step may give nothing (`checking.md` §6).
 - **Inputs (`with`):** `url`
