@@ -88,6 +88,8 @@ Create one endpoint: a method and path under the project's host, bound to a flow
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `contractChanges` | `object[]` | no | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `permissions` | `object` | no | What the caller's role lets the write do. |
 | `derived` | `object` | no | What the write WOULD have computed, derived from the draft by the same functions a read derives them from for a stored row. Present whenever the body was coherent enough to compute them, which is not the same as `ok`. ⚠️ BOTH ARE SNAPSHOTS: `resolutionRank` is a position among the project's OTHER endpoints and a sibling saved first moves it, and `access` is re-derived inside the write's own transaction from the bound flow as it stands then. |
 
 Each item of `diagnostics`:
@@ -98,6 +100,17 @@ Each item of `diagnostics`:
 | `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
 
 **Response `201`**
 
@@ -177,7 +190,7 @@ Each item of `partiallyShadowedBy`:
 
 ### `PATCH /v1/api-endpoints/{id}`
 
-Change one endpoint: its contract (method, path, parameters) and its target, both replaced whole; the key is permanent. Saving re-snapshots the bound flow's signature, which is how drift is cleared. Setting `contractConfig.auth` to `"none"` makes it public under the rules `POST /v1/api-endpoints` states; setting it back to `"required"` takes effect on the next request. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be refused and what it would publish (`derived`), writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Change one endpoint: its contract (method, path, parameters) and its target, both replaced whole; the key is permanent. Saving re-snapshots the bound flow's signature, which is how drift is cleared. Setting `contractConfig.auth` to `"none"` makes it public under the rules `POST /v1/api-endpoints` states; setting it back to `"required"` takes effect on the next request. A save that changes what the endpoint's callers send or read — a parameter, a setting such as `headers` or `responseBody`, or another flow — answers each change in `contractChanges`; one that breaks them is refused (409) until `acceptBreaks` names the endpoint, and only an admin of the project may accept (403 otherwise). Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be refused, what it would publish (`derived`) and what it changes for callers (`contractChanges`), writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -192,6 +205,7 @@ Change one endpoint: its contract (method, path, parameters) and its target, bot
 | `version` | `integer` | yes | The `version` you last read. REQUIRED here: both configs are replaced wholesale, so a blind write would silently discard a concurrent edit. A mismatch is refused with 409. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 | `contractConfig` | `object` | yes | The request contract of a dynamic endpoint: method + path template + declared parameters. Unknown keys are rejected (422). |
 | `targetConfig` | `object` | yes | The executable target to bind, discriminated on `kind`: flow.invoke (run a flow, buffered output), flow.stream (run a flow, SSE), or events.subscribe (stream registry events, SSE). A flow-backed target names its flow by id only — the save reads the flow's key and snapshots its signature authoritatively, so neither is accepted here. Unknown keys are rejected (422). |
+| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints and tables named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
@@ -219,6 +233,8 @@ Shape 1, with `id`, `project`, `key`, `contractConfig`, `targetConfig`, `invokeU
 | `flowLabel` | `object \| null` | no | `expand=flowLabel` — the bound flow's current id, key and label. Null when the target is not flow-backed or the flow cannot be resolved. Absent unless asked for. |
 | `shadowedBy` | `object \| null` | no | `expand=shadowed` — the platform route that has grown over this endpoint's method and path shape, which means YOUR ENDPOINT IS NOT BEING SERVED: the platform route wins the match and the request never reaches you. Re-path the endpoint to fix it. Unlike `signatureDrift`, null here is a real answer and never means undetermined — nothing shadows this endpoint. Absent unless asked for. |
 | `partiallyShadowedBy` | `object[]` | no | `expand=shadowed` — platform routes that take ONE value of a parameter in your path, so your endpoint never receives that value. Empty when none does. Absent unless asked for. A path whose first segment is a parameter is the usual case: it saves, and platform routes under that parameter take their values first. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
 
 Each item of `partiallyShadowedBy`:
 
@@ -228,14 +244,28 @@ Each item of `partiallyShadowedBy`:
 | `path` | `string` | yes | The platform route's path template. It may LOOK different from yours and still collide: matching ignores parameter names, so `/v1/keys/{apiKeyId}` collides with `/v1/keys/{id}`. |
 | `group` | `string` | yes | Which part of the platform took the path. |
 
-Shape 2, with `ok`, `diagnostics`, `complete`:
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`, `permissions`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `permissions` | `object` | yes | What the caller's role lets the write do. |
 | `derived` | `object` | no | What the write WOULD have computed, derived from the draft by the same functions a read derives them from for a stored row. Present whenever the body was coherent enough to compute them, which is not the same as `ok`. ⚠️ BOTH ARE SNAPSHOTS: `resolutionRank` is a position among the project's OTHER endpoints and a sibling saved first moves it, and `access` is re-derived inside the write's own transaction from the bound flow as it stands then. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
 
 Each item of `diagnostics`:
 
@@ -245,6 +275,17 @@ Each item of `diagnostics`:
 | `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
 
 ### `DELETE /v1/api-endpoints/{id}`
 

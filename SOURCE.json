@@ -1,7 +1,11 @@
 {
-  "source": "6606dc88cf02588cfa93a1a8fc9aab458ea7f7e3",
+  "source": "5e2fad4e7dfba42b7b51fc69c7cfb810f072b063",
   "since": "2026-08-19",
   "history": [
+    {"sha":"5e2fad4e7dfb","skills":"A design write that reaches a bound endpoint or table is judged by one contract check and a break needs an admin's acceptBreaks, and the save judges a repeat's next and a default's reads (436 slice 1, BMS package F) (#3764)"},
+    {"sha":"1c98c21ee6cb"},
+    {"sha":"c79eeb7ca7d4"},
+    {"sha":"f4e6989938a1"},
     {"sha":"6606dc88cf02","skills":"A replayed call whose key a twin took after its own empty lookup runs again and answers the record, the skills say to answer the record on keyTaken, and four small now2 gaps close (rule K) (#3762)"},
     {"sha":"88e1efad3131","skills":"A builder can rename a flow's inputs and outputs, have the texts a rename leaves rewritten, read each step's names in sight, and is told when a step reads a field its type cannot hold (BMS format-11 gaps, packages A–D, spec 436) (#3760)"},
     {"sha":"595895c10b5d","skills":"A shipped file no longer undoes someone else's edit unseen, an endpoint leaves out what the engine can work out, and the presence proof credits more expressions and names the real cause (#3759)"},
@@ -997,10 +1001,6 @@
     {"sha":"fadb89327eec"},
     {"sha":"7e89a7ba9636"},
     {"sha":"063eda2b78ef"},
-    {"sha":"655eeea3ce5e"},
-    {"sha":"d1cd20b3aaba"},
-    {"sha":"9b6e57ff3c4e"},
-    {"sha":"79755aa29192"},
-    {"sha":"edd402ed6b6e"}
+    {"sha":"655eeea3ce5e"}
   ]
 }

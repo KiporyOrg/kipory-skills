@@ -379,17 +379,24 @@ The exception is the owned collections (a flow's `steps`, a suite's `cases`, a r
 vocabulary's `terms`): each is stated whole, so when present it replaces the owner's collection —
 and a member the project holds that the collection no longer names is REMOVED, which makes that
 document one that removes something, with the ADMIN floor an apply that removes has.
-A type or a flow may also carry `adoptSnapshots: true`. Endpoints, and tables through their
-processing flow, FREEZE the types they bind (schedules and triggers freeze nothing), so an edit that
-changes one is refused by the row's own write, naming what it would leave behind, unless you grant
-this. A document does not get to assume it: adopting re-publishes an endpoint's request and response
-contract to whoever already calls that route. It is a statement about this apply, like `delete` —
-never part of the row, never exported.
+The document may carry `acceptBreaks: { endpoints: [...], tables: [...] }` once, at its top level
+beside `kipory`, never on a row. The plan compares every endpoint and flow-backed table the document
+reaches before and after the whole document, and answers `contractChanges`: each one whose
+contract moves, by key, its `verdict` (`safe` or `breaking`), each change and `mustAccept`. A
+document that breaks an endpoint and repairs it in the same apply is no change. A safe change
+applies unasked; a breaking one is an error finding until `acceptBreaks` names that endpoint or
+table, because accepting re-publishes its request and response contract to whoever already calls
+it. Only an admin of the project may accept: the plan answers `permissions.mayAcceptBreaks`, and a
+breaking document planned below admin carries `CONTRACT_BREAK_FORBIDDEN` (an admin may still apply
+that plan). An admin's plan that does not name a breaking row carries `CONTRACT_BREAK_NOT_ACCEPTED`;
+a name that is no row is `VALIDATION_FAILED` on its path; a name the document does not break is
+listed in `acceptBreaksNotNeeded`. Like `delete`, it is a statement about this apply — never
+stored, never exported.
 
 A type's row may carry `renameFields` (`{"<old path>": "<new name>"}`) beside its definition as it
 reads after the rename, `keepExpressions`, the steps whose expressions or templates keep the
 old name as written, and `rewriteExpressions`, the steps whose expressions or templates take the
-text the plan proposes. All three are statements about this apply, like `adoptSnapshots`: never
+text the plan proposes. All three are statements about this apply, like `acceptBreaks`: never
 stored, never exported. The plan answers `renames[]`: what moves, the expression candidates to settle, the
 callers it breaks, and `cost` — a rename calls no model and is not charged, and embeds nothing unless
 `reembedRecords` says a table's search text names its own key. A swap or a chain (`a`→`b` with
@@ -403,7 +410,7 @@ the input or output: the reads in the flow's own steps and the keys of its `retu
 bindings and settings of the endpoints bound to it, the stored `inputs` of its schedules and
 triggers, its eval cases, and the checkpoints of the flow and of its callers. A row you restate
 under the old name is moved too; a row you change is written in the words you state. An endpoint
-bound to the flow holds a copy of its signature, so the row also carries `adoptSnapshots: true`.
+whose callers meet the old name breaks, so the document's `acceptBreaks` names it.
 Where a calling flow passes the call's whole value on, an occurrence of an output's old name left
 in an expression, a template or a path of that flow is a candidate: change it in the document, or
 name its step in the flow row's `keepExpressions` or (an expression or a template)
@@ -470,9 +477,9 @@ The answer holds the `version` the plan was computed against, its `planId` and `
   `POST /v1/flows/{id}/steps/edit` once the flow exists), or, when there is no ready fix, the
   `decision` it needs from you. Any other finding may carry `fixes` too, each
   `{title, set: [{field, value}]}`: set each `value` at its `field` — a path in your document, in
-  the same form as the finding's own `field`; `value: null` removes it — and plan again. A flow
-  whose signature an endpoint captured carries `set flows.<key>.adoptSnapshots → true`, which
-  re-publishes that endpoint's contract to its callers; a required flow input bound to an
+  the same form as the finding's own `field`; `value: null` removes it — and plan again. A break
+  not accepted carries `set acceptBreaks → {endpoints, tables}` naming every breaking row, which
+  re-publishes those contracts to their callers: read `contractChanges` first. A required flow input bound to an
   optional query parameter carries `set …params.<name>.required → true`. A finding with no `fixes`
   says in its message what to decide.
 - `consequences` — what the change does to stored data, with counts measured in the planning
@@ -499,6 +506,10 @@ The answer holds the `version` the plan was computed against, its `planId` and `
   and the plan's `renames[]` says what else moves and what it breaks. A `filter`
   use added, removed or moved reports `restamp` — every record's filter columns are rewritten — and
   on a searchable table it also queues a `reindex` that embeds nothing.
+- `contractChanges` — every endpoint and table whose callers would meet a change, with each change
+  (its side, path, before and after, verdict, rule and message), the row's `verdict` and
+  `mustAccept`; beside it `acceptBreaksNotNeeded` and `permissions.mayAcceptBreaks`. A row marked
+  `mustAccept` refuses the apply until the top-level `acceptBreaks` names it.
 - `ok` — true exactly when no `error` the document introduces remains; an error carrying
   `introduced: false` was already in the project and does not gate. An apply of the same document
   commits exactly when this is true.

@@ -55,7 +55,7 @@ A plan is not a simulation: the platform applies the document through every row'
 - **The plan judges every flow with the save's own proof** (`checking.md` §1): a finding's `fixes[].edit` is the change to make in your file — the same edits `POST /v1/flows/{id}/steps/edit` takes once the flow exists.
 - **Re-applying an unchanged document, or its export, changes no step.**
 - **A flow's new signature is judged against the steps the same document gives it**, so retyping an input and changing its readers is one apply.
-- **A signature or type change that live dependents hold needs its grant on the row that changes**: `adoptSnapshots: true` on the flow's row for a signature change, and on the `types.<Name>` row for a type edit refused `TYPE_RESHAPES_BOUND_SNAPSHOTS` (`kipory-evolve`). A change that only adds optional fields (or a new output) needs none: the plan adopts it and says so (`DOCUMENT_ADOPTED_ADDITIVE`).
+- **A change that breaks an endpoint's or a table's callers is accepted once, at the document's top level**: `acceptBreaks: { endpoints: [...], tables: [...] }`, naming each row the plan's `contractChanges` marks `mustAccept`, by key — never on a flow's or a type's row. Only an admin of the project may accept (`CONTRACT_BREAK_FORBIDDEN` below it); without it the plan refuses `CONTRACT_BREAK_NOT_ACCEPTED`, with a fix that sets it. A safe change (a label, an optional field or a new output) needs none (`kipory-evolve`).
 - **A flow with no steps yet does not start** (`FLOW_NOT_AUTHORED`). A document may state a flow with `steps: []`; write its steps and plan again.
 
 ## The document loop, route by route

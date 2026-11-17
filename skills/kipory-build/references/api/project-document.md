@@ -42,6 +42,7 @@ Public: no credential needed.
 | `flows` | `object` | no | Flows keyed by key, each with its steps, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `surfaces` | `object` | no | Entry points. |
 | `evals` | `object` | no | Eval suites keyed by key, each with its cases, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `acceptBreaks` | `object` | no | Accept that this document breaks the callers of the endpoints and tables named here, by key — once for the whole document, never on a row. Needed for every `breaking` row of the plan's `contractChanges`; only an admin of the project may apply one. A statement about this plan and its apply, never part of the project: the export never writes it. |
 
 ### `GET /v1/project-document/schema`
 
@@ -91,7 +92,7 @@ Each item of `warnings`:
 
 ### `POST /v1/projects/{nodeId}/document`
 
-Apply a kept plan: `{planId, note}`, the plan from `POST …/document/plan` with `basedOn`. Every row it changes is created, changed or removed through that row's own write, as one history action carrying your note. Refused, nothing changes: 409 `VERSION_CONFLICT` when someone else changed an element the plan changes after your read (`details.moved` says who and what — read again, plan again); 409 `PLAN_STALE` when the plan no longer says what applying it would do; 404 `PLAN_UNKNOWN` for a plan applied, expired or unknown; 422 `VALIDATION_FAILED` with the plan under `details.plan` when the re-plan finds an error it introduces; 409 `DESIGN_BUSY` with `Retry-After` when another write holds the project or a row it needs — send the same request again after it. The answer carries no document: read it with `GET …/document`, and plan your next change from the answered `basedOn`. For one row, call its own write instead (`PATCH /v1/flows/{id}`, `POST /v1/flows/{id}/steps/edit`, …).
+Apply a kept plan: `{planId, note}`, the plan from `POST …/document/plan` with `basedOn`. Every row it changes is created, changed or removed through that row's own write, as one history action carrying your note. Refused, nothing changes: 409 `VERSION_CONFLICT` when someone else changed an element the plan changes after your read (`details.moved` says who and what — read again, plan again); 409 `PLAN_STALE` when the plan no longer says what applying it would do; 404 `PLAN_UNKNOWN` for a plan applied, expired or unknown; 422 `VALIDATION_FAILED` with the plan under `details.plan` when the re-plan finds an error it introduces; 409 `DESIGN_BUSY` with `Retry-After` when another write holds the project or a row it needs — send the same request again after it; 403 `CONTRACT_BREAK_FORBIDDEN` when the plan breaks an endpoint's or a table's callers and you are not an admin of the project (an admin may apply the same plan). A plan whose `acceptBreaks` does not name every break, or names what the project does not have, applies nothing: it is the 422 with the plan. The answer carries no document: read it with `GET …/document`, and plan your next change from the answered `basedOn`. For one row, call its own write instead (`PATCH /v1/flows/{id}`, `POST /v1/flows/{id}/steps/edit`, …).
 
 **Path parameters**
 
@@ -125,6 +126,8 @@ Apply a kept plan: `{planId, note}`, the plan from `POST …/document/plan` with
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |
 | `counts` | `object` | yes | `changes` counted by kind. |
 | `renames` | `object[]` | no | Every rename the document states — a table, relation or vocabulary under a new key, a type's `renameFields`, or a flow's `renameInputs` / `renameOutputs` — with what it rewrites and what callers see move. On a plan and on an apply answer. Absent when the document renames nothing. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
 | `permissions` | `object` | no | What the caller's role lets an apply of this document do. |
 | `applied` | `true` | yes | The plan is now the project's configuration. Also true when it changed nothing — nothing was written, and the project already says what the document says. |
 | `appliedVersion` | `string` | yes | The project's structure version after the apply and the writes it owed after its commit (seeding or relabelling a vocabulary's terms, each a version of its own): above `version` when anything moved — by more than one when such writes ran — and equal to it when nothing did. When someone else's write landed among those, it is the apply's own version. |
@@ -201,9 +204,20 @@ Each item of `renames`:
 | `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
 | `cost` | `object` | yes | What the rename spends. Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
 
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+
 ### `POST /v1/projects/{nodeId}/document/plan`
 
-What applying this document would change — the rows that change, each update field by field — and how the health of the flows it reaches moves; nothing in the project is written. It binds to the read you made the document from: `basedOn` from the query, else the `basedOn` the export wrote into the document as `<nodeId>@<version>` (a plan you mean to apply needs one, or it is a 422 — except on a project still as created, whose export states nothing but its own name, description and routes, where it binds to the version it was planned on). A document read from another project is refused 422 `VALIDATION_FAILED` with `details.reason` `BASED_ON_OTHER_PROJECT`, naming both projects; to apply it here, plan it with this project's current version as `?basedOn=<version>`. Elements it changes that someone else changed after that read are listed under `moved`, with who, why and what, and make `ok` false. The answer's `planId` is what you apply with `POST /v1/projects/{nodeId}/document`, and `GET …/document/plans/{planId}` reads it back. `keep=false` plans a preview and keeps nothing. A read older than the history the project keeps is 409 `PLAN_STALE`. A row the plan rehearses held by another write for more than a second, or more plans of the project at once than it works out together, is 409 `DESIGN_BUSY` with `Retry-After`: your read is still good, send the same plan again after it. A caller who may not apply (below EDITOR) gets what the document would change and `DOCUMENT_APPLY_FORBIDDEN`, not rehearsed or judged. To change one row, its own write is simpler (`PATCH /v1/flows/{id}`, `POST /v1/flows/{id}/steps/edit`, …), and each takes `validateOnly` for the same kind of dry run on that one row; pick this when several rows must change together and be judged as one.
+What applying this document would change — the rows that change, each update field by field — and how the health of the flows it reaches moves; nothing in the project is written. It binds to the read you made the document from: `basedOn` from the query, else the `basedOn` the export wrote into the document as `<nodeId>@<version>` (a plan you mean to apply needs one, or it is a 422 — except on a project still as created, whose export states nothing but its own name, description and routes, where it binds to the version it was planned on). A document read from another project is refused 422 `VALIDATION_FAILED` with `details.reason` `BASED_ON_OTHER_PROJECT`, naming both projects; to apply it here, plan it with this project's current version as `?basedOn=<version>`. Elements it changes that someone else changed after that read are listed under `moved`, with who, why and what, and make `ok` false. The answer's `planId` is what you apply with `POST /v1/projects/{nodeId}/document`, and `GET …/document/plans/{planId}` reads it back. `keep=false` plans a preview and keeps nothing. A read older than the history the project keeps is 409 `PLAN_STALE`. A row the plan rehearses held by another write for more than a second, or more plans of the project at once than it works out together, is 409 `DESIGN_BUSY` with `Retry-After`: your read is still good, send the same plan again after it. A caller who may not apply (below EDITOR) gets what the document would change and `DOCUMENT_APPLY_FORBIDDEN`, not rehearsed or judged. The plan lists in `contractChanges` every endpoint and table whose callers' contract the document changes, judged once over the state it leaves; a break the document's top-level `acceptBreaks` does not name is a `CONTRACT_BREAK_NOT_ACCEPTED` finding, a break by a caller below ADMIN is a `CONTRACT_BREAK_FORBIDDEN` finding whatever it names, a name the project does not have is a `VALIDATION_FAILED` finding, and `permissions.mayAcceptBreaks` says whether you may accept. To change one row, its own write is simpler (`PATCH /v1/flows/{id}`, `POST /v1/flows/{id}/steps/edit`, …), and each takes `validateOnly` for the same kind of dry run on that one row; pick this when several rows must change together and be judged as one.
 
 **Path parameters**
 
@@ -241,6 +255,8 @@ _No fields._
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |
 | `counts` | `object` | yes | `changes` counted by kind. |
 | `renames` | `object[]` | no | Every rename the document states — a table, relation or vocabulary under a new key, a type's `renameFields`, or a flow's `renameInputs` / `renameOutputs` — with what it rewrites and what callers see move. On a plan and on an apply answer. Absent when the document renames nothing. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
 | `permissions` | `object` | no | What the caller's role lets an apply of this document do. |
 
 Each item of `changes`:
@@ -315,6 +331,17 @@ Each item of `renames`:
 | `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
 | `cost` | `object` | yes | What the rename spends. Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
 
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+
 ### `GET /v1/projects/{nodeId}/document/plans/{planId}`
 
 A plan kept by `POST …/document/plan`, as it answered, with whether it was applied and when it expires — for a reviewer reading what an agent planned. Apply it with `POST /v1/projects/{nodeId}/document` and its `planId`.
@@ -344,6 +371,8 @@ A plan kept by `POST …/document/plan`, as it answered, with whether it was app
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |
 | `counts` | `object` | yes | `changes` counted by kind. |
 | `renames` | `object[]` | no | Every rename the document states — a table, relation or vocabulary under a new key, a type's `renameFields`, or a flow's `renameInputs` / `renameOutputs` — with what it rewrites and what callers see move. On a plan and on an apply answer. Absent when the document renames nothing. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
 | `permissions` | `object` | no | What the caller's role lets an apply of this document do. |
 | `state` | `"open" \| "applied"` | yes | `open` until it is applied; an applied plan cannot be applied again. |
 | `plannedBy` | `string` | yes | Who planned it: `user:<id>`, `key:<id>`. |
@@ -421,6 +450,17 @@ Each item of `renames`:
 | `exposures` | `object[]` | yes | What callers of this project see change. Every kind that applies is listed, on the plan and on the apply answer. |
 | `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
 | `cost` | `object` | yes | What the rename spends. Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
 
 ### `GET /v1/projects/{nodeId}/document/summary`
 

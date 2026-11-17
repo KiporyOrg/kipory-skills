@@ -615,6 +615,17 @@ is about every path read, required or not.
 | `CALL_INPUT_MISSING`             | error    | a `flow.invoke` leaves out a required input of the called flow                                                                                                  |
 | `CONDITION_EQUALS_NULL`          | error    | a test compares with `{literal: null}`                                                                                                                          |
 
+The three codes for a name out of sight (and `PARALLEL_READS_SIBLING`, a `parallel` child reading a
+sibling) are raised in a `repeat`'s `next` and in a `default` too, whether or not the `default` is
+ever used. A `next` that reads a name nothing gives would give nothing, so its var would hold
+nothing from that pass on. A flow that already holds such a read in a `next`, or in a `default`
+whose own read is always there or is itself refused, carries the code's `_STORED` form
+(`STEP_READS_UNKNOWN_STORED` and its like): a warning, which stays one while the read stands where
+it stood, whichever other step a save changes and even when that changes why the name is out of
+sight (the step it names moved into a block). A write that brings a new such read is refused under
+the error's code, and so is one that makes the run use such a `default` outside a `next` (the step
+its own read names switched off). `GET /v1/flows/{id}?include=scope` lists the names in sight at each of those places.
+
 `STEP_READS_NO_SUCH_FIELD` is raised where a field is read as a path, whatever the read's
 tolerance: a step input, a prompt's `{{placeholder}}`, a test (an `if`'s, a `repeat`'s), a `return`,
 an `out`, an `each`'s list. A read inside an expression is not judged by it (the expression rules
@@ -754,16 +765,22 @@ bigger than a batch of edits.
   now, send the new `version`. Do not retry blind: edits are not idempotent.
 
 The flow's label, description and signature change with `PATCH /v1/flows/{id}` (also with its
-`version`). Changing the inputs or outputs re-proves every step; a signature an endpoint or schedule
-froze is refused unless you send `adoptSnapshots: true`, which re-publishes that endpoint's contract.
+`version`). Changing the inputs or outputs re-proves every step, and is checked for every endpoint
+and table over the flow: the answer's `contractChanges` lists what their callers would meet. A safe
+change (an optional input, a new output, a label) saves; a breaking one (a required input added, an
+output removed, a type changed) is refused `409 CONTRACT_BREAK_NOT_ACCEPTED` until an admin of the
+project names each broken endpoint or table in `acceptBreaks: {endpoints, tables}`, and
+`403 CONTRACT_BREAK_FORBIDDEN` for anyone below admin. Rehearse it with `validateOnly: true` and read
+`contractChanges` first (Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)).
 
 To give an input or an output a NEW NAME, do not restate the map under the new name (that is a
 removal plus an addition, and every reader of the old name is refused). Send `renameInputs` or
 `renameOutputs` (`{"<old name>": "<new name>"}`) on the same PATCH, with ADMIN: the write moves the
 flow's own reads and `return` keys, the key under `inputs` in each call of the flow and every
 `<call>.<output>` read, the endpoints, schedules, triggers and eval cases over the flow, and
-answers each place under `renames[].references`. An endpoint bound to the flow also needs
-`adoptSnapshots: true`. A calling flow that passes the call's whole value on leaves candidates
+answers each place under `renames[].references`. An endpoint whose callers meet the old name (a
+body field, an answer key) breaks, so name it in `acceptBreaks`; a query parameter keeps its name
+and breaks nothing. A calling flow that passes the call's whole value on leaves candidates
 (in expressions, templates and paths) you settle with `keepExpressions` or `rewriteExpressions`,
 and so does an eval assertion that reads the run's values (its output, or the inputs) through a filter or
 whole (kept as `<suite>.<case>`).
@@ -824,9 +841,12 @@ is not a healthier flow. `ok: true` is a snapshot, not a promise: another write 
   The save's own check answers it, so do not work it out from the steps. A name listed for a step is
   in sight there: no read is refused there because that name is unknown, written below, held inside
   another block or a `parallel` sibling. A name not listed is out of sight there, and the check
-  refuses a read of it wherever it checks one; it does not check what a `repeat`'s `next` reads, a
-  default behind a value that is always there, or the `out` of a list that always ends in a `return`
-  or a `fail`. Each entry is `{stepKey, baseKey, adds, parts}`,
+  refuses a read of it in a step, a test, an `out`, a `repeat`'s first vars, its `next` and its
+  `until`, and in a `default` whether or not it is ever used. It does not read: a switched-off
+  step; a step written after a `return` or a `fail` ended its list; the `out` of a list that always
+  ends in one; the `next` of a `repeat` whose steps always end in one; and, in a `parallel` with a
+  child that always ends in one, the children written after that child and the block's `out`. Each
+  entry is `{stepKey, baseKey, adds, parts}`,
   and lists only what the step adds: its names are its `baseKey` step's names (the nearest step above
   it in its list that has an entry, or the block it sits in; `null` when `adds` holds every name, as
   for the flow's first step), then its own `adds`, each

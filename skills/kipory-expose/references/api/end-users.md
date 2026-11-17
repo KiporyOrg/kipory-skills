@@ -339,7 +339,7 @@ The type that shapes the project's end-user profiles, or none. Connect one with 
 
 ### `PUT /v1/projects/{nodeId}/profile-schema`
 
-Connect a type as the project's end-user profile type, or re-point to another (refused once profiles exist). Requires the lock your last `GET` answered — its `dataTypeId` as `connectedDataTypeId`, and its `version` (both null when nothing was connected): a change made since answers 409 `VERSION_CONFLICT` and changes nothing. To create a new type from the platform's starter shape instead, `POST /v1/projects/{nodeId}/profile-schema/starter`.
+Connect a type as the project's end-user profile type, or re-point to another (refused once profiles exist). Requires the lock your last `GET` answered — its `dataTypeId` as `connectedDataTypeId`, and its `version` (both null when nothing was connected): a change made since answers 409 `VERSION_CONFLICT` and changes nothing. To create a new type from the platform's starter shape instead, `POST /v1/projects/{nodeId}/profile-schema/starter`. A connect, re-point or disconnect changes `UserInfo`, so it changes what the callers of an endpoint or table bound to a flow typed by `UserInfo` send or read: the answer lists each change in `contractChanges`, and one that breaks them is refused (409 `CONTRACT_BREAK_NOT_ACCEPTED`) until `acceptBreaks` names each broken endpoint or table — only an admin of the project may accept (403 `CONTRACT_BREAK_FORBIDDEN` otherwise).
 
 **Path parameters**
 
@@ -354,6 +354,7 @@ Connect a type as the project's end-user profile type, or re-point to another (r
 | `dataTypeId` | `string` | yes | Type to connect as the project's end-user profile shape. Must be an operator-owned, profile-eligible type (else 422), and must match the current one once profiles exist (else 409). |
 | `connectedDataTypeId` | `string \| null` | yes | The `dataTypeId` your last `GET` on this path answered, or null when nothing was connected. If another type was connected since, the save answers 409 `VERSION_CONFLICT` and changes nothing. |
 | `version` | `integer \| null` | yes | The `version` your last `GET` on this path answered — the connected type's version, or null when nothing was connected. If the connection or that type changed since, the save answers 409 `VERSION_CONFLICT` and changes nothing — re-read and try again. |
+| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints and tables named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
 
 **Response `200`**
 
@@ -365,16 +366,35 @@ Connect a type as the project's end-user profile type, or re-point to another (r
 | `definition` | `unknown` | no | The connected type's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
 | `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected type's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
 | `hasUserProfiles` | `boolean` | yes | Whether end-user profiles already exist. When true the connection is PINNED: connecting a different type is refused with 409, because stored profiles were seeded from the current one. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
 
 ### `DELETE /v1/projects/{nodeId}/profile-schema`
 
-Disconnect the project's end-user profile type — the type itself is kept, and new end users stop getting a seeded profile. Answers what went away and the profile schema as it stands now. To re-point it instead, `PUT /v1/projects/{nodeId}/profile-schema`; to start from the platform's suggestion, `POST …/profile-schema/starter`.
+Disconnect the project's end-user profile type — the type itself is kept, and new end users stop getting a seeded profile. Answers what went away and the profile schema as it stands now. To re-point it instead, `PUT /v1/projects/{nodeId}/profile-schema`; to start from the platform's suggestion, `POST …/profile-schema/starter`. The optional body takes `acceptBreaks`. A connect, re-point or disconnect changes `UserInfo`, so it changes what the callers of an endpoint or table bound to a flow typed by `UserInfo` send or read: the answer lists each change in `contractChanges`, and one that breaks them is refused (409 `CONTRACT_BREAK_NOT_ACCEPTED`) until `acceptBreaks` names each broken endpoint or table — only an admin of the project may accept (403 `CONTRACT_BREAK_FORBIDDEN` otherwise).
 
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints and tables named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
 
 **Response `200`**
 
@@ -383,10 +403,23 @@ Disconnect the project's end-user profile type — the type itself is kept, and 
 | `id` | `string` | yes | The project whose profile type was disconnected (its id). |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `profileSchema` | `object` | yes | The project's profile schema after the disconnect — what `GET …/profile-schema` now answers. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
 
 ### `POST /v1/projects/{nodeId}/profile-schema/starter`
 
-Create a new profile type from the platform's starter shape under the name you give, and connect it (refused once profiles exist). Takes the same lock as `PUT` — the `dataTypeId` your last `GET` answered as `connectedDataTypeId`, and its `version` (both null when nothing was connected): a change made since answers 409 `VERSION_CONFLICT` and creates nothing. To connect a type you already have, `PUT /v1/projects/{nodeId}/profile-schema`.
+Create a new profile type from the platform's starter shape under the name you give, and connect it (refused once profiles exist). Takes the same lock as `PUT` — the `dataTypeId` your last `GET` answered as `connectedDataTypeId`, and its `version` (both null when nothing was connected): a change made since answers 409 `VERSION_CONFLICT` and creates nothing. To connect a type you already have, `PUT /v1/projects/{nodeId}/profile-schema`. A connect, re-point or disconnect changes `UserInfo`, so it changes what the callers of an endpoint or table bound to a flow typed by `UserInfo` send or read: the answer lists each change in `contractChanges`, and one that breaks them is refused (409 `CONTRACT_BREAK_NOT_ACCEPTED`) until `acceptBreaks` names each broken endpoint or table — only an admin of the project may accept (403 `CONTRACT_BREAK_FORBIDDEN` otherwise).
 
 **Path parameters**
 
@@ -401,6 +434,7 @@ Create a new profile type from the platform's starter shape under the name you g
 | `key` | `string` | yes | The new type's key. Required. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
 | `connectedDataTypeId` | `string \| null` | yes | The `dataTypeId` your last `GET` on `…/profile-schema` answered, or null when nothing was connected. If another type was connected since, the request answers 409 `VERSION_CONFLICT` and creates nothing. |
 | `version` | `integer \| null` | yes | The `version` your last `GET` on `…/profile-schema` answered, or null when nothing was connected. If the connection or that type changed since, the request answers 409 `VERSION_CONFLICT` and creates nothing — re-read and try again. |
+| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints and tables named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
 
 **Response `200`**
 
@@ -412,6 +446,19 @@ Create a new profile type from the platform's starter shape under the name you g
 | `definition` | `unknown` | no | The connected type's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
 | `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected type's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
 | `hasUserProfiles` | `boolean` | yes | Whether end-user profiles already exist. When true the connection is PINNED: connecting a different type is refused with 409, because stored profiles were seeded from the current one. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
 
 ### `GET /v1/test-users`
 

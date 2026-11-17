@@ -86,6 +86,9 @@ Create a type — a JSON Schema document other rows (tables, event types, config
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports, judged by the same gate: an introduced error makes `ok` false. Absent when the dry run did not rehearse — a draft its planner refused, or a stale `version`. |
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
+| `contractChanges` | `object[]` | no | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `permissions` | `object` | no | What the caller's role lets the write do. |
 | `renames` | `object[]` | no | Present when the checked patch renames (a new `key`, `renameFields`, or a flow's `renameInputs` / `renameOutputs`): what the write would move, the expression candidates and how each is resolved, and every external caller it would break. Absent when it renames nothing. |
 | `derived` | `object` | no | What the write would compute. Present whenever the dry run could read the definition, refused or not. |
 
@@ -118,6 +121,17 @@ Each item of `consequences`:
 | `rows` | `integer` | yes | How many stored rows are affected; on `flows-affected`, how many flows. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
 
 Each item of `renames`:
 
@@ -174,7 +188,7 @@ Read one of a project's own types by id. What references it, whether it can be a
 
 ### `PATCH /v1/types/{id}`
 
-Update one type's key, description or definition, or with `declare` one keyword on one field of it (what a flow save's type fix sends). `renameFields` renames fields: every record of every table built on the type keeps its id and moves to the new name, with every setting that names the field, in one transaction; it needs ADMIN, and the answer lists what moved, the expressions to change, keep (`keepExpressions`) or have rewritten to the proposed text (`rewriteExpressions`), and what breaks (`renames[]`). An edit that re-shapes a flow signature a row has captured is refused (409) unless `adoptSnapshots` is set. With `validateOnly: true` it rehearses the edit and answers the verdict, what it would leave broken and which stored records would stop fitting, and what each keyword of the definition would do (`derived.keywordVerdicts`), writing nothing — with `renames[]` for a rename. A table's shape can also be edited together with the type, with `PATCH /v1/tables/{id}` (`definition`); several rows at once go through `POST /v1/projects/{nodeId}/document`.
+Update one type's key, description or definition, or with `declare` one keyword on one field of it (what a flow save's type fix sends). `renameFields` renames fields: every record of every table built on the type keeps its id and moves to the new name, with every setting that names the field, in one transaction; it needs ADMIN, and the answer lists what moved, the expressions to change, keep (`keepExpressions`) or have rewritten to the proposed text (`rewriteExpressions`), and what breaks (`renames[]`). An edit that changes what an endpoint's callers send or read, or what a table's processing gives, answers each change in `contractChanges`; one that breaks them is refused (409) until `acceptBreaks` names each broken endpoint or table, and only an admin of the project may accept (403 otherwise). A change that breaks nothing, a title or description edit included, saves without it. With `validateOnly: true` it rehearses the edit and answers the verdict, what it would leave broken and which stored records would stop fitting, and what each keyword of the definition would do (`derived.keywordVerdicts`), writing nothing — with `renames[]` for a rename. A table's shape can also be edited together with the type, with `PATCH /v1/tables/{id}` (`definition`); several rows at once go through `POST /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
@@ -190,7 +204,7 @@ Update one type's key, description or definition, or with `declare` one keyword 
 | `definition` | `object` | no | REPLACES the definition wholesale rather than merging into it. |
 | `description` | `string \| null` | no | Change the note, or pass null to clear it. |
 | `version` | `integer` | yes | The version you last read. REQUIRED; a stale one is refused 409. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
-| `adoptSnapshots` | `boolean` | no | Permission to re-snapshot everything this edit re-shapes. Endpoints and flow-backed tables FREEZE the types they bind, so editing this one leaves their stored copy behind; such an edit is refused with 409 (listing them) unless you set this. Schedules and triggers freeze nothing: one whose stored inputs the edit no longer fits is listed in `leavesBehind` instead. ⚠️ Not a formality — adopting re-publishes an endpoint's request and response contract to whoever already calls that route. |
+| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints and tables named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
 | `declare` | `object` | no | Declare one keyword on one field of the stored definition, leaving the rest as it is stored — what a flow save's type fix sends. Not together with `definition`. |
 | `renameFields` | `object` | no | Fields this edit RENAMES, old path → new name. Stored records, references and indexes move with the field; ids, embeddings and stamps are kept. The old path must be one of the type's declared field paths before the edit; the new name is a single segment matching the field-name grammar, unique among its siblings, not reserved, and not clashing with a vocabulary the table surfaces. A path that leaves `definition` and is not named here is a removal. Needs ADMIN. |
 | `keepExpressions` | `string[]` | no | Steps, eval assertions or computed formulas whose expression and template candidates this rename leaves AS WRITTEN. Every candidate not kept here must be changed in the same write (or, on a type's field rename, rewritten through `rewriteExpressions`), or the write is refused `RENAME_CANDIDATE_UNRESOLVED`. Each name must hold at least one candidate, else the plan warns `RENAME_KEEP_UNUSED`. |
@@ -215,6 +229,8 @@ Shape 1, with `id`, `project`, `key`, `provenance`, `description`, `version`, `c
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `warnings` | `object[]` | no | Present when the write removed something a use the platform only guessed may still read (`REMOVED_MAY_BE_USED`): each names the user and where. The write went through; check each by hand. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
 | `renames` | `object[]` | no | Present when the PATCH carried `renameFields`: each field renamed, the tables it reached, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this edit moved, with the version each holds now: the event types whose payload contract it reaches, the endpoints and tables whose adopted snapshot it refreshed, and the tables whose computed fields it derived again. Replace the versions you hold for them before their next PATCH. Empty when the edit moved only this type. |
 
@@ -228,6 +244,17 @@ Each item of `warnings`:
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `outlinePath` | `string` | no | Where the step this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on step; see `GET /v1/flows/{id}/outline`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
 
 Each item of `renames`:
 
@@ -252,7 +279,7 @@ Each item of `touched`:
 | `id` | `string` | yes | The row's id. |
 | `version` | `integer` | yes | The row's optimistic-lock version AFTER this write. Replace the version you cached for this row with it; a PATCH sent with the old one is refused with 409. |
 
-Shape 2, with `ok`, `diagnostics`, `complete`:
+Shape 2, with `ok`, `diagnostics`, `complete`, `permissions`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -261,6 +288,9 @@ Shape 2, with `ok`, `diagnostics`, `complete`:
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports, judged by the same gate: an introduced error makes `ok` false. Absent when the dry run did not rehearse — a draft its planner refused, or a stale `version`. |
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `permissions` | `object` | yes | What the caller's role lets the write do. |
 | `renames` | `object[]` | no | Present when the checked patch renames (a new `key`, `renameFields`, or a flow's `renameInputs` / `renameOutputs`): what the write would move, the expression candidates and how each is resolved, and every external caller it would break. Absent when it renames nothing. |
 | `derived` | `object` | no | What the write would compute. Present whenever the dry run could read the definition, refused or not. |
 
@@ -293,6 +323,17 @@ Each item of `consequences`:
 | `rows` | `integer` | yes | How many stored rows are affected; on `flows-affected`, how many flows. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
 
 Each item of `renames`:
 
@@ -357,7 +398,7 @@ Each item of `diagnostics`:
 
 ### `POST /v1/types/seed`
 
-Store the platform-provided types a project's flows need (idempotent), then answer the registry read `GET /v1/types` would give. A repair for a project whose seeded types are missing or out of date; a project is seeded when it is created.
+Store the platform-provided types a project's flows need (idempotent), then answer the registry read `GET /v1/types` would give. A repair for a project whose seeded types are missing or out of date; a project is seeded when it is created. A flow may type a slot by one of them (`UserInfo`, `ProjectInfo`), so a repair that rewrites one changes what the callers of the endpoints and tables bound to that flow meet: the answer lists each change in `contractChanges`, and one that breaks them is refused (409 `CONTRACT_BREAK_NOT_ACCEPTED`) until `acceptBreaks` names each broken endpoint or table — only an admin of the project may accept (403 `CONTRACT_BREAK_FORBIDDEN` otherwise).
 
 **Request body**
 
@@ -365,6 +406,7 @@ Store the platform-provided types a project's flows need (idempotent), then answ
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project to materialise and then read. |
 | `expand` | `"graph" \| "keywords"[]` | no | Extra response sections to include, e.g. `["graph"]`. |
+| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints and tables named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
 
 **Response `200`**
 
@@ -372,6 +414,8 @@ Store the platform-provided types a project's flows need (idempotent), then answ
 | --- | --- | --- | --- |
 | `types` | `object[]` | yes | The types in scope, across every tier unless you filtered by `provenance`. |
 | `graph` | `object` | no | The project's type-reference graph. Present only with `expand=graph`. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
 
 Each item of `types`:
 
@@ -398,3 +442,14 @@ Each item of `types`:
 | `usedByGraphRefs` | `object[]` | no | What `usedByGraph` counts, one reference each — its length equals that count. DIRECT references only: a flow taking a type that `$ref`s this one is listed under that type, and that type is listed here. ⚠️ Present ONLY with `expand=graph`, like `usedByGraph`; absent means not asked, never none. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |

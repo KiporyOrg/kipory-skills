@@ -15,7 +15,7 @@ refusal or a cascade carries is in `refusals-and-cascades.md`. `SKILL.md` gives 
 | change what is searchable                                   | reindex     | rehearse; a `reembed` bills per record                                                 |
 | remove anything                                             | subtractive | rehearse, expect a refusal naming dependents                                           |
 | retire a term records carry                                 | merge       | merge it into the term that survives, or archive it                                    |
-| change a flow's own inputs or outputs                       | contract    | `409` until `adoptSnapshots: true` re-publishes the endpoints in front of it           |
+| change what an endpoint takes or answers                    | contract    | read `contractChanges`; an admin names each break in `acceptBreaks`                    |
 | rename a flow's input or output                             | rename      | ADMIN; `renameInputs` / `renameOutputs` move every reader in the same write            |
 
 Misclassifying is the usual failure. "Add a field" and "add a required field" look identical in a
@@ -57,25 +57,22 @@ is widen, backfill, narrow — four changes, never one, in this order:
 document) edits it alone. `PATCH /v1/tables/{id}` with `definition` edits it together with a
 table of that type, in one save. Both judge every row that uses the type.
 
-**A published contract freezes the type.** While a flow that reads the type is frozen into a
-published contract — an endpoint in front of it, or a table whose processing flow (`flowId`)
-it is — the edit answers `409 TYPE_RESHAPES_BOUND_SNAPSHOTS`, its message naming those
-holders (`details` only counts them by kind), unless it carries `adoptSnapshots: true`.
-
-- The type PATCH and a document take that flag.
-- The table PATCH does not — it is an unrecognised key there, whatever the 409's message
-  says. So a type behind an endpoint or a processing flow is edited, and rehearsed, through the
-  type PATCH or a document, with the flag on the type:
-  `"types": { "Contact": { "definition": { … }, "adoptSnapshots": true } }`.
-- Schedules and triggers freeze nothing, so the 409 neither names nor waits for them.
+**A type an endpoint or a processing flow uses is also a contract.** An edit to it is checked
+for every endpoint and table it reaches ("A change callers meet", below). Step 1 is safe: an
+optional field added saves. Step 4 makes the field required, which breaks an endpoint that takes
+the type as an input (its callers must now send it) and is safe for one that only answers it. So
+rehearse step 4, read `contractChanges`, and have an admin send it with `acceptBreaks` naming each
+endpoint it breaks — on the type PATCH, the table PATCH or a document alike. Schedules and
+triggers are not in that check; step 3 covers them.
 
 **Rehearse steps 1 and 4 before sending them.**
 
 - Through the table: the table PATCH with `validateOnly: true` and the drafted `definition`
   (or the proposed `dataTypeId`) answers `derived.contract`, the field vocabulary it would give the
   table. Behind a published contract, the document plan is the rehearsal.
-- Through the type: the type PATCH with `validateOnly: true` (and `adoptSnapshots: true`)
-  answers whether the edit is allowed and what it does to stored data. It is the same type
+- Through the type: the type PATCH with `validateOnly: true` answers whether the edit is
+  allowed, what it does to stored data, and `contractChanges` for the endpoints and tables it
+  reaches. It is the same type
   either way, and an edit reaches every table, event and relation that uses it.
 - Either way a tightening stored records would break is refused `TYPE_UNSAFE_FOR_TABLE`, and the
   answer names the flows, schedules and triggers the edit would break — the PATCH lists them under
@@ -107,10 +104,53 @@ A flow can do the same write for up to 100 records a run: `record.list` over the
 to 100, filtered to the rows still to change) → an `each`
 over its `records` whose steps hold the `record.update` (`maxItems` caps the elements). Past 100, run it again and the filter picks up the rest (`kipory-data`).
 
+### A change callers meet
+
+Every design write — a type, a flow, an endpoint or a table, on its own route or in a document, a
+rename, a checkpoint restore, connecting or disconnecting the end-user profile type, creating or
+deleting a config namespace (they reshape `UserInfo` and `ProjectInfo`) — is checked for each endpoint and flow-backed table it reaches: what
+their callers meet, before and after the whole write. Labels are no change (`title`, `description`,
+`examples`, field order, `x-record-ref`). The side decides:
+
+- **safe**: an optional input, output or field added; an input made optional or accepting more (a
+  value kind, an allowed value, `null`); an output made required or giving fewer kinds or allowed
+  values; any limit loosened; an output's limit tightened.
+- **breaking**: a required input added; anything removed; a value kind replaced; an input made
+  required, or accepting fewer kinds or allowed values, or a limit tightened; an output made
+  optional or giving more kinds or allowed values (`null` included); any difference the check cannot
+  classify (`pattern`, `default`, …).
+
+1. **Read `contractChanges` in the dry run first** (`validateOnly: true`, or the plan): one row per
+   endpoint or table whose contract moves, by `key`, its `verdict`, each change (side, `path` from
+   where the caller meets it, before, after, rule, a message) and `mustAccept`.
+   `permissions.mayAcceptBreaks` says whether your key may accept.
+2. **No row breaks**: send it. It saves for an editor too.
+3. **A row breaks**: look for the safe way first — the new input optional, the old output kept
+   beside the new one, widen before you narrow.
+4. **Only an admin of the project may break it.** An editor key is refused
+   `403 CONTRACT_BREAK_FORBIDDEN` whatever `acceptBreaks` names, and `details.requiredRole` names
+   the role. (A name that is no endpoint or table is refused `422` before the role is asked, in a
+   document's apply too.)
+   Retrying will not help: ask the user for an admin, or change the write.
+5. **Name each break on purpose**, by key: `"acceptBreaks": { "endpoints": ["create-loan"] }`
+   (`tables` beside it). A document states it once, at its top level, never on a row. Without it,
+   an admin's write on a row's own route gets `409 CONTRACT_BREAK_NOT_ACCEPTED`, whose
+   `details.fixes` names every breaking row. A document's plan answers the same as a
+   `CONTRACT_BREAK_NOT_ACCEPTED` finding with that fix, and its apply answers
+   `422 VALIDATION_FAILED` (`details.reason: DOCUMENT_APPLY_FAILED`), the finding in
+   `details.plan.diagnostics`.
+
+`kipory plan` prints a `contract <kind> <key>:` line for each row, every breaking change under it.
+
+A refusal writes nothing; in a dry run it is an error finding with `ok: false`. A name that is no
+row is `422`; one the write does not break saves and comes back in `acceptBreaksNotNeeded`.
+Nothing is stored and there is no accept-all. A plan an editor made may still be applied by an
+admin. Every caller of an accepted endpoint meets the change at once.
+
 ### Editing the processing flow of a table that holds records
 
 A step added, removed or re-configured in a table's processing flow saves like any steps write —
-unless it changes the flow's `inputs` or `outputs`, which is the contract class below. What the
+unless it changes the flow's `inputs` or `outputs`, which is the contract class above. What the
 edit does not do is touch a stored record:
 
 - **Records processed from now on run the new steps.** That includes a record created after the
@@ -182,10 +222,12 @@ step it reads is `STEP_READS_LATER`. The batch saves whole or not at all, and th
 lists each step by key (`added`, `removed`, `changed`, `moved`). A document plan diffs a flow's steps
 by key the same way, a moved step as a `move`.
 
-**A flow's own input or output** is its signature:
-`409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` until `PATCH /v1/flows/{id}` carries
-`adoptSnapshots: true`, and then every client of the endpoint sees the new key at once. That PATCH
-may send `outputs` alone; the inputs stay as stored (and the same the other way round).
+**A flow's own input or output** is what its endpoints' callers meet. `PATCH /v1/flows/{id}`
+with the new `inputs` or `outputs` is checked like any contract change ("A change callers meet",
+above): a new output with a new name saves, and a removed one breaks every endpoint that answers
+it until an admin names those endpoints in `acceptBreaks`. Once it saves, every client of the
+endpoint sees the new key at once. That PATCH may send `outputs` alone; the inputs stay as stored
+(and the same the other way round).
 
 **Renaming one** is its own statement, not a removal plus an addition. Send `renameInputs` or
 `renameOutputs` (old name to new) on `PATCH /v1/flows/{id}`, or on the flow's row in a document; it
@@ -204,11 +246,12 @@ place that names it:
 The answer's `renames[]` lists each place moved (`references`), and its `version` and `touched` are
 the versions after every move. Know these first:
 
-- **An endpoint bound to the flow** holds a copy of its signature, so the rename also needs
-  `adoptSnapshots: true`; without it the answer is `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS`.
-  `renames[].exposures` says what the endpoint's own callers see change: a body field read
-  `from: "body"` is named after the input, and an answer with no `responseBody` carries every
-  output under its name. A query parameter keeps its name (the binding becomes `query.<old name>`).
+- **An endpoint bound to the flow** is checked like any contract change. `renames[].exposures`
+  says what the endpoint's own callers see change: a body field read `from: "body"` is named
+  after the input, and an answer with no `responseBody` carries every output under its name, so
+  for those callers the old name is removed and a new one added — a break, named in
+  `acceptBreaks` (the rename already needs ADMIN). A query parameter keeps its name (the binding
+  becomes `query.<old name>`), so callers see no change and nothing needs accepting.
 - **A calling flow that passes the call's whole value on** (`out: {r: priced}`, `$p := priced`),
   reads it through a filter, or reads the whole set of values, may spell the output through another
   name. Each occurrence of the old word left in an expression, a template or a path of that flow is

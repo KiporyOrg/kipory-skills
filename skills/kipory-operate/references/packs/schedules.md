@@ -451,8 +451,10 @@ Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) sa
 
 ## Related
 
-- Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — the flow being bound, and why its signature is locked
-  while you are bound to it.
+- Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — the flow being bound, and changing its inputs. A
+  schedule does not lock them: a change that narrows a type its stored `inputs` fill reports it
+  (`SCHEDULE_INPUT_MISTYPED`, above), and `expand=drift` lists a required input it no longer
+  supplies.
 - Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`) — the caller-triggered sibling.
 - Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) — when the trigger is something happening rather than a time.
 - Events (capability pack `events` — `GET /v1/capability-packs/events`) — what a trigger listens to.

@@ -49,6 +49,13 @@ PATCH /v1/tables/{id}   bind a flowId to make it flow-backed; replace `uses` who
 POST /v1/types/seed
 ```
 
+A flow may type a slot by a seeded type (`UserInfo`, `ProjectInfo`), so a seed that rewrites one
+changes what the callers of the endpoints and tables bound to that flow meet. The seed is judged
+like any design write: its answer is the registry read plus `contractChanges`, and a change that
+breaks callers is refused, writing nothing — 403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN, 409
+`CONTRACT_BREAK_NOT_ACCEPTED` for an admin until the body's `acceptBreaks` names each broken
+endpoint or table.
+
 ### A table and its type together
 
 A table always points at a type, and a type is nobody's: any table, event
@@ -1315,7 +1322,8 @@ another, which is a removal and is refused while records hold it.
 - **A processing flow's input of the same name is the flow's own word.** A table's flow
   takes a record field as the input named like it, required or optional, and the rename never
   renames an input. Rename the input in the same document: restate the flow with the input's new
-  name, everywhere its steps read it, and `adoptSnapshots: true`. The plan judges the pair once both are
+  name, everywhere its steps read it, and `acceptBreaks` naming each endpoint whose callers meet the
+  new name (read the plan's `contractChanges`). The plan judges the pair once both are
   written; left alone, the field rename is refused `TABLE_FLOW_INPUT_UNMAPPED`, and so is removing
   the field. A flow's own `renameInputs` does not apply here: on a flow a table processes its records
   with it is refused `RENAME_FLOW_PROCESSES_TABLE` (see Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)). The references read lists the flow as a reader of the field, at `inputs.<name>`.
@@ -1459,11 +1467,12 @@ carries none.
 `definition` replaces the definition of the type the table points at** — with the rules
 `PATCH /v1/types/{id}` meets, every other row that uses the type included — in one
 transaction with the table; the type comes back in `touched`. It is refused 422 together
-with `dataTypeId` (`TABLE_DEFINITION_WITH_DATA_TYPE`). An edit that changes a signature
-an endpoint or this table froze is refused 409 `TYPE_RESHAPES_BOUND_SNAPSHOTS`; re-send it
-through a project document with `adoptSnapshots` on the type. Its dry run also answers
-`derived.keywordVerdicts` for the drafted document — on a refused draft too, but not on the
-refusal above, where no draft is judged. Send `flowId` beside
+with `dataTypeId` (`TABLE_DEFINITION_WITH_DATA_TYPE`). It is checked, like any write, for every
+endpoint and flow-backed table the type reaches: the dry run's `contractChanges` lists each one whose
+callers would meet a change, and a breaking one is refused until an admin of the project names it in
+the same PATCH's `acceptBreaks: {endpoints, tables}` (`409 CONTRACT_BREAK_NOT_ACCEPTED`;
+`403 CONTRACT_BREAK_FORBIDDEN` below admin). Its dry run also answers `derived.keywordVerdicts` for
+the drafted document — on a refused draft too. Send `flowId` beside
 `definition` to re-bind in the same save: the new flow is judged against the new type, and the
 flow being replaced no longer is.
 
@@ -1802,11 +1811,13 @@ COMPUTES something you could not otherwise see — a schedule's occurrences, an 
 type edit computes nothing of that kind: what it produces is the document you sent. A field with
 nothing true to put in it is worse than an absent one.
 
-**A 409 is a verdict on the dry run.** An edit that changes bound snapshots without
-`adoptSnapshots` is refused with **409** `TYPE_RESHAPES_BOUND_SNAPSHOTS`, listing what it
-would change; the same check under `validateOnly` answers `ok: false` with that code. Send
-`adoptSnapshots: true` alongside the check to ask what the permitted edit would do instead — the
-dry run then rehearses it and reports what it would break, or `TYPE_UNSAFE_FOR_TABLE` when stored records would not fit.
+**A contract break is a verdict on the dry run.** The dry run answers `contractChanges`: every
+endpoint and flow-backed table whose callers would meet the edit, each change with its verdict, and
+`mustAccept`. A breaking row the edit's `acceptBreaks` does not name answers `ok: false` with
+`CONTRACT_BREAK_NOT_ACCEPTED` (the real write: **409**), and for a caller below admin
+`CONTRACT_BREAK_FORBIDDEN` (**403**); `permissions.mayAcceptBreaks` says which you are. The dry run
+still rehearses the edit and reports what it would break, or `TYPE_UNSAFE_FOR_TABLE` when stored
+records would not fit. A label edit (a title, a description, examples) is no contract change.
 
 ⚠️ **An invalid draft is not a failed request.** A 4xx means the _validate request itself_ could not
 be served — an id that addresses nothing answers **404**, not a verdict.
@@ -1860,11 +1871,11 @@ lists the runs.
   step whose compiled schema depends on it — directly or through a nested chain — and that
   version is folded into the ingest cache key. So a type edit re-runs dependent cached ingests
   with no manual cache bust. Useful, and expensive if you did not expect it.
-- **A type edit rewrites a captured signature only when you say so.** An edit that re-shapes the
-  signature an endpoint or a flow-backed table captured is refused 409
-  `TYPE_RESHAPES_BOUND_SNAPSHOTS`; sent with `adoptSnapshots: true` it rewrites each captured
-  signature in the same write. An edit that leaves every captured signature as it is rewrites
-  none. The drift read owns the live comparison — which is why `uncaptured` matters.
+- **A type edit is a contract change for every endpoint and table it reaches.** Each captured
+  signature is rewritten in the same write; one whose callers meet a breaking change (a field
+  removed or retyped, an input field made required) is refused until an admin names it in
+  `acceptBreaks`, and a safe one (an optional field, a label) saves unasked. Read `contractChanges`
+  in the dry run first. The drift read owns the live comparison — which is why `uncaptured` matters.
 - **Vector guards fail open.** An unreachable vector store does not block a save, so a save can
   succeed while the search half of your change quietly did not land.
 - **A table is named by key in function config**, not by id — which is why a table rename

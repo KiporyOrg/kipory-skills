@@ -398,7 +398,7 @@ Each item of `wiring`:
 
 ### `PATCH /v1/vocabularies/{id}`
 
-Relabel a vocabulary, rename its key, declare the attributes its terms carry (`termAttributes`), or change how it admits values (`mint`, `matching`, `proposal`, the resolver binding). A new `key` is a rename: its terms and their assignments keep their ids, the tables surfacing it and every reference move with it, it needs ADMIN, and the answer lists what moved and what breaks (`renames[]`). Requires the `version` you last read; a stale one answers 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be accepted, writing nothing. Its terms are written through `POST /v1/vocabularies/{id}/terms` and `/v1/terms/{id}`; several vocabularies at once, through the vocabularies section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Relabel a vocabulary, rename its key, declare the attributes its terms carry (`termAttributes`), or change how it admits values (`mint`, `matching`, `proposal`, the resolver binding). A new `key` is a rename: its terms and their assignments keep their ids, the tables surfacing it and every reference move with it, it needs ADMIN, and the answer lists what moved and what breaks (`renames[]`). A rename that changes what the callers of an endpoint or table send or read is answered in `contractChanges`, and one that breaks them is refused (409 `CONTRACT_BREAK_NOT_ACCEPTED`) until `acceptBreaks` names each broken endpoint or table — only an admin of the project may accept (403 `CONTRACT_BREAK_FORBIDDEN` otherwise); a name the project does not have is 422. Requires the `version` you last read; a stale one answers 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be accepted and what it changes for callers (`contractChanges`, `permissions`), writing nothing. Its terms are written through `POST /v1/vocabularies/{id}/terms` and `/v1/terms/{id}`; several vocabularies at once, through the vocabularies section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -419,6 +419,7 @@ Relabel a vocabulary, rename its key, declare the attributes its terms carry (`t
 | `proposal` | `object \| null` | no | Change how ingest may propose new terms. |
 | `resolverFlowId` | `string \| null` | no | Bind a different resolver flow, or pass null to unbind. This is what `matching: semantic` dispatches to, and unbinding a semantic vocabulary leaves it unable to resolve at all. It does NOT change `mint` — the flow reports what it found, and `mint` decides what may be done about a miss. |
 | `resolutionParams` | `object \| null` | no | Change the parameters passed to that resolver flow. |
+| `acceptBreaks` | `object` | no | With a new `key`: the endpoints and tables whose callers the rename may break, by key. The vocabulary's own key moving is no change a caller meets; a break is a copy of a flow that had drifted from what the flow gives, refreshed by the rename. Needs an admin of the project. |
 | `version` | `integer` | yes | The version you last read. REQUIRED; a stale one is refused 409. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored row and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did. Default false. |
 
@@ -426,7 +427,7 @@ Relabel a vocabulary, rename its key, declare the attributes its terms carry (`t
 
 One of 2 shapes:
 
-Shape 1, with `id`, `project`, `key`, `label`, `cardinality`, `termAttributes`, `parentVocabularyKey`, `mint`, `matching`, `proposal`, `resolverFlowId`, `createdBy`, `version`, `createdAt`, `updatedAt`, `lastResolvedAt`:
+Shape 1, with `id`, `project`, `key`, `label`, `cardinality`, `termAttributes`, `parentVocabularyKey`, `mint`, `matching`, `proposal`, `resolverFlowId`, `createdBy`, `version`, `createdAt`, `updatedAt`, `lastResolvedAt`, `touched`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -451,6 +452,9 @@ Shape 1, with `id`, `project`, `key`, `label`, `cardinality`, `termAttributes`, 
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the vocabulary is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per vocabulary. |
 | `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` step can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `renames` | `object[]` | no | Present when the PATCH changed `key`: the vocabulary renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
 
 Each item of `termAttributes`:
@@ -475,6 +479,25 @@ Each item of `wiring`:
 | `declaredOnly` | `boolean` | yes | True when the step's response TYPE marks this vocabulary but the step's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the step's `vocabularyFields` names it — nothing derives it from the type. Always false for `proposed` and `fed`. |
 | `drift` | `string \| null` | yes | Set when this `extracted` step's stored `vocabularyFields` no longer matches the `$vocabularyKey` markers on its response type: one sentence naming what differs. The same sentence the save-time `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED` warning carries. Null when they agree, when the type carries no markers, and for `proposed` and `fed`. |
 
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+
+Each item of `touched`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `resource` | `string` | yes | Which design resource the row belongs to, spelled as the bootstrap read spells its sections — `tables`, `types`, `relations`, … — or, for `terms`, which the bootstrap does not carry, as its route does (`/v1/terms/{id}`). |
+| `id` | `string` | yes | The row's id. |
+| `version` | `integer` | yes | The row's optimistic-lock version AFTER this write. Replace the version you cached for this row with it; a PATCH sent with the old one is refused with 409. |
+
 Each item of `renames`:
 
 | Field | Type | Required | Meaning |
@@ -490,7 +513,7 @@ Each item of `renames`:
 | `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
 | `cost` | `object` | yes | What the rename spends. Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
 
-Shape 2, with `ok`, `diagnostics`, `complete`:
+Shape 2, with `ok`, `diagnostics`, `complete`, `permissions`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -499,6 +522,9 @@ Shape 2, with `ok`, `diagnostics`, `complete`:
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports, judged by the same gate: an introduced error makes `ok` false. Absent when the dry run did not rehearse — a draft its planner refused, or a stale `version`. |
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `permissions` | `object` | yes | What the caller's role lets the write do. |
 | `renames` | `object[]` | no | Present when the checked patch renames (a new `key`, `renameFields`, or a flow's `renameInputs` / `renameOutputs`): what the write would move, the expression candidates and how each is resolved, and every external caller it would break. Absent when it renames nothing. |
 
 Each item of `diagnostics`:
@@ -530,6 +556,17 @@ Each item of `consequences`:
 | `rows` | `integer` | yes | How many stored rows are affected; on `flows-affected`, how many flows. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
 
 Each item of `renames`:
 

@@ -1,6 +1,6 @@
 ---
 name: kipory-evolve
-description: Change a Kipory project that already holds records or serves callers, without breaking it — rename a table or change its type, add a required field (a migration), change a flow's inputs or outputs behind a live endpoint (a breaking change), re-run stored records after their processing flow changed, delete a flow, vocabulary, term, relation or table that something depends on, and undo a change. Use before any delete, rename or type change on a project that is not empty, when a write is refused naming dependents, pinned records or a locked signature (a 409), when asking what a change would break before making it (`validateOnly`, a document plan's consequences and cascades), or when an edit has to be rolled back. Not for authoring on an empty project or an ordinary step edit (kipory-build, kipory-model).
+description: Change a Kipory project that already holds records or serves callers, without breaking it — rename a table or change its type, add a required field (a migration), change a flow's inputs or outputs behind a live endpoint (a breaking change), re-run stored records after their processing flow changed, delete a flow, vocabulary, term, relation or table that something depends on, and undo a change. Use before any delete, rename or type change on a project that is not empty, when a write is refused naming dependents, pinned records or a contract break (`CONTRACT_BREAK_NOT_ACCEPTED`, `CONTRACT_BREAK_FORBIDDEN`), when asking what a change would break before making it (`validateOnly`, a plan's `contractChanges`, consequences and cascades), or when an edit has to be rolled back. Not for authoring on an empty project or an ordinary step edit (kipory-build, kipory-model).
 license: MIT
 ---
 
@@ -59,6 +59,9 @@ outline path) or the endpoint, schedule, trigger or declaration, its `role` and 
 `certainty` before you act: `declared` and `typed` are certain; `named` is a name matched inside an expression
 or on a value of unknown type, and `whole` means the whole record is read or written, so check those by hand.
 Narrow a long answer with `&certainty=declared&certainty=typed` or `&role=writes`.
+
+**Read `contractChanges` in every dry run first**: which endpoints and tables the change breaks
+(`references/change-order.md`, "A change callers meet").
 
 After the edit, `GET /v1/flows/{id}/health` says whether the flow is whole and
 `GET /v1/eval-suites/{id}/readiness` whether a suite can still judge it.
@@ -129,30 +132,30 @@ the class decides the sequence, and every sequence is written out once, in
 | **Changing a type under live records**                        | four moves: widen (add the field as optional), backfill, patch the fixed inputs of schedules and triggers, then narrow. Narrowing first is an outage |
 | **Editing the processing flow of a table that holds records** | the edit saves and stored records keep what the old steps wrote. Reprocess them (`kipory-data`); a reprocess is charged like a first processing      |
 | **Renaming a step's key**                                     | its key is its value's name: one steps write that renames it and every reader, rehearsed with `validateOnly` first                                   |
-| **Changing a flow's own inputs or outputs**                   | a change to the product's API: `409` until `adoptSnapshots: true`                                                                                    |
+| **Changing a flow's own inputs or outputs**                   | a change to the product's API: only an admin may break it, naming each endpoint in `acceptBreaks`; an editor key gets `403`                          |
 | **Renaming a flow's input or output**                         | `renameInputs` / `renameOutputs` on the flow's PATCH: one write moves every step, caller, endpoint, schedule, trigger and eval case; ADMIN           |
 
 ## What refuses, and what cascades instead
 
-**What refuses, and what cascades instead** — which destructive changes are refused outright, which cascade instead, and what each refusal and cascade carries: `references/refusals-and-cascades.md`.
+Which destructive changes are refused, which cascade instead, and what each carries: `references/refusals-and-cascades.md`.
 
 ## Rolling back
 
-**Rolling back** — flow checkpoints, an export planned against the project as it is now, and what has no undo: `references/rolling-back.md`.
+Flow checkpoints, an export planned against the project as it is now, and what has no undo: `references/rolling-back.md`.
 
 ## What will bite you
 
-**What will bite you** — the traps of changing a live project: dry runs, health after a roll, stale tokens, frozen signatures, retries, retire and purge, address moves: `references/pitfalls.md`.
+The traps of changing a live project: dry runs, health after a roll, stale tokens, contract breaks, retries, retire and purge, address moves: `references/pitfalls.md`.
 
 ## References
 
-| File                                  | What it answers                                                                                                                                                                                                                                                        |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `references/rehearsals.md`            | every rehearsal route and what it answers                                                                                                                                                                                                                              |
-| `references/change-order.md`          | a change request → its class, then the full sequence for each: additive, narrowing a type (who owns it, `adoptSnapshots`, the backfill), editing a processing flow under live records, removing, changing a flow's steps, retiring a term, removing through a document |
-| `references/refusals-and-cascades.md` | what refuses and what cascades instead; what each refusal carries and the way round it; what each cascade reports                                                                                                                                                      |
-| `references/rolling-back.md`          | flow checkpoints, an export as the rollback, and what has no undo                                                                                                                                                                                                      |
-| `references/pitfalls.md`              | what will bite you when changing a live project                                                                                                                                                                                                                        |
+| File                                  | What it answers                                                                                                                                                                                                                                      |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `references/rehearsals.md`            | every rehearsal route and what it answers                                                                                                                                                                                                            |
+| `references/change-order.md`          | a change request → its class, then the full sequence for each: additive, narrowing a type (who owns it, the backfill), editing a processing flow under live records, removing, changing a flow's steps, retiring a term, removing through a document |
+| `references/refusals-and-cascades.md` | what refuses and what cascades instead; what each refusal carries and the way round it; what each cascade reports                                                                                                                                    |
+| `references/rolling-back.md`          | flow checkpoints, an export as the rollback, and what has no undo                                                                                                                                                                                    |
+| `references/pitfalls.md`              | what will bite you when changing a live project                                                                                                                                                                                                      |
 
 ## Then
 

@@ -29,14 +29,25 @@ Read this before a change to a project that already holds records or serves call
 - **A stale token is refused, not merged.** Re-read and re-apply rather than retrying the same body.
 - **`structureVersion` moves on every one of these**, so every client caching against it must
   re-read. If you built something that caches configuration, this is the signal it was waiting for.
-- **A flow's signature is frozen by what publishes it.** Changing its inputs or outputs (a
-  new name, a new required input, a type) while an endpoint — or a table processing through it
-  — holds a snapshot answers `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` (under `validateOnly`, an
-  `ok: false` verdict with that code).
-  `PATCH /v1/flows/{id}` with `adoptSnapshots: true` lands it and re-publishes those contracts in
-  the same transaction: every client of that endpoint sees the new response keys at once. Treat it
-  as an API change to the product's callers, not an internal edit (`kipory-expose`). Changing which
-  values a `return` step gives, with the same outputs, is not a signature change.
+- **A change to what an endpoint takes or answers is an API change to the product's callers.**
+  Every write that reaches an endpoint or a flow-backed table — a flow's inputs or outputs, a type
+  they name, the endpoint's or the table's own save — is checked before and after. Read
+  `contractChanges` in the dry run (`validateOnly: true`, or the plan) before you send it: a row
+  marked `breaking` is refused, writing nothing, until it is accepted. Label edits are no change,
+  and a safe change (an optional field added) saves unasked. Changing which values a `return` step
+  gives, with the same outputs, is no change either.
+- **An editor key cannot accept a break.** A breaking write by anyone below an admin of the project
+  answers `403 CONTRACT_BREAK_FORBIDDEN` whatever `acceptBreaks` names (a name that is no
+  endpoint or table is a `422` first, in a document's apply too), and `details.requiredRole` names the role. Do not retry or look for a way round: ask the user for an admin to make it, or make the
+  change in a way that breaks nothing.
+- **Accept a break by name, never by habit.** An admin resends the same write with
+  `acceptBreaks: { endpoints: [...], tables: [...] }` naming each endpoint or table broken on
+  purpose, by key; without it a row's own route answers `409 CONTRACT_BREAK_NOT_ACCEPTED`, and
+  its `details.fixes` names them for you. A document states it once at its top level; without it
+  the plan answers that as a finding, and the apply answers `422 VALIDATION_FAILED`
+  (`details.reason: DOCUMENT_APPLY_FAILED`) with the finding in `details.plan.diagnostics`. Every caller of an accepted endpoint meets the change at
+  once (`kipory-expose`). A name that is no row is `422`; one the write does not break comes back
+  in `acceptBreaksNotNeeded`.
 - **Restating `inputs` under a new name is a removal and an addition, not a rename.** Every reader
   of the old name is then refused (`STEP_READS_UNKNOWN`, `ENDPOINT_INPUT_UNSATISFIED`) until you
   restate each yourself. `renameInputs` / `renameOutputs` on the same PATCH move them for you

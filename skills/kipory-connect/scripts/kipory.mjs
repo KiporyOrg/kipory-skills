@@ -470,6 +470,49 @@ const currentVersion = async (id) => {
   return read?.version;
 };
 
+// What the document changes for an endpoint's or a table's callers: each
+// breaking row with its changes, a safe row on one line (its changes with
+// --all), and who may accept. The finding that refuses a break, with its fix
+// setting `acceptBreaks`, prints with the errors below.
+const printContractChanges = (answer) => {
+  const rows = Array.isArray(answer?.contractChanges)
+    ? answer.contractChanges
+    : [];
+  // A key below admin accepts nothing, whatever `acceptBreaks` names.
+  const mayAccept = answer?.permissions?.mayAcceptBreaks !== false;
+  for (const r of rows) {
+    const breaking = r.verdict === "breaking";
+    const state = !breaking
+      ? "safe"
+      : r.accepted
+        ? mayAccept
+          ? "breaking, accepted"
+          : "breaking, named but this key cannot accept it"
+        : r.mustAccept
+          ? "breaking, not accepted"
+          : "breaking";
+    const changes = Array.isArray(r.changes) ? r.changes : [];
+    out(
+      `contract ${r.kind} ${r.key}: ${state}${breaking ? "" : ` (${changes.length} change${changes.length === 1 ? "" : "s"})`}`,
+    );
+    if (breaking || flags.get("all") === true)
+      for (const c of changes)
+        out(
+          `  ${c.side} ${c.path} ${c.rule} ${c.verdict}: ${oneLine(c.message)}`,
+        );
+  }
+  const notNeeded = answer?.acceptBreaksNotNeeded;
+  for (const kind of ["endpoints", "tables"])
+    for (const k of notNeeded?.[kind] ?? [])
+      out(
+        `acceptBreaks names ${kind.slice(0, -1)} ${k}, which this does not break: drop it`,
+      );
+  if (!mayAccept && rows.some((r) => r.verdict === "breaking"))
+    out(
+      "only an admin of the project may accept a break: this key cannot, so ask an admin to apply it, or change the document so it breaks nothing",
+    );
+};
+
 const printDiagnostics = (diagnostics) => {
   const list = Array.isArray(diagnostics) ? diagnostics : [];
   const errors = list.filter((d) => d.severity === "error");
@@ -490,7 +533,7 @@ const printDiagnostics = (diagnostics) => {
           `    on type ${f.typeEdit.key}, declare: ${cut(oneLine(JSON.stringify(f.typeEdit.declare)), 300)}`,
         );
       // A document finding's fix sets values at document paths
-      // (`flows.<key>.adoptSnapshots`); `null` removes the key.
+      // (`acceptBreaks`, `flows.<key>.inputs`); `null` removes the key.
       for (const set of Array.isArray(f.set) ? f.set : [])
         out(
           `    set ${set.field}: ${cut(oneLine(JSON.stringify(set.value)), 200)}`,
@@ -940,6 +983,7 @@ const plan = async (file, command = "plan") => {
     else if (doc.kind === "generator" && carried !== undefined)
       out(GENERATOR_READ(file));
   }
+  printContractChanges(p);
   printDiagnostics(p.diagnostics);
   return p;
 };
@@ -1008,7 +1052,21 @@ const apply = async (named, rerun) => {
     if (asJson) out(res.text);
     else {
       out(`apply refused: ${refusal(res)}`);
+      printContractChanges(res.json.details.plan);
       printDiagnostics(res.json.details.plan.diagnostics);
+    }
+    throw refused("");
+  }
+  // An editor key's apply of a breaking plan: the rows it breaks, and that
+  // only an admin may apply it.
+  if (res.status === 403 && res.json?.code === "CONTRACT_BREAK_FORBIDDEN") {
+    if (asJson) out(res.text);
+    else {
+      out(`apply refused: ${refusal(res)}`);
+      printContractChanges({
+        contractChanges: res.json.details?.contractChanges,
+        permissions: { mayAcceptBreaks: false },
+      });
     }
     throw refused("");
   }

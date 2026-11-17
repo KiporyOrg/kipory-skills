@@ -68,8 +68,10 @@ The checkpoint a restore takes of what it replaces is authored by whoever restor
 ## Ask before you restore — the dry run
 
 `POST /v1/flow-checkpoints/{id}/restore` with `validateOnly: true` **rehearses the restore and rolls
-it back**, so its verdict is the restore's own: `ok: false` with the refusal in `diagnostics` when the
-captured signature would break what is bound to the flow (409 on the real call), or when the captured
+it back**, so its verdict is the restore's own. It answers `contractChanges`, like any write that
+reaches an endpoint or table over the flow: putting an old signature back is judged as a signature
+edit is. `ok: false` with the refusal in `diagnostics` when it would break one the restore's
+`acceptBreaks` does not name (`CONTRACT_BREAK_NOT_ACCEPTED`, 409 on the real call), or when the captured
 steps hold an error by today's rules (422 on the real call) — a restore saves its steps through the
 same decision as `PUT /v1/flows/{id}/steps`, so whatever refuses that save refuses the restore, a
 pinned model its function cannot use (`LLM_MODEL_UNSUITED_TO_TASK`) among them. **Any error in

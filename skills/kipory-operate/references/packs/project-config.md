@@ -97,6 +97,15 @@ Three corners worth holding:
   **schema**, never partial against the **stored row**: see the replacement warning above.
 - **Updating requires the version you last read**, and a stale one is refused. Re-read and
   reconcile.
+- **A namespace is a member of `ProjectInfo`'s `config`, so it reaches endpoint and table
+  contracts.** Creating one, re-binding its type or deleting it changes what the callers of every
+  endpoint and flow-backed table bound to a flow typed by `ProjectInfo` read. The write is judged
+  by the one check every design write runs: the answer lists each change in `contractChanges`
+  (`[]` when none moved), and a change that breaks callers — a delete removes the member they
+  read — is refused, writing nothing: 403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN, and for an
+  admin 409 `CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks: {endpoints, tables}` names each
+  broken one by key (in the POST body, or in the DELETE's optional body). Both dry runs answer the
+  same report plus `permissions`.
 - **The type can refuse on the namespace's behalf** — 422
   `TYPE_UNSAFE_FOR_PROJECT_CONFIG` on a `PATCH /v1/types/{id}`. Removing a declared
   field a namespace stores an override for strands that override, and so does closing the type's

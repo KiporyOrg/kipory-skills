@@ -71,6 +71,9 @@ Four things to know about the result:
 - A template renames nothing. `renameFields`, `renameInputs`, `renameOutputs`, `keepExpressions` and `rewriteExpressions` state a
   rename of words a project already holds (the project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)), and a new project holds
   none.
+- Nothing a template creates is a contract change: a new project has no endpoint or table before
+  it, so the create judges no break and asks nobody to accept one. No shipped template states
+  `acceptBreaks`.
 - The answer carries `requires` — the secrets the project will not work without. A template never
   holds a secret value, so storing those is your next call.
 - In the project's history the whole template is ONE entry, a document apply, at the project's
@@ -99,7 +102,10 @@ change, and apply it like any other document. A template carries no `basedOn` (a
 project, and a template is no project's): plan it with the version of your own read of the
 project (`?basedOn=<version>`), then apply the kept plan by `{planId, note}`. Rows your project already has under the same keys
 are UPDATED to the template's, which is rarely what you want for a whole template — plan first,
-and send the sections you mean.
+and send the sections you mean. Over a project that already serves callers it is judged as any
+document is: an update that breaks one of your endpoints or tables is refused until an admin
+names it in the document's top-level `acceptBreaks`, and the plan lists it in `contractChanges`
+first.
 
 A template's flows carry the same fields a document's do — each step's `with` and its run settings
 (`onOversize` among them) included: a project created from the template gets them as written. Its tables

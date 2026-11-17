@@ -27,7 +27,7 @@ GET   /v1/projects/{nodeId}/references?of=field:<table>.<field>   who uses a fie
 - **Every write takes the flow's `version`** as you read it; a stale one is `409` and saves nothing. Every write answers the next `version`.
 - **A saved steps write answers** `{flowId, version, diagnostics, changes, touched}`: `diagnostics` are warnings (an error refuses the write), `changes` lists each step `added`, `removed`, `changed` or `moved` by key with the fields that changed.
 - **A refused write is `422`** with the findings under `details.diagnostics`, each with `at` and its `fixes` or `decision` (`checking.md` §2).
-- **A signature change** (`PATCH /v1/flows/{id}` with `inputs` or `outputs`) re-judges every step, and is `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` while an endpoint or a table holds the old one — read `kipory-evolve` first.
+- **A signature change** (`PATCH /v1/flows/{id}` with `inputs` or `outputs`) re-judges every step and is checked for each endpoint and table over the flow: its `validateOnly` answer's `contractChanges` says what their callers would meet. A breaking change is `409 CONTRACT_BREAK_NOT_ACCEPTED` until an admin names each in `acceptBreaks` (`403 CONTRACT_BREAK_FORBIDDEN` for an editor key) — read `kipory-evolve` first.
 
 ## The step kinds
 

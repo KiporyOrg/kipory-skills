@@ -439,30 +439,37 @@ The practical consequence for an architect: **to change what an endpoint returns
 and re-save the endpoint.** There is no response mapping to edit, and no way for the published
 contract to disagree with the flow it was snapshotted from.
 
-## The snapshot, and the one way it goes stale
+## The snapshot, and the check that guards it
 
 The bound flow's signature is **snapshotted at save**, authoritatively — there is no field for you
 to supply your own copy. Saving again re-takes it. Each captured output is a name, its type
 and whether it is required, and every one of them is a field of the response: a flow has no output
 that travels beside its result.
 
-**Nothing else re-takes it.** If the flow's signature changes afterwards, the endpoint keeps
-publishing and validating the signature it captured, and the flow's new output is rejected by the
-endpoint's own contract.
+**Every write that reaches the snapshot re-takes it in the same transaction.** A change to the
+flow's inputs or outputs, to a type they name, or to the endpoint's own settings is compared, for
+each endpoint and flow-backed table it reaches, before and after the whole write, and each one
+whose contract differs gets a verdict:
 
-**Two guards, and they are symmetric.** Both edits that could invalidate a captured signature are
-refused by default with a `409` that names the holders, and both take the same opt-in to commit the
-edit and re-snapshot every holder in one transaction:
+- **Safe** — an optional input or output added, an input made optional, an output made required,
+  a limit loosened. It saves for anyone who may make the edit.
+- **Breaking** — a required input added, an input or output removed, a value kind changed, an
+  input limit tightened, an output that may now be absent or `null`. It is refused, writing
+  nothing, unless every breaking endpoint and table is named by key in the same write's
+  `acceptBreaks: { endpoints: [...], tables: [...] }`, and only an admin of the project may send
+  that: below it, `403 CONTRACT_BREAK_FORBIDDEN` whatever `acceptBreaks` names (a name that is no
+  endpoint or table is refused `422` before the role is asked); an admin who did
+  not name a row, `409 CONTRACT_BREAK_NOT_ACCEPTED`, with a fix that sets `acceptBreaks`.
 
-- Changing a flow's **signature** while anything binds it → `FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS`.
-- Editing a **type** the flow's inputs or outputs reference, where that reaches a bound snapshot →
-  `TYPE_RESHAPES_BOUND_SNAPSHOTS`.
-
-Re-send with `adoptSnapshots: true` to make the change and update the holders together. ⛔ **Do not
-decompose it into unbind → change → rebind**, which is the sequence a reader reaches for when they
-think one side is unguarded: that leaves a live `/v1` route unbound in the middle. Two refusals to
-expect on the opt-in itself: an incomplete adopt, and a SYSTEM flow whose holders live in other
-projects, which cannot be adopted at all.
+A label edit (a title, a description, examples, field order, `x-record-ref`) is no change and
+gets no verdict. Every dry run (`validateOnly`, a document plan), every successful write and both
+refusals answer the report as `contractChanges`: one row per endpoint or table, its `verdict`,
+each change (its side, path, before and after, rule and message) and `mustAccept`. Read it before
+you accept: every caller of an accepted endpoint meets the change at once. ⛔ **Do not decompose a
+change into unbind → change → rebind** to get round the check: the unbind is judged itself — a
+table loses every processed field, an endpoint every flow input and output — so it needs the same
+acceptance, and a live `/v1` route sits unbound in the middle. A re-take that cannot complete refuses the write
+(`TYPE_ADOPT_INCOMPLETE`).
 
 `expand=drift` on the endpoint read answers "did this endpoint's snapshot fall behind its flow" for
 an endpoint you did not just write.

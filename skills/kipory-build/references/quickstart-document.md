@@ -351,7 +351,7 @@ surfaces:
 - **A start for everyone skips test users until you say so.** `flow.start-per-person` with `people: {"kind": "project"}` starts real people only and answers `testUsersLeftOut`; set `"testUsersInStarts": true` with `PATCH /v1/projects/{nodeId}/settings` while you test, and `false` before launch. To rehearse one person's run: `kipory preview remind-renewal --as alice` (`POST /v1/flows/{id}/preview-runs` with `principal: "end-user"` and `runAsUserId`, then `GET /v1/runs/{runId}/trace`).
 - **A project holds 20 test users**; need more, set `"testUserLimit": 50` (up to 100) the same way.
 - **Change one flow's steps without a document**: `POST /v1/flows/{id}/steps/edit` with edits by key (`row-by-row.md`).
-- **Changing a type or a flow that an endpoint serves**: a change that only adds optional fields (a new optional field on `Box`, an optional input to `order-box`, a new output) is adopted by the plan for every endpoint serving it (`DOCUMENT_ADOPTED_ADDITIVE`). Any other change is refused `TYPE_RESHAPES_BOUND_SNAPSHOTS` / `FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` until the row you change carries `adoptSnapshots: true`.
+- **Changing a type or a flow that an endpoint serves**: a safe change (a new optional field on `Box`, an optional input to `order-box`, a new output, a new `description`) applies unasked. The plan's `contractChanges` lists any other: each endpoint and table whose callers would meet it, each change and its verdict. A breaking one is refused `CONTRACT_BREAK_NOT_ACCEPTED` until an admin of the project names each such row, by key, in the document's top-level `"acceptBreaks": { "endpoints": ["order-box"] }`; an editor key is refused `CONTRACT_BREAK_FORBIDDEN` whatever `acceptBreaks` names.
 
 ## When to open another page
 
