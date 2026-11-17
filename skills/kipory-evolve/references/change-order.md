@@ -15,7 +15,8 @@ refusal or a cascade carries is in `refusals-and-cascades.md`. `SKILL.md` gives 
 | change what is searchable                                   | reindex     | rehearse; a `reembed` bills per record                                                 |
 | remove anything                                             | subtractive | rehearse, expect a refusal naming dependents                                           |
 | retire a term records carry                                 | merge       | merge it into the term that survives, or archive it                                    |
-| rename or change a flow's own inputs or outputs             | contract    | `409` until `adoptSnapshots: true` re-publishes the endpoints in front of it           |
+| change a flow's own inputs or outputs                       | contract    | `409` until `adoptSnapshots: true` re-publishes the endpoints in front of it           |
+| rename a flow's input or output                             | rename      | ADMIN; `renameInputs` / `renameOutputs` move every reader in the same write            |
 
 Misclassifying is the usual failure. "Add a field" and "add a required field" look identical in a
 request and are a create and a migration respectively. "Edit a step" and "edit a step of the flow
@@ -186,10 +187,57 @@ by key the same way, a moved step as a `move`.
 `adoptSnapshots: true`, and then every client of the endpoint sees the new key at once. That PATCH
 may send `outputs` alone; the inputs stay as stored (and the same the other way round).
 
+**Renaming one** is its own statement, not a removal plus an addition. Send `renameInputs` or
+`renameOutputs` (old name to new) on `PATCH /v1/flows/{id}`, or on the flow's row in a document; it
+needs ADMIN. On the PATCH you may leave `inputs` / `outputs` out and the stored name moves; a
+document row states them as they read after the rename. In the same write the platform moves every
+place that names it:
+
+- the flow's own steps: each read of the input (paths, expressions, templates, `if` tests, `each`,
+  `repeat`), and for an output the keys of its `return` steps;
+- every flow that calls it: the key under the call's `inputs`, and each read of `<call>.<output>`;
+- the endpoints bound to it: input bindings, `serialize.key`, `responseBody`, `statusOutput`,
+  `headers`, `redirect.location`, `deltaOutput` and the retry settings;
+- its schedules' and triggers' stored `inputs`, its eval cases (`inputs`, `expected`, assertions),
+  and the checkpoints of the flow and of its callers, so one taken before the rename still restores.
+
+The answer's `renames[]` lists each place moved (`references`), and its `version` and `touched` are
+the versions after every move. Know these first:
+
+- **An endpoint bound to the flow** holds a copy of its signature, so the rename also needs
+  `adoptSnapshots: true`; without it the answer is `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS`.
+  `renames[].exposures` says what the endpoint's own callers see change: a body field read
+  `from: "body"` is named after the input, and an answer with no `responseBody` carries every
+  output under its name. A query parameter keeps its name (the binding becomes `query.<old name>`).
+- **A calling flow that passes the call's whole value on** (`out: {r: priced}`, `$p := priced`),
+  reads it through a filter, or reads the whole set of values, may spell the output through another
+  name. Each occurrence of the old word left in an expression, a template or a path of that flow is
+  a candidate in `renames[].candidates`, and the write is refused `RENAME_CANDIDATE_UNRESOLVED`
+  until you name its step in `keepExpressions` (leave it) or, for an expression or a template,
+  `rewriteExpressions` (take the proposed text). A path is kept, then changed with a steps edit.
+  An eval assertion that reads the run's `output` (or, for an input rename, its `inputs`) through a
+  filter or whole is a candidate too, kept as `<suite>.<case>`. Name a step as the candidate's
+  `path` lists it: a step the same document gives a new key keeps the key the plan listed. Rehearse
+  with `validateOnly` to read them.
+- **An input the platform fills by its name** has nothing for the rename to move, and is refused
+  `RENAME_NAME_TAKEN`: a `record.view` step's view parameter or paging input, a trigger's `event`
+  and `trigger`, the inputs of a flow that scores an eval suite. So is a new name a step or a block
+  of the flow already gives a value under (a step's key, an `each`'s `as`, a `repeat` variable).
+- **A flow a table processes its records with** is refused `RENAME_FLOW_PROCESSES_TABLE`: the table
+  feeds each input from the record field of the same name and stores each output under its name.
+  Change the names without the rename (a removal and an addition) and reprocess; an input under a
+  new name needs a record field of that name.
+- **Eval history.** A case whose `inputs`, `expected` or assertions moved has no earlier run to
+  compare with on its next run.
+
+The inverse rename is the undo: settle the same candidates on the way back. A binding it rewrote
+as `query.<old name>` stays written that way, and behaves the same.
+
 **A table's key and fields** rename with their records: a table's new `key` (its PATCH, or its
 row stated by `id` under the new key in a document) or a type's `renameFields`. Both need ADMIN.
 The plan's `renames[]` lists the references rewritten, the expressions you settle (change each in
-the same document or name its step in `keepExpressions`) and the exposures: a caller still using
+the same document, or name its step in `keepExpressions` to keep it or, for a field rename, in
+`rewriteExpressions` to take the proposed text) and the exposures: a caller still using
 the old name gets no alias. The inverse rename is the undo (the `tables-and-types` pack).
 
 ### Retiring a term records carry

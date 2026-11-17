@@ -89,6 +89,7 @@ Create a flow — its key, label and typed signature (`inputs`, `outputs`); its 
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports, judged by the same gate: an introduced error makes `ok` false. Absent when the dry run did not rehearse — a draft its planner refused, or a stale `version`. |
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
+| `renames` | `object[]` | no | Present when the checked patch renames (a new `key`, `renameFields`, or a flow's `renameInputs` / `renameOutputs`): what the write would move, the expression candidates and how each is resolved, and every external caller it would break. Absent when it renames nothing. |
 
 Each item of `diagnostics`:
 
@@ -120,6 +121,21 @@ Each item of `consequences`:
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
 
+Each item of `renames`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `path` | `string` | yes | The document path of the row that states the rename. |
+| `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
+| `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
+| `tables` | `string[]` | yes | Keys of the tables the rename reaches; for a field, every table whose shape reaches the type. |
+| `references` | `object[]` | yes | Configuration positions the rename rewrites, by document path. |
+| `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
+| `exposures` | `object[]` | yes | What callers of this project see change. Every kind that applies is listed, on the plan and on the apply answer. |
+| `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
+| `cost` | `object` | yes | What the rename spends. Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
+
 **Response `201`**
 
 | Field | Type | Required | Meaning |
@@ -141,7 +157,7 @@ Each item of `consequences`:
 
 ### `GET /v1/flows/{id}`
 
-Read one flow: its signature, its steps in the order they run, its `version` (the lock every write of it requires), and `calls`/`calledBy`, the flows it calls and the flows that call it, one hop each way. `include=reads` adds every step's place and the paths it reads; `include=expressions` adds every expression the steps hold, by where it sits, as TypeScript and as Python, for reading; `include=values` adds every name a step can read (the inputs, each step's key, an `each`'s item) with the fields it holds, as the steps save types them; `expand=timeLimits` adds each function step's time limit as a run applies it. Change its steps with `PUT /v1/flows/{id}/steps` (the whole list) or `POST /v1/flows/{id}/steps/edit` (a few edits); its signature with `PATCH /v1/flows/{id}`. To check an edited expression before saving it, send it as `typescript` or `python` on `PUT /v1/flows/{id}/steps` with `validateOnly: true`. What still holds the flow, and would refuse its delete, is `DELETE /v1/flows/{id}?validateOnly=true`. Every flow of a project at once is `GET /v1/bootstrap`, and the whole project as one editable document is `GET /v1/projects/{nodeId}/document`.
+Read one flow: its signature, its steps in the order they run, its `version` (the lock every write of it requires), and `calls`/`calledBy`, the flows it calls and the flows that call it, one hop each way. `include=reads` adds every step's place and the paths it reads; `include=expressions` adds every expression the steps hold, by where it sits, as TypeScript and as Python, for reading; `include=values` adds every name a step can read (the inputs, each step's key, an `each`'s item) with the fields it holds, as the steps save types them; `include=scope` adds, for each step, which of those names a read written on it may start with, as the steps check itself decides it, so an editor offers the names a save accepts there; `expand=timeLimits` adds each function step's time limit as a run applies it. Change its steps with `PUT /v1/flows/{id}/steps` (the whole list) or `POST /v1/flows/{id}/steps/edit` (a few edits); its signature with `PATCH /v1/flows/{id}`. To check an edited expression before saving it, send it as `typescript` or `python` on `PUT /v1/flows/{id}/steps` with `validateOnly: true`. What still holds the flow, and would refuse its delete, is `DELETE /v1/flows/{id}?validateOnly=true`. Every flow of a project at once is `GET /v1/bootstrap`, and the whole project as one editable document is `GET /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
@@ -154,7 +170,7 @@ Read one flow: its signature, its steps in the order they run, its `version` (th
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `expand` | `string` | no | Optional expansions, comma-separated. One or more of: timeLimits. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
-| `include` | `string` | no | Fields to add, comma-separated, each answered only when asked for. `reads` adds `reads`: every step's place and the paths it reads, what a reference or impact view walks. `expressions` adds `expressions`: every expression the steps hold, as TypeScript and as Python. `values` adds `values`: every name a step can read and the fields it holds. |
+| `include` | `string` | no | Fields to add, comma-separated, each answered only when asked for. `reads` adds `reads`: every step's place and the paths it reads, what a reference or impact view walks. `expressions` adds `expressions`: every expression the steps hold, as TypeScript and as Python. `values` adds `values`: every name a step can read and the fields it holds. `scope` adds `stepScopes`: which of those names each step may read (`scope` itself is the flow's own: `project` or `system`). |
 
 **Response `200`**
 
@@ -179,7 +195,8 @@ Read one flow: its signature, its steps in the order they run, its `version` (th
 | `steps` | `object[]` | yes | The flow's steps in the order they run, as you wrote them. Save a whole new list with `PUT /v1/flows/{id}/steps`, or change a few with `POST /v1/flows/{id}/steps/edit`. |
 | `reads` | `object[]` | no | Present only with `include=reads`: one entry per step, nested ones included, with its place and the paths it reads. |
 | `expressions` | `object[]` | no | Present only with `include=expressions`: one entry per expression the saved steps hold, in written order, each step's function expressions first, with where it sits and its TypeScript and Python. For reading only; to check an edit of one, send it as `typescript` or `python` on a steps write with `validateOnly: true`. |
-| `values` | `object[] \| null` | no | Present only with `include=values`: each name the saved steps can read (the inputs, the platform's values, each step's key, an `each`'s item, a `repeat`'s vars), once, with its type and fields, as the steps save types them. Null when the saved steps do not parse. |
+| `values` | `object[] \| null` | no | Present only with `include=values`: each name the saved steps can read (the inputs, the platform's values, each step's key, an `each`'s item, a `repeat`'s vars, a `catch`'s `error`), once, with its type and fields, as the steps save types them. A `catch`'s `error` is listed even beside an input, a step or an item of that name: the two differ in `from`. Which of them one step may read is `include=scope`. Null when the saved steps do not parse. |
+| `stepScopes` | `object[] \| null` | no | Present only with `include=scope` (the field is `stepScopes`; `scope` says whether the flow is a project's or the platform's): for each step, nested ones included, a block before the steps inside it, the names a read written on that step may start with. They are the flow's inputs, the platform's values, the steps written above it in its list or in a list around it, an `each`'s item, a `repeat`'s vars and, inside a `catch`, `error`. It is the answer of the check every steps write runs. A name listed for a step is in sight there: no read is refused there because that name is unknown, written below, held inside another block or a `parallel` sibling. A name not listed is out of sight there, and the check refuses a read of it wherever it checks one; it does not check what a `repeat`'s `next` reads, a default that stands behind a value that is always there, or the `out` of a list that always ends in a `return` or a `fail`. Each entry lists only what the step adds: a step's names are its `baseKey` step's names, worked out the same way, then its own `adds`. Types and fields are in `include=values`: a name here is the value there with the same `name` and `from`, and the same `stepKey` where the value has one; with no such value its type is not known. A step that is switched off, or written after a `return` or a `fail` ended its list, is answered as it would be checked if it ran. A block the check refuses whole (nested too deep, or a `repeat` with too many vars) has no entry, nor has any step inside it. Null when the saved flow cannot be checked: it does not parse, or a step's key is taken (two steps share it, or it is also the name of an input, of a platform value, or of what a block around it gives its steps). |
 
 Each item of `calls`:
 
@@ -241,6 +258,7 @@ Each item of `reads`:
 | `reads` | `object[]` | yes | Every path the step reads, in written order. |
 | `gives` | `string[]` | yes | The names a block gives to the steps after it; empty for a function step, whose value is read by its key. |
 | `enabled` | `boolean` | yes | False when the step or a block around it is switched off. |
+| `digest` | `string` | yes | The step's version as written: a hash of the step as it is written, its `key` and `description` included, and for a block without the steps inside it. It moves when anything written on the step changes and stays when a step elsewhere in the flow does, so a step whose `digest` is the one you hold is written as the one you hold. It says nothing else: moving the step does not move it (`position` and `parentKey` say where it sits), switching off a block around it flips `enabled` and leaves it, and a step that calls another flow keeps it when that flow is edited. It does not say what runs again: a `description` edit moves it, yet a result kept for the step is still reused and nothing is run again for it. |
 
 Each item of `expressions`:
 
@@ -255,16 +273,25 @@ Each item of `values`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `name` | `string` | yes | The name as an expression or a path reads it. |
-| `from` | `"input" \| "platform" \| "step" \| "item" \| "var"` | yes | Where it comes from: a flow `input`; a `platform` value every run or some runs carry (`runInfo`, `userInfo`); a `step`'s value, by its key; an `each`'s `item` (its `as`); a `repeat`'s `var`. |
-| `stepKey` | `string \| null` | yes | The key of the step that gives it: the step itself, or the `each` or `repeat` around it. Null for an input or a platform value. |
+| `from` | `"input" \| "platform" \| "step" \| "item" \| "var" \| "error"` | yes | Where it comes from: a flow `input`; a `platform` value every run or some runs carry (`runInfo`, `userInfo`); a `step`'s value, by its key; an `each`'s `item` (its `as`); a `repeat`'s `var`; the `error` a `try` gives the steps of its `catch`. |
+| `stepKey` | `string \| null` | yes | The key of the step that gives it: the step itself, or the `each` or `repeat` around it. Null for an input, a platform value, and `error`, which every `try` gives its `catch` alike. |
 | `type` | `string \| null` | yes | Its JSON type; for a list, its items' type. Null where the type does not say. |
 | `typeName` | `string \| null` | yes | The named type it is (for a list, its items'), such as `ScrapedPage` or one of the project's types. Null for a builtin, an inline shape or a value with no type. |
 | `list` | `boolean` | yes | The value is a list. |
 | `fields` | `object[] \| null` | yes | Every field under it, depth first, in declared order, up to 6 levels down and 400 fields. A sub-flow call's value lists the called flow's outputs; a block's, its `out` names. Empty for a value with no fields (a text, a number, an open object). Null when the platform cannot type it: a function with no output type, a name given twice, a union. |
 
+Each item of `stepScopes`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `stepKey` | `string` | yes | The step's key. |
+| `baseKey` | `string \| null` | yes | The key of the step whose names this step sees first: the nearest step written before it in its list that has an entry, or the block it sits in. Null when `adds` holds every name. |
+| `adds` | `object[]` | yes | The names this step sees after its `baseKey` step's. One of a name that step already sees replaces it: inside an `each` whose item is named like a flow input, the name is the item. |
+| `parts` | `object[]` | yes | The places on a block that see other names than the block's own reads do. An `out` is read after the steps of the list it closes, so it sees them; a `parallel`'s `out` sees every child that gives a value. A `repeat`'s `next` sees its vars and its steps; its `until` sees its vars and no step of the pass. Every other read on the step sees the step's own names: its `with`, an `if` branch's test, an `each`'s list, a `repeat`'s first `vars`, a `return`. Empty for a step that is not a block. |
+
 ### `PATCH /v1/flows/{id}`
 
-Change a flow's label, description, signature (`inputs` or `outputs`, either side alone); its key is permanent. Its steps are `PUT /v1/flows/{id}/steps`. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. A signature change another row froze a copy of is refused unless `adoptSnapshots: true`. With `validateOnly: true` it answers whether the patch would be refused and rehearses it — what it would leave behind in this flow and the flows that call it — writing nothing; that is a dry run of a WRITE, where `POST /v1/flows/{id}/preview` RUNS the flow. Several flows at once, with their steps: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Change a flow's label, description, signature (`inputs` or `outputs`, either side alone); its key is permanent. Its steps are `PUT /v1/flows/{id}/steps`. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. A signature change another row froze a copy of is refused unless `adoptSnapshots: true`. To give an input or an output a new name, send `renameInputs` or `renameOutputs` (old name to new): the write moves every place that names it and answers them under `renames`; it needs ADMIN. With `validateOnly: true` it answers whether the patch would be refused and rehearses it — what it would leave behind in this flow and the flows that call it — writing nothing; that is a dry run of a WRITE, where `POST /v1/flows/{id}/preview` RUNS the flow. Several flows at once, with their steps: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -281,6 +308,10 @@ Change a flow's label, description, signature (`inputs` or `outputs`, either sid
 | `inputs` | `object` | no | Replacement inputs, by name. Omit to leave them alone — they may be sent without `outputs`, and the outputs then stay as stored. Changing them re-validates every step in the flow. |
 | `outputs` | `object` | no | Replacement outputs, by name. Omit to leave them alone — they may be sent without `inputs`, and the inputs then stay as stored. Changing them re-validates the whole flow. |
 | `adoptSnapshots` | `boolean` | no | Opt in to re-publishing the request and response contract of any live endpoint this flow serves — it changes what a running route promises its callers. Off by default. |
+| `renameInputs` | `object` | no | Inputs this edit RENAMES, old name → new name. In the same write the platform moves every place that names the input: the reads in this flow's own steps (paths, expressions, templates, `if` tests, `each`, `repeat`), the `inputs` key of every call of this flow, the bindings and settings of the endpoints bound to it, the stored `inputs` of its schedules and triggers, its eval cases, and the checkpoints of this flow and of the flows that call it. An endpoint's query parameter keeps the name its callers send; a body field is read under the new name, so its callers must send that. An eval assertion that reads `inputs` through a filter or whole is a candidate the platform will not edit by itself: keep it in `keepExpressions` (as `<suite>.<case>`), or change it by hand, or the write is refused `RENAME_CANDIDATE_UNRESOLVED`. Leave `inputs` out and the stored input takes the new name; or state `inputs` as they read after the rename. The old name must be a declared input and the new one free: not another input, and not a name a step or a block of the flow gives a value under. An input left out of `inputs` and not named here is a removal. Refused `RENAME_NAME_TAKEN` where the platform fills the input by its name and nothing names it to move: a `record.view` step's view parameter or paging input, a trigger's `event` and `trigger`, the inputs of a flow that scores an eval suite. Refused `RENAME_FLOW_PROCESSES_TABLE` on a flow that a table processes its records with. A flow an endpoint is bound to also needs `adoptSnapshots: true`. An eval case that moved has no earlier run to compare with on its next run. Needs ADMIN. |
+| `renameOutputs` | `object` | no | Outputs this edit RENAMES, old name → new name. In the same write the platform moves every place that names the output: the keys of this flow's `return` steps, each read of `<call>.<output>` in every flow that calls it, the settings of the endpoints bound to it (`responseBody`, `statusOutput`, `headers`, `redirect.location`, `deltaOutput`, the retry settings), its eval cases (`expected`, assertion slots, `output.<name>` in assertion expressions), and the checkpoints of this flow and of the flows that call it. Where a calling flow passes the call's whole value on, reads it through a filter, or reads the whole set of values, an occurrence of the old name left in an expression, a template or a path of that flow is a candidate the platform will not edit by itself, and so is one in an eval assertion that reads `output` through a filter or whole: keep it in `keepExpressions`, have a step's expression or template written through `rewriteExpressions`, or the write is refused `RENAME_CANDIDATE_UNRESOLVED`. Leave `outputs` out and the stored output takes the new name; or state `outputs` as they read after the rename. Refused `RENAME_FLOW_PROCESSES_TABLE` on a flow that a table processes its records with. A flow an endpoint is bound to also needs `adoptSnapshots: true`. An eval case that moved has no earlier run to compare with on its next run. Needs ADMIN. |
+| `keepExpressions` | `string[]` | no | With `renameOutputs` or `renameInputs`: the steps (`<flowKey>.<stepKey>`) of calling flows, and the eval cases (`<suite>.<case>`), whose remaining occurrences of the old name stay AS WRITTEN. Every candidate the plan lists must be kept here, changed by hand, or (for an output) written through `rewriteExpressions`, or the write is refused `RENAME_CANDIDATE_UNRESOLVED`. Name each as the plan's candidate `path` lists it. Refused 422 when sent with neither. |
+| `rewriteExpressions` | `string[]` | no | With `renameOutputs`: the steps (`<flowKey>.<stepKey>`) of calling flows whose remaining occurrences of the old name the platform REWRITES to the `proposed` text the plan lists. Read the plan (`validateOnly`) first: an occurrence may spell the old name and mean something else. An entry the platform cannot act on is refused `RENAME_REWRITE_NOT_POSSIBLE`: a step with no listed candidate, or one whose only candidate is a path. Refused 422 when sent with no `renameOutputs`. |
 | `version` | `integer` | yes | The flow's `version` as you last read it. REQUIRED: the patch is refused with 409 `VERSION_CONFLICT` if the flow changed since — another patch, a checkpoint restore, or a project document apply — so a concurrent edit is never silently overwritten. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored flow and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did. Default false. |
 
@@ -308,6 +339,7 @@ Shape 1, with `id`, `scope`, `project`, `label`, `key`, `description`, `inputs`,
 | `timeLimits` | `object` | no | Each function step's time limit as a run applies it, keyed by step key, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The deployment's task limits and generation default move it without bumping `structureVersion`, and the bootstrap's flows section does not carry it. Null for a step whose function is not registered. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `warnings` | `object[]` | no | Present when the write removed something a use the platform only guessed may still read (`REMOVED_MAY_BE_USED`): each names the user and where. The write went through; check each by hand. |
+| `renames` | `object[]` | no | Present when the PATCH carried `renameInputs` or `renameOutputs`: each input or output renamed, every place the write moved to the new name (`references`), the occurrences it left for you and how each was settled (`candidates`), and what callers of a bound endpoint see change (`exposures`). The flow's `version` and each row under `touched` are as they stand after every move. Absent on an edit that renames nothing. |
 
 Each item of `touched`:
 
@@ -328,6 +360,21 @@ Each item of `warnings`:
 | `outlinePath` | `string` | no | Where the step this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on step; see `GET /v1/flows/{id}/outline`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
+Each item of `renames`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `path` | `string` | yes | The document path of the row that states the rename. |
+| `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
+| `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
+| `tables` | `string[]` | yes | Keys of the tables the rename reaches; for a field, every table whose shape reaches the type. |
+| `references` | `object[]` | yes | Configuration positions the rename rewrites, by document path. |
+| `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
+| `exposures` | `object[]` | yes | What callers of this project see change. Every kind that applies is listed, on the plan and on the apply answer. |
+| `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
+| `cost` | `object` | yes | What the rename spends. Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
+
 Shape 2, with `ok`, `diagnostics`, `complete`:
 
 | Field | Type | Required | Meaning |
@@ -337,6 +384,7 @@ Shape 2, with `ok`, `diagnostics`, `complete`:
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports, judged by the same gate: an introduced error makes `ok` false. Absent when the dry run did not rehearse — a draft its planner refused, or a stale `version`. |
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
+| `renames` | `object[]` | no | Present when the checked patch renames (a new `key`, `renameFields`, or a flow's `renameInputs` / `renameOutputs`): what the write would move, the expression candidates and how each is resolved, and every external caller it would break. Absent when it renames nothing. |
 
 Each item of `diagnostics`:
 
@@ -367,6 +415,21 @@ Each item of `consequences`:
 | `rows` | `integer` | yes | How many stored rows are affected; on `flows-affected`, how many flows. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
+
+Each item of `renames`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `path` | `string` | yes | The document path of the row that states the rename. |
+| `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
+| `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
+| `tables` | `string[]` | yes | Keys of the tables the rename reaches; for a field, every table whose shape reaches the type. |
+| `references` | `object[]` | yes | Configuration positions the rename rewrites, by document path. |
+| `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
+| `exposures` | `object[]` | yes | What callers of this project see change. Every kind that applies is listed, on the plan and on the apply answer. |
+| `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
+| `cost` | `object` | yes | What the rename spends. Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
 
 ### `DELETE /v1/flows/{id}`
 
@@ -468,7 +531,7 @@ Each item of `steps`:
 
 ### `GET /v1/flows/{id}/health`
 
-The full validation report for the flow as saved: every diagnostic, what it is about (a step or the flow) and whose it is. A report, not a gate — a flow with errors still runs, and gets them wrong. The one-line summary rides each row of `GET /v1/flows?expand=health`. What a change WOULD leave behind is the change's own dry run (`validateOnly: true` on `PATCH /v1/flows/{id}` or a steps write), which rehearses it and reports the findings it introduces; what actually ran is `GET /v1/flows/{id}/coverage`.
+The full validation report for the flow as saved: every diagnostic, what it is about (a step or the flow) and whose it is. A report, not a gate — a flow with errors still runs, and gets them wrong. The one-line summary rides each row of `GET /v1/flows?expand=health`. What a change WOULD leave behind is the change's own dry run (`validateOnly: true` on `PATCH /v1/flows/{id}` or a steps write), which rehearses it and reports the findings it introduces; what actually ran is `GET /v1/flows/{id}/coverage`. The report has no version: it is worked out on each read, from the flow and from everything it leans on. Send `If-None-Match` with the last `ETag` to get 304 when the report is the same.
 
 **Path parameters**
 

@@ -30,13 +30,17 @@ Read this before a change to a project that already holds records or serves call
 - **`structureVersion` moves on every one of these**, so every client caching against it must
   re-read. If you built something that caches configuration, this is the signal it was waiting for.
 - **A flow's signature is frozen by what publishes it.** Changing its inputs or outputs (a
-  rename, a new required input, a type) while an endpoint — or a table processing through it
+  new name, a new required input, a type) while an endpoint — or a table processing through it
   — holds a snapshot answers `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` (under `validateOnly`, an
   `ok: false` verdict with that code).
   `PATCH /v1/flows/{id}` with `adoptSnapshots: true` lands it and re-publishes those contracts in
   the same transaction: every client of that endpoint sees the new response keys at once. Treat it
   as an API change to the product's callers, not an internal edit (`kipory-expose`). Changing which
   values a `return` step gives, with the same outputs, is not a signature change.
+- **Restating `inputs` under a new name is a removal and an addition, not a rename.** Every reader
+  of the old name is then refused (`STEP_READS_UNKNOWN`, `ENDPOINT_INPUT_UNSATISFIED`) until you
+  restate each yourself. `renameInputs` / `renameOutputs` on the same PATCH move them for you
+  (`references/change-order.md`).
 - **Never send `validateOnly` to a delete whose route reference does not list it.** Such a delete
   has no rehearsal: the flag — query or body — answers `422`, and a deployment older than these
   files may ignore it and delete. A delete route either names its rehearsal or has none.

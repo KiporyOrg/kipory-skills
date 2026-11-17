@@ -17,7 +17,7 @@
 POST  /v1/flows                          { project, key, label, inputs, outputs } — a flow with no steps yet
 PUT   /v1/flows/{id}/steps               { version, validateOnly?, steps } — the whole list, in the order it runs
 POST  /v1/flows/{id}/steps/edit          { version, validateOnly?, edits } — up to 100 edits by key, all or none
-GET   /v1/flows/{id}                     the flow; `steps` in written order; `?include=reads` adds each step's place and reads
+GET   /v1/flows/{id}                     the flow; `steps` in written order; `?include=reads` adds each step's place and reads, `?include=scope` the names each step may read
 GET   /v1/flows/{id}/outline             the steps as an indented outline
 PATCH /v1/flows/{id}                     { version, label?, description?, inputs?, outputs? } — the signature
 GET   /v1/flows/conditions               every test an `if` or a `repeat`'s `until` can use
@@ -43,6 +43,8 @@ A flow is `{key, label, description?, inputs, outputs, steps}`: a typed signatur
 | `try`      | `{key, try: {steps, out?}, catch: {steps, out?}}`          | survives the flow's own failure (never a refusal or the platform's)          |
 | `return`   | `{key, return: {<output>: <argument>}}`                    | ends the flow and gives its outputs — the only way to give them              |
 | `fail`     | `{key, fail: {code, message, status?}}`                    | ends the flow; an endpoint answers `status`, your `code` in `details.reason` |
+
+A step of any kind also takes `description`: a note for people reading the flow, stored on the step and exported with it. It changes nothing the step does and editing it costs nothing: a result kept for the step is still reused, and a record processed again does not run the step again for it. Only the step's `digest` on `?include=reads` moves, so a reader sees the step was edited.
 
 ## The whole list
 

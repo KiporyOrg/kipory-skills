@@ -1,7 +1,8 @@
 {
-  "source": "595895c10b5d8684dab24ed65fd3c49f4c192bf1",
+  "source": "88e1efad3131b37e6faa250245ffc84d45838057",
   "since": "2026-08-19",
   "history": [
+    {"sha":"88e1efad3131","skills":"A builder can rename a flow's inputs and outputs, have the texts a rename leaves rewritten, read each step's names in sight, and is told when a step reads a field its type cannot hold (BMS format-11 gaps, packages A–D, spec 436) (#3760)"},
     {"sha":"595895c10b5d","skills":"A shipped file no longer undoes someone else's edit unseen, an endpoint leaves out what the engine can work out, and the presence proof credits more expressions and names the real cause (#3759)"},
     {"sha":"a20b8acc9c4d"},
     {"sha":"3f1642bb1c0e"},
@@ -1000,7 +1001,6 @@
     {"sha":"9b6e57ff3c4e"},
     {"sha":"79755aa29192"},
     {"sha":"edd402ed6b6e"},
-    {"sha":"946ad39879a5"},
-    {"sha":"417e33cac5c0"}
+    {"sha":"946ad39879a5"}
   ]
 }

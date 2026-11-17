@@ -130,6 +130,7 @@ the class decides the sequence, and every sequence is written out once, in
 | **Editing the processing flow of a table that holds records** | the edit saves and stored records keep what the old steps wrote. Reprocess them (`kipory-data`); a reprocess is charged like a first processing      |
 | **Renaming a step's key**                                     | its key is its value's name: one steps write that renames it and every reader, rehearsed with `validateOnly` first                                   |
 | **Changing a flow's own inputs or outputs**                   | a change to the product's API: `409` until `adoptSnapshots: true`                                                                                    |
+| **Renaming a flow's input or output**                         | `renameInputs` / `renameOutputs` on the flow's PATCH: one write moves every step, caller, endpoint, schedule, trigger and eval case; ADMIN           |
 
 ## What refuses, and what cascades instead
 

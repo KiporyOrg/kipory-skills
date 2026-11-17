@@ -258,7 +258,7 @@ Shape 1, with `flowId`, `restoredStepCount`, `autoCheckpointId`, `warnings`, `to
 | `restoredStepCount` | `integer` | yes | How many steps the flow now has, nested ones included — the checkpoint's count. |
 | `autoCheckpointId` | `string` | yes | A checkpoint taken of the PREVIOUS state, automatically, just before this restore. Restore it to undo what you just did. |
 | `warnings` | `object[]` | yes | The warnings the restored steps' save decided. Errors refuse a restore, as they refuse any save of a flow's steps; these did not. |
-| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
+| `touched` | `object[]` | yes | The flow this restore wrote, with the `version` it holds now. A restore writes the flow's inputs and outputs and then its steps, so the version moves by 2, not 1: replace the version you cached for the flow with this one before its next PATCH. |
 
 Each item of `warnings`:
 

@@ -307,7 +307,10 @@ under `counts.unchanged`. A flow's steps are rows of their own (`resource: "step
 one `move` (counted as `move` in `counts`), never a delete and a create. Each `update` says what changes field by field under `fields` — each field's
 path, its value before and its value after; text over several lines also as a line diff. `diagnostics` lists what this document introduces;
 what the project already had is counted under `health` (errors and warnings before and after,
-what it adds, what it fixes) — over the flows the document can reach.
+what it adds, what it fixes) — over the flows the document can reach. One kind of finding the
+project already had is listed too: a warning or a note on a step this document changes, marked
+`introduced: false`. It was there before your change and does not make `ok` false; it is shown
+because you are editing that step.
 
 ⛔ **`moved`: what someone else changed after your read.** Every element the document states or
 changes — and every key it would create — that another person, key or session changed after
@@ -384,13 +387,30 @@ contract to whoever already calls that route. It is a statement about this apply
 never part of the row, never exported.
 
 A type's row may carry `renameFields` (`{"<old path>": "<new name>"}`) beside its definition as it
-reads after the rename, and `keepExpressions`, the steps whose expressions or templates keep the
-old name as written. Both are statements about this apply, like `adoptSnapshots`: never stored,
-never exported. The plan answers `renames[]`: what moves, the expression candidates to settle, the
+reads after the rename, `keepExpressions`, the steps whose expressions or templates keep the
+old name as written, and `rewriteExpressions`, the steps whose expressions or templates take the
+text the plan proposes. All three are statements about this apply, like `adoptSnapshots`: never
+stored, never exported. The plan answers `renames[]`: what moves, the expression candidates to settle, the
 callers it breaks, and `cost` — a rename calls no model and is not charged, and embeds nothing unless
 `reembedRecords` says a table's search text names its own key. A swap or a chain (`a`→`b` with
 `b`→`a`) in one document is refused: rename one word to a free name first. The tables pack has the
 whole rule.
+
+A flow's row may carry `renameInputs` and `renameOutputs` (`{"<old name>": "<new name>"}`) beside
+its `inputs` and `outputs` as they read after the rename. The apply moves every place that names
+the input or output: the reads in the flow's own steps and the keys of its `return` steps, the
+`inputs` key of each call and each read of `<call>.<output>` in the flows that call it, the
+bindings and settings of the endpoints bound to it, the stored `inputs` of its schedules and
+triggers, its eval cases, and the checkpoints of the flow and of its callers. A row you restate
+under the old name is moved too; a row you change is written in the words you state. An endpoint
+bound to the flow holds a copy of its signature, so the row also carries `adoptSnapshots: true`.
+Where a calling flow passes the call's whole value on, an occurrence of an output's old name left
+in an expression, a template or a path of that flow is a candidate: change it in the document, or
+name its step in the flow row's `keepExpressions` or (an expression or a template)
+`rewriteExpressions`. Refused: a flow a table processes its records with
+(`RENAME_FLOW_PROCESSES_TABLE`), a flow the document creates, and an input the platform fills by
+its name, such as a view's parameter or a trigger's `event` (`RENAME_NAME_TAKEN`). Needs ADMIN;
+never stored, never exported.
 
 A table's row may carry `renameComputed` (`{"<old>": "<new>"}`) beside a `computed` that declares
 the field under its new name: its kept values, stamps and filter move, and every other table's

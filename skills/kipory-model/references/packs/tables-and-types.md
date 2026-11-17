@@ -1295,18 +1295,28 @@ another, which is a removal and is refused while records hold it.
   - conditions, arguments, trigger filters, endpoint retry paths, eval inputs and checkpoints;
   - every view and shape that names the field: in a clause, as a set's `field`, in the `order`,
     among the `fields`, in a shape's `properties`.
-- **What it never edits:** JSONata expressions and prompt templates. A plan lists each occurrence
+- **What it edits only where you say:** JSONata expressions and prompt templates. A plan lists each occurrence
   of the old name in `renames[].candidates`, with its span and a proposed text. Settle each one in
-  the same document: change the text, or keep it by naming its step in `keepExpressions`
+  the same document: change the text, keep it by naming its step in `keepExpressions`
   (`["<flowKey>.<stepKey>"]`, `"<suiteKey>.<caseKey>"` for an eval assertion, or
-  `"<tableKey>.<field>"` for a computed field's formula). Until every
+  `"<tableKey>.<field>"` for a computed field's formula), or have the platform write the proposed
+  text by naming its step in `rewriteExpressions` (`["<flowKey>.<stepKey>"]`, steps only, each
+  named as its candidate's `path` lists it: a step the same document re-keys keeps the key the
+  plan listed). Read
+  the plan before you name a step there: an occurrence may spell the old name and mean something
+  else. A name it cannot act on is refused `RENAME_REWRITE_NOT_POSSIBLE` (a name in both lists,
+  an eval assertion, a computed formula, a step whose only such text does not parse), and a rewritten flow is
+  judged like any edit of it. After a document rewrote steps, the document you sent still holds
+  the old text: read the project document again before you apply it a second time, or it writes
+  the old name back. Until every
   one is settled, the apply is refused `RENAME_CANDIDATE_UNRESOLVED`.
 - **A processing flow's input of the same name is the flow's own word.** A table's flow
   takes a record field as the input named like it, required or optional, and the rename never
   renames an input. Rename the input in the same document: restate the flow with the input's new
   name, everywhere its steps read it, and `adoptSnapshots: true`. The plan judges the pair once both are
   written; left alone, the field rename is refused `TABLE_FLOW_INPUT_UNMAPPED`, and so is removing
-  the field. The references read lists the flow as a reader of the field, at `inputs.<name>`.
+  the field. A flow's own `renameInputs` does not apply here: on a flow a table processes its records
+  with it is refused `RENAME_FLOW_PROCESSES_TABLE` (see Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)). The references read lists the flow as a reader of the field, at `inputs.<name>`.
 - **A row you edit in the renaming document is written in the new words.** A row you restate
   unchanged may keep the old ones, and the rename moves them. Change a row, and every word in it
   is judged against the project as it reads after the rename.
@@ -1848,8 +1858,11 @@ lists the runs.
   step whose compiled schema depends on it — directly or through a nested chain — and that
   version is folded into the ingest cache key. So a type edit re-runs dependent cached ingests
   with no manual cache bust. Useful, and expensive if you did not expect it.
-- **A flow-backed binding is re-validated against a new type, but the captured snapshot is not
-  rewritten.** The drift read is what owns the live comparison — which is why `uncaptured` matters.
+- **A type edit rewrites a captured signature only when you say so.** An edit that re-shapes the
+  signature an endpoint or a flow-backed table captured is refused 409
+  `TYPE_RESHAPES_BOUND_SNAPSHOTS`; sent with `adoptSnapshots: true` it rewrites each captured
+  signature in the same write. An edit that leaves every captured signature as it is rewrites
+  none. The drift read owns the live comparison — which is why `uncaptured` matters.
 - **Vector guards fail open.** An unreachable vector store does not block a save, so a save can
   succeed while the search half of your change quietly did not land.
 - **A table is named by key in function config**, not by id — which is why a table rename

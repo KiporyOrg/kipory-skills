@@ -117,14 +117,14 @@ Apply a kept plan: `{planId, note}`, the plan from `POST …/document/plan` with
 | `version` | `string` | yes | The project's structure version the plan was computed against. |
 | `changes` | `object[]` | yes | The rows that change, in the document's own order, then any row a delete takes along. Rows the document states that already say this are only counted, under `counts.unchanged`. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
-| `diagnostics` | `object[]` | yes | Every finding this document introduces, and every finding about the document itself. A finding about a flow's steps also carries `at`, and its `fixes` or the `decision` it needs; any other finding may carry `fixes` that set values at document paths. Findings the project already had are counted under `health`. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
+| `diagnostics` | `object[]` | yes | Every finding this document introduces, and every finding about the document itself. A finding about a flow's steps also carries `at`, and its `fixes` or the `decision` it needs; any other finding may carry `fixes` that set values at document paths. Findings the project already had are counted under `health`, not listed, except these, each marked `introduced: false` and none making `ok` false: a warning or a note already on a step this document changes, so you see it while you edit that step; every finding, when the document changes nothing (the plan is then a health report); and a standing notice about the project as a whole. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
 | `moved` | `object[]` | no | Elements this document states or changes that someone else changed after your read (`basedOn`), with who, when, why and what. Any here makes `ok` false and the apply would be refused: read the project again, make your change on what it says now, and plan again. Absent when none moved. |
 | `health` | `object` | no | How the change moves the health of the flows it can reach: errors and warnings before and after, what it adds and what it fixes. |
 | `contracts` | `object` | no | On a plan: the contract each table the document CREATES would have, by the table's key — its field vocabulary, with each field's index type and what it may be used for. The same contract `derived.contract` answers on `PATCH /v1/tables/{id}` with `validateOnly`, for a table that has no row to ask yet. Absent when the document creates no table, and on an apply. |
 | `supportedUses` | `"filter" \| "key" \| "search" \| "link" \| "stream"[]` | no | On a plan, beside `contracts`: the use kinds this deployment has a reader for — what `expand=uses` answers as `supported` on a table that exists. A kind absent here saves but nothing reads it yet, so an editor must not offer it. |
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |
 | `counts` | `object` | yes | `changes` counted by kind. |
-| `renames` | `object[]` | no | Every rename the document states — a table, relation or vocabulary under a new key, or a type's `renameFields` — with what it rewrites and what callers see move. On a plan and on an apply answer. Absent when the document renames nothing. |
+| `renames` | `object[]` | no | Every rename the document states — a table, relation or vocabulary under a new key, a type's `renameFields`, or a flow's `renameInputs` / `renameOutputs` — with what it rewrites and what callers see move. On a plan and on an apply answer. Absent when the document renames nothing. |
 | `permissions` | `object` | no | What the caller's role lets an apply of this document do. |
 | `applied` | `true` | yes | The plan is now the project's configuration. Also true when it changed nothing — nothing was written, and the project already says what the document says. |
 | `appliedVersion` | `string` | yes | The project's structure version after the apply and the writes it owed after its commit (seeding or relabelling a vocabulary's terms, each a version of its own): above `version` when anything moved — by more than one when such writes ran — and equal to it when nothing did. When someone else's write landed among those, it is the apply's own version. |
@@ -190,10 +190,10 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape"` | yes | What is renamed. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
-| `from` | `string` | yes | The old key; for a field, its old path in the type. |
-| `to` | `string` | yes | The new key; for a field, its new path. |
+| `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
+| `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
 | `tables` | `string[]` | yes | Keys of the tables the rename reaches; for a field, every table whose shape reaches the type. |
 | `references` | `object[]` | yes | Configuration positions the rename rewrites, by document path. |
 | `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
@@ -233,14 +233,14 @@ _No fields._
 | `version` | `string` | yes | The project's structure version the plan was computed against. |
 | `changes` | `object[]` | yes | The rows that change, in the document's own order, then any row a delete takes along. Rows the document states that already say this are only counted, under `counts.unchanged`. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
-| `diagnostics` | `object[]` | yes | Every finding this document introduces, and every finding about the document itself. A finding about a flow's steps also carries `at`, and its `fixes` or the `decision` it needs; any other finding may carry `fixes` that set values at document paths. Findings the project already had are counted under `health`. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
+| `diagnostics` | `object[]` | yes | Every finding this document introduces, and every finding about the document itself. A finding about a flow's steps also carries `at`, and its `fixes` or the `decision` it needs; any other finding may carry `fixes` that set values at document paths. Findings the project already had are counted under `health`, not listed, except these, each marked `introduced: false` and none making `ok` false: a warning or a note already on a step this document changes, so you see it while you edit that step; every finding, when the document changes nothing (the plan is then a health report); and a standing notice about the project as a whole. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
 | `moved` | `object[]` | no | Elements this document states or changes that someone else changed after your read (`basedOn`), with who, when, why and what. Any here makes `ok` false and the apply would be refused: read the project again, make your change on what it says now, and plan again. Absent when none moved. |
 | `health` | `object` | no | How the change moves the health of the flows it can reach: errors and warnings before and after, what it adds and what it fixes. |
 | `contracts` | `object` | no | On a plan: the contract each table the document CREATES would have, by the table's key — its field vocabulary, with each field's index type and what it may be used for. The same contract `derived.contract` answers on `PATCH /v1/tables/{id}` with `validateOnly`, for a table that has no row to ask yet. Absent when the document creates no table, and on an apply. |
 | `supportedUses` | `"filter" \| "key" \| "search" \| "link" \| "stream"[]` | no | On a plan, beside `contracts`: the use kinds this deployment has a reader for — what `expand=uses` answers as `supported` on a table that exists. A kind absent here saves but nothing reads it yet, so an editor must not offer it. |
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |
 | `counts` | `object` | yes | `changes` counted by kind. |
-| `renames` | `object[]` | no | Every rename the document states — a table, relation or vocabulary under a new key, or a type's `renameFields` — with what it rewrites and what callers see move. On a plan and on an apply answer. Absent when the document renames nothing. |
+| `renames` | `object[]` | no | Every rename the document states — a table, relation or vocabulary under a new key, a type's `renameFields`, or a flow's `renameInputs` / `renameOutputs` — with what it rewrites and what callers see move. On a plan and on an apply answer. Absent when the document renames nothing. |
 | `permissions` | `object` | no | What the caller's role lets an apply of this document do. |
 
 Each item of `changes`:
@@ -304,10 +304,10 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape"` | yes | What is renamed. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
-| `from` | `string` | yes | The old key; for a field, its old path in the type. |
-| `to` | `string` | yes | The new key; for a field, its new path. |
+| `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
+| `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
 | `tables` | `string[]` | yes | Keys of the tables the rename reaches; for a field, every table whose shape reaches the type. |
 | `references` | `object[]` | yes | Configuration positions the rename rewrites, by document path. |
 | `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
@@ -336,14 +336,14 @@ A plan kept by `POST …/document/plan`, as it answered, with whether it was app
 | `version` | `string` | yes | The project's structure version the plan was computed against. |
 | `changes` | `object[]` | yes | The rows that change, in the document's own order, then any row a delete takes along. Rows the document states that already say this are only counted, under `counts.unchanged`. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
-| `diagnostics` | `object[]` | yes | Every finding this document introduces, and every finding about the document itself. A finding about a flow's steps also carries `at`, and its `fixes` or the `decision` it needs; any other finding may carry `fixes` that set values at document paths. Findings the project already had are counted under `health`. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
+| `diagnostics` | `object[]` | yes | Every finding this document introduces, and every finding about the document itself. A finding about a flow's steps also carries `at`, and its `fixes` or the `decision` it needs; any other finding may carry `fixes` that set values at document paths. Findings the project already had are counted under `health`, not listed, except these, each marked `introduced: false` and none making `ok` false: a warning or a note already on a step this document changes, so you see it while you edit that step; every finding, when the document changes nothing (the plan is then a health report); and a standing notice about the project as a whole. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
 | `moved` | `object[]` | no | Elements this document states or changes that someone else changed after your read (`basedOn`), with who, when, why and what. Any here makes `ok` false and the apply would be refused: read the project again, make your change on what it says now, and plan again. Absent when none moved. |
 | `health` | `object` | no | How the change moves the health of the flows it can reach: errors and warnings before and after, what it adds and what it fixes. |
 | `contracts` | `object` | no | On a plan: the contract each table the document CREATES would have, by the table's key — its field vocabulary, with each field's index type and what it may be used for. The same contract `derived.contract` answers on `PATCH /v1/tables/{id}` with `validateOnly`, for a table that has no row to ask yet. Absent when the document creates no table, and on an apply. |
 | `supportedUses` | `"filter" \| "key" \| "search" \| "link" \| "stream"[]` | no | On a plan, beside `contracts`: the use kinds this deployment has a reader for — what `expand=uses` answers as `supported` on a table that exists. A kind absent here saves but nothing reads it yet, so an editor must not offer it. |
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |
 | `counts` | `object` | yes | `changes` counted by kind. |
-| `renames` | `object[]` | no | Every rename the document states — a table, relation or vocabulary under a new key, or a type's `renameFields` — with what it rewrites and what callers see move. On a plan and on an apply answer. Absent when the document renames nothing. |
+| `renames` | `object[]` | no | Every rename the document states — a table, relation or vocabulary under a new key, a type's `renameFields`, or a flow's `renameInputs` / `renameOutputs` — with what it rewrites and what callers see move. On a plan and on an apply answer. Absent when the document renames nothing. |
 | `permissions` | `object` | no | What the caller's role lets an apply of this document do. |
 | `state` | `"open" \| "applied"` | yes | `open` until it is applied; an applied plan cannot be applied again. |
 | `plannedBy` | `string` | yes | Who planned it: `user:<id>`, `key:<id>`. |
@@ -411,10 +411,10 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape"` | yes | What is renamed. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
-| `from` | `string` | yes | The old key; for a field, its old path in the type. |
-| `to` | `string` | yes | The new key; for a field, its new path. |
+| `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
+| `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
 | `tables` | `string[]` | yes | Keys of the tables the rename reaches; for a field, every table whose shape reaches the type. |
 | `references` | `object[]` | yes | Configuration positions the rename rewrites, by document path. |
 | `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |

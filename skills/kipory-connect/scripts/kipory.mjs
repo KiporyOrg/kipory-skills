@@ -143,6 +143,9 @@ for (let i = 0; i < argv.length; i++) {
 const asJson = flags.get("json") === true;
 
 const out = (line) => process.stdout.write(`${line}\n`);
+/** A finding the project already had, listed because the change touches its step. */
+const alreadyThere = (d) =>
+  d.introduced === false ? " (already there, not from this change)" : "";
 const oneLine = (s) =>
   String(s ?? "")
     .replace(/\s+/g, " ")
@@ -502,7 +505,9 @@ const printDiagnostics = (diagnostics) => {
   const rest = list.filter((d) => d.severity !== "error");
   if (flags.get("all") === true) {
     for (const d of rest)
-      out(`${d.severity} ${d.code} ${d.field ?? "-"}: ${oneLine(d.message)}`);
+      out(
+        `${d.severity} ${d.code} ${d.field ?? "-"}:${alreadyThere(d)} ${oneLine(d.message)}`,
+      );
   } else {
     // Neither refuses. A warning is printed whole when there are few, and
     // always when it is about an expression (`JSONATA_*`): those say the
@@ -514,7 +519,9 @@ const printDiagnostics = (diagnostics) => {
       (d) => warnings.length <= WARNINGS_WHOLE || d.code.startsWith("JSONATA_"),
     );
     for (const d of whole)
-      out(`warning ${d.code} ${d.field ?? d.at ?? "-"}: ${oneLine(d.message)}`);
+      out(
+        `warning ${d.code} ${d.field ?? d.at ?? "-"}:${alreadyThere(d)} ${oneLine(d.message)}`,
+      );
     for (const severity of ["warning", "info"]) {
       const found = rest.filter(
         (d) => d.severity === severity && !whole.includes(d),

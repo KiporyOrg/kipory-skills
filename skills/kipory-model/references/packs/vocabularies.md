@@ -566,7 +566,7 @@ vocabulary and create another, which removes its terms and strips them off every
 
 - **How:** `PATCH /v1/vocabularies/{id}` with the new `key`, or the vocabulary's row in a project
   document stated by its `id` under the new key (`cuisine` → `style`). Preview the document with
-  `POST /v1/projects/{nodeId}/document/plan`. A `validateOnly: true` PATCH rehearses the rename and answers the same `renames[]`, writing nothing.
+  `POST /v1/projects/{nodeId}/document/plan`. A `validateOnly: true` PATCH rehearses the rename and answers the same `renames[]`, writing nothing. Each entry's `kind` says what it renames (`vocabulary` here; a document that also renames a flow's input or output lists `flow-input` / `flow-output` entries beside it).
 - **What moves, in one transaction:**
   - every term, keeping its id, and every record's terms, which stay filed; child vocabularies that
     nest under it follow;

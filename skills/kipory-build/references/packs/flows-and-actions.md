@@ -215,6 +215,8 @@ whose fix turns it into text when the word was meant as text).
 A path starts at a name in scope: a flow input, a step's key above, a name a block gives (`clubMember`
 inside the `each`, a `repeat`'s vars, `error` inside a `catch`), or one of the platform's values —
 `projectInfo` and `runInfo` are always there; `userInfo` and `tableInfo` only on some runs (below).
+Which of these one saved step may read is listed for you by `GET /v1/flows/{id}?include=scope`
+("Reading a flow", below).
 
 **`with` holds the function's settings.** Not every setting reads a value. A setting that **names a
 thing** — `tableKey`, a template's text, a vocabulary key, the sending `address` — is a plain value
@@ -595,21 +597,36 @@ calls, endpoint fields. `""`, `[]` and `{}` are **values**:
 
 Every save — `PUT /v1/flows/{id}/steps`, `POST /v1/flows/{id}/steps/edit`, a document plan — runs one
 decision over the whole list. It walks the steps in written order and, for every required read,
-proves the value is there on every path that reaches it.
+proves the value is there on every path that reaches it; one row below, `STEP_READS_NO_SUCH_FIELD`,
+is about every path read, required or not.
 
-| Code                             | Severity | What it says                                                                                                                                        |
-| -------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `STEP_READS_UNKNOWN`             | error    | nothing gives that name                                                                                                                             |
-| `STEP_READS_LATER`               | error    | only a step written below gives it                                                                                                                  |
-| `BLOCK_VALUE_ESCAPES`            | error    | it is given only inside a block the reader is not in                                                                                                |
-| `STEP_INPUT_MAY_BE_ABSENT`       | error    | the value may be nothing: an optional input, a step inside an `if`, a function that may answer nothing, a switched-off step, `userInfo`/`tableInfo` |
-| `STEP_INPUT_FIELD_MAY_BE_ABSENT` | error    | the value's type marks that field optional                                                                                                          |
-| `STEP_INPUT_FIELD_UNTYPED`       | warning  | nothing declares the value's type, so the field cannot be proved; if it is missing at run, the step fails                                           |
-| `STEP_INPUT_MAY_BE_EMPTY`        | error    | a non-empty input may get `""`, `[]` or `{}`                                                                                                        |
-| `FLOW_OUTPUT_MAY_BE_NOTHING`     | error    | a `return` gives a required output a value that may be nothing                                                                                      |
-| `FLOW_PATH_HAS_NO_END`           | error    | a path ends without `return` or `fail` while outputs are required                                                                                   |
-| `CALL_INPUT_MISSING`             | error    | a `flow.invoke` leaves out a required input of the called flow                                                                                      |
-| `CONDITION_EQUALS_NULL`          | error    | a test compares with `{literal: null}`                                                                                                              |
+| Code                             | Severity | What it says                                                                                                                                                    |
+| -------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STEP_READS_UNKNOWN`             | error    | nothing gives that name                                                                                                                                         |
+| `STEP_READS_LATER`               | error    | only a step written below gives it                                                                                                                              |
+| `BLOCK_VALUE_ESCAPES`            | error    | it is given only inside a block the reader is not in                                                                                                            |
+| `STEP_INPUT_MAY_BE_ABSENT`       | error    | the value may be nothing: an optional input, a step inside an `if`, a function that may answer nothing, a switched-off step, `userInfo`/`tableInfo`             |
+| `STEP_INPUT_FIELD_MAY_BE_ABSENT` | error    | the value's type marks that field optional                                                                                                                      |
+| `STEP_INPUT_FIELD_UNTYPED`       | warning  | nothing declares the value's type, so the field cannot be proved; if it is missing at run, the step fails                                                       |
+| `STEP_READS_NO_SUCH_FIELD`       | error    | the value's type cannot hold that field: it states it takes only the fields it declares and this is not one, or the value is text, a number, a yes/no or a list |
+| `STEP_INPUT_MAY_BE_EMPTY`        | error    | a non-empty input may get `""`, `[]` or `{}`                                                                                                                    |
+| `FLOW_OUTPUT_MAY_BE_NOTHING`     | error    | a `return` gives a required output a value that may be nothing                                                                                                  |
+| `FLOW_PATH_HAS_NO_END`           | error    | a path ends without `return` or `fail` while outputs are required                                                                                               |
+| `CALL_INPUT_MISSING`             | error    | a `flow.invoke` leaves out a required input of the called flow                                                                                                  |
+| `CONDITION_EQUALS_NULL`          | error    | a test compares with `{literal: null}`                                                                                                                          |
+
+`STEP_READS_NO_SUCH_FIELD` is raised where a field is read as a path, whatever the read's
+tolerance: a step input, a prompt's `{{placeholder}}`, a test (an `if`'s, a `repeat`'s), a `return`,
+an `out`, an `each`'s list. A read inside an expression is not judged by it (the expression rules
+are: `JSONATA_FIELD_UNKNOWN`, `JSONATA_FIELD_UNDECLARED`). A test on such a field is refused too, and no longer counts as proving the field for the path reads it guards. So a change that takes the field from
+under a reader — a step answering another type, a flow input retyped, a type's field made plain
+text — is refused; change the reader in the same save or document. A type or flow change that
+strands a reader in a flow it does not itself write names that reader under the `_STORED` code.
+
+It speaks only where the type is sure: text, a number, a yes/no, a list, a filled template (`text.interpolate` always gives text), or an object type that states it takes no other fields, for example the type of a flow input, a called flow's output, a model answer under `outputSchema`, or a platform function's checked answer. The type's word decides, not what a run happens to carry: a `flow.invoke`, like every start but an endpoint's, does not strip a field its callee's input type leaves out, so a step reading such a field would work at run, and a save that brings it is refused all the same. If a caller passes a field your steps read, declare it on the input's type. An object type counts only when it states
+`additionalProperties: false`: a type that lists its fields and says nothing of others may carry
+more, and stays silent, as do a value with no declared type, a function output the platform does not
+check (`text.generate` with no `outputSchema`), a record read's value (an undeclared field of the record itself is refused by its table's name), the platform's own values (`runInfo`, `projectInfo`, `userInfo`, `tableInfo`) for an object type, and stored project config and user profile values at any depth. What a prompt renders of a list read by name (`{{tags.length}}`, `{{tags.first}}`, `{{files.name}}` and their like) is never a missing field. A flow that already holds such a read carries `STEP_READS_NO_SUCH_FIELD_STORED`, a warning that blocks no save of that flow, whichever of its steps the save edits. One case stays an error on a stored flow: a required step input with no `optional` or `default` and no value proved for it, which the save refused before this rule too.
 
 Three ways clear a may-be-nothing read: put the step inside `if` with `{has: x}` (or `{filled: x}`),
 read it `{path: x, optional: true}` (the step runs without it), or read it `{path: x, default: …}`.
@@ -740,6 +757,20 @@ The flow's label, description and signature change with `PATCH /v1/flows/{id}` (
 `version`). Changing the inputs or outputs re-proves every step; a signature an endpoint or schedule
 froze is refused unless you send `adoptSnapshots: true`, which re-publishes that endpoint's contract.
 
+To give an input or an output a NEW NAME, do not restate the map under the new name (that is a
+removal plus an addition, and every reader of the old name is refused). Send `renameInputs` or
+`renameOutputs` (`{"<old name>": "<new name>"}`) on the same PATCH, with ADMIN: the write moves the
+flow's own reads and `return` keys, the key under `inputs` in each call of the flow and every
+`<call>.<output>` read, the endpoints, schedules, triggers and eval cases over the flow, and
+answers each place under `renames[].references`. An endpoint bound to the flow also needs
+`adoptSnapshots: true`. A calling flow that passes the call's whole value on leaves candidates
+(in expressions, templates and paths) you settle with `keepExpressions` or `rewriteExpressions`,
+and so does an eval assertion that reads the run's values (its output, or the inputs) through a filter or
+whole (kept as `<suite>.<case>`).
+Refused: a flow a table processes its records with (`RENAME_FLOW_PROCESSES_TABLE`), and an input
+the platform fills by its name: a view's parameter, a trigger's `event`, a scorer's inputs
+(`RENAME_NAME_TAKEN`).
+
 ### Check before you save — `validateOnly: true`
 
 Both routes take `validateOnly: true`. Nothing is written; the answer is the verdict
@@ -774,18 +805,52 @@ is not a healthier flow. `ok: true` is a snapshot, not a promise: another write 
 - `GET /v1/flows/{id}` — the flow with `steps` in written order and its `version`.
   `?include=reads` adds `reads`: every step's place (`path`, `parentKey`, `branch`, `position`), each
   path it reads with its tolerance (`required`, `optional`, `default`, `expr`), and the names a block
-  gives. It is how to find every reader of a step before you change it. `?include=expressions`
+  gives. It is how to find every reader of a step before you change it. Each row also carries the
+  step's `digest`, its version as written: it moves when anything written on that step changes (its
+  `description` too) and stays when another step does, a step inside the block included; moving the
+  step does not move it. It is for telling what changed, not what will run again: a `description`
+  edit moves it and costs nothing, since a result kept for the step is still reused and a record
+  processed again does not run the step again for it. `?include=expressions`
   adds `expressions`: each expression the saved steps hold, `{at, typescript, python}`, the same
   prints the dry run answers, for reading (an entry is part of the flow item, not a shape of its own); to check an edit of one, send it on a steps write with
   `validateOnly: true`. Ask for both with `?include=reads,expressions`. `?include=values` adds
   `values`: each name a step can read (an input, a platform value, a step's key, an `each`'s item, a
-  `repeat`'s vars) with its type and every field under it by its dotted path, as the
-  save types it; `fields: null` means the platform cannot type that name. `?expand=timeLimits` adds
+  `repeat`'s vars, a `catch`'s `error`) with its type and every field under it by its dotted path, as the
+  save types it; `fields: null` means the platform cannot type that name. A `catch`'s `error` is
+  listed even beside an input, a step or an item of that name: the two differ in `from`. `?expand=timeLimits` adds
   each action step's time limit as a run applies it.
+- `GET /v1/flows/{id}?include=scope` adds `stepScopes`: for each step, which of those names a read
+  written on it may start with. (The flow's own `scope` field is another thing: whose flow it is.)
+  The save's own check answers it, so do not work it out from the steps. A name listed for a step is
+  in sight there: no read is refused there because that name is unknown, written below, held inside
+  another block or a `parallel` sibling. A name not listed is out of sight there, and the check
+  refuses a read of it wherever it checks one; it does not check what a `repeat`'s `next` reads, a
+  default behind a value that is always there, or the `out` of a list that always ends in a `return`
+  or a `fail`. Each entry is `{stepKey, baseKey, adds, parts}`,
+  and lists only what the step adds: its names are its `baseKey` step's names (the nearest step above
+  it in its list that has an entry, or the block it sits in; `null` when `adds` holds every name, as
+  for the flow's first step), then its own `adds`, each
+  `{name, from, stepKey}`. A name added again replaces the earlier one: inside an `each` whose item
+  is named like a flow input, the name is the item. `parts` lists the places on a block that see
+  other names than the block's own reads, by `field`, each with its own `baseKey` and `adds`: an
+  `out` (the `field` is `out`, `if[0].out`, or the `out` of `else`, `try` or `catch`) sees the
+  steps of the list it closes, a `parallel`'s `out` every child that gives a value, a `repeat`'s
+  `next` the vars and the pass's steps, and its `until` the vars only. A read whose `field` (as `?include=reads` gives it) is a
+  part's `field` or starts with it and a dot sees that part's names, and so does an expression whose
+  place in `?include=expressions` ends with that field after its step's key; any other read on the
+  step sees the step's own. For a name's type and fields, take the entry of `values` with the same
+  `name` and `from`, and the same `stepKey` where that entry has one: a name two `each` or `repeat`
+  blocks give is typed for neither, and `error`, the same in every `catch`, is listed by no step and
+  typed for all. A step that is switched off, or written after a `return` or `fail` ended its list,
+  is answered as it would be checked if it ran; a block the check refuses whole (nested too deep, a
+  `repeat` with too many vars) has no entry, nor has a step inside it. `stepScopes` is `null` when
+  the saved flow cannot be checked: it does not parse, or a step's key is taken (two steps share it,
+  or it is also the name of an input, of a platform value, or of what a block around it gives).
 - `GET /v1/flows/{id}/outline` — the indented outline above: `lines` (each line with its `depth`,
   its `kind`, its `key` and its `path`), the same as `text`, and `plan` (the flow's size: `steps`, `topLevelSteps`, `depth`, `longestChain`). A switched-off step's line
   starts `off `. Health findings carry the same `path` text as `outlinePath`.
-- `GET /v1/flows/{id}/health` — every finding about the flow as stored now, with `counts`.
+- `GET /v1/flows/{id}/health` — every finding about the flow as stored now, with `counts`. It
+  answers an `ETag`; send it back as `If-None-Match` and an unchanged report answers 304.
 
 ## Trying one step
 

@@ -556,7 +556,7 @@ A relation's links move with its key. State the new key on the same relation; ne
 relation and create another, which deletes its links.
 
 - **How:** `PATCH /v1/relations/{id}` with the new `key`, or the relation's row in a project
-  document stated by its `id` under the new key (`cooked-by` → `made-by`). A `validateOnly: true` PATCH rehearses the rename and answers the same `renames[]`, writing nothing.
+  document stated by its `id` under the new key (`cooked-by` → `made-by`). A `validateOnly: true` PATCH rehearses the rename and answers the same `renames[]`, writing nothing. Each entry's `kind` says what it renames (`relation` here; a document that also renames a flow's input or output lists `flow-input` / `flow-output` entries beside it).
 - **What moves, in one transaction:**
   - every link, keeping its id — links are stored by relation id, so no link restamp is owed; the
     relation's pairings follow;

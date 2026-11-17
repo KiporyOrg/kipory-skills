@@ -110,7 +110,7 @@ Create a table that takes its data shape from an existing type. With `validateOn
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports, judged by the same gate: an introduced error makes `ok` false. Absent when the dry run did not rehearse — a draft its planner refused, or a stale `version`. |
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
-| `renames` | `object[]` | no | Present when the checked patch renames (a new `key`, or `renameFields`): what the write would move, the expression candidates and how each is resolved, and every external caller it would break. Absent when it renames nothing. |
+| `renames` | `object[]` | no | Present when the checked patch renames (a new `key`, `renameFields`, or a flow's `renameInputs` / `renameOutputs`): what the write would move, the expression candidates and how each is resolved, and every external caller it would break. Absent when it renames nothing. |
 | `derived` | `object` | no | What the write WOULD compute and set in motion. Nothing here has happened. `staleVersion`, `writes`, `resolved` and `effects` are present whenever the patch got far enough to plan, and absent on a refusal its planner raised; the other members say when they appear. |
 
 Each item of `diagnostics`:
@@ -147,10 +147,10 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape"` | yes | What is renamed. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
-| `from` | `string` | yes | The old key; for a field, its old path in the type. |
-| `to` | `string` | yes | The new key; for a field, its new path. |
+| `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
+| `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
 | `tables` | `string[]` | yes | Keys of the tables the rename reaches; for a field, every table whose shape reaches the type. |
 | `references` | `object[]` | yes | Configuration positions the rename rewrites, by document path. |
 | `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
@@ -297,10 +297,10 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape"` | yes | What is renamed. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
-| `from` | `string` | yes | The old key; for a field, its old path in the type. |
-| `to` | `string` | yes | The new key; for a field, its new path. |
+| `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
+| `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
 | `tables` | `string[]` | yes | Keys of the tables the rename reaches; for a field, every table whose shape reaches the type. |
 | `references` | `object[]` | yes | Configuration positions the rename rewrites, by document path. |
 | `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
@@ -468,7 +468,7 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `key` | `string` | no | The table's new key. Its records keep their ids and move with it, and every reference to the old key is rewritten in the same transaction; external callers using the old key break (see `renames[].exposures`). Requires ADMIN. A letter followed by letters and digits, like `Observation`, up to 64 characters. |
-| `keepExpressions` | `string[]` | no | Steps (or eval assertions) whose expression and template candidates this rename leaves AS WRITTEN — every other candidate is changed. Each one must hold at least one candidate, else the plan warns `RENAME_KEEP_UNUSED`. |
+| `keepExpressions` | `string[]` | no | Steps, eval assertions or computed formulas whose expression and template candidates this rename leaves AS WRITTEN. Every candidate not kept here must be changed in the same write (or, on a type's field rename, rewritten through `rewriteExpressions`), or the write is refused `RENAME_CANDIDATE_UNRESOLVED`. Each name must hold at least one candidate, else the plan warns `RENAME_KEEP_UNUSED`. |
 | `dataTypeId` | `string` | no | Point the table at a different type. Refused once the table has records. Omit to keep the current one. |
 | `definition` | `object` | no | Replace the table's shape — the JSON Schema of the type this table points at — wholesale, with the rules `PATCH /v1/types/{id}` meets: field names, an object schema, keywords something reads, a removed field no stored record still holds, every other row that uses the type, the bound flow's binding, and every captured signature it re-shapes (refused 409 `TYPE_RESHAPES_BOUND_SNAPSHOTS`; restate the shape in a project document with `adoptSnapshots` for that). Saved with the table in one transaction, and the type is named in `touched`. Refused 422 together with `dataTypeId`. |
 | `description` | `string \| null` | no | This table's own description, separate from the type's. |
@@ -625,10 +625,10 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape"` | yes | What is renamed. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
-| `from` | `string` | yes | The old key; for a field, its old path in the type. |
-| `to` | `string` | yes | The new key; for a field, its new path. |
+| `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
+| `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
 | `tables` | `string[]` | yes | Keys of the tables the rename reaches; for a field, every table whose shape reaches the type. |
 | `references` | `object[]` | yes | Configuration positions the rename rewrites, by document path. |
 | `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
@@ -653,7 +653,7 @@ Shape 2, with `ok`, `diagnostics`, `complete`:
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports, judged by the same gate: an introduced error makes `ok` false. Absent when the dry run did not rehearse — a draft its planner refused, or a stale `version`. |
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
-| `renames` | `object[]` | no | Present when the checked patch renames (a new `key`, or `renameFields`): what the write would move, the expression candidates and how each is resolved, and every external caller it would break. Absent when it renames nothing. |
+| `renames` | `object[]` | no | Present when the checked patch renames (a new `key`, `renameFields`, or a flow's `renameInputs` / `renameOutputs`): what the write would move, the expression candidates and how each is resolved, and every external caller it would break. Absent when it renames nothing. |
 | `derived` | `object` | no | What the write WOULD compute and set in motion. Nothing here has happened. `staleVersion`, `writes`, `resolved` and `effects` are present whenever the patch got far enough to plan, and absent on a refusal its planner raised; the other members say when they appear. |
 
 Each item of `diagnostics`:
@@ -690,10 +690,10 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape"` | yes | What is renamed. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
-| `from` | `string` | yes | The old key; for a field, its old path in the type. |
-| `to` | `string` | yes | The new key; for a field, its new path. |
+| `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
+| `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
 | `tables` | `string[]` | yes | Keys of the tables the rename reaches; for a field, every table whose shape reaches the type. |
 | `references` | `object[]` | yes | Configuration positions the rename rewrites, by document path. |
 | `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |

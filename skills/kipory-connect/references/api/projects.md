@@ -131,7 +131,7 @@ Each item of `versions`:
 
 ### `GET /v1/metadata`
 
-Read a project's element metadata (`?project=<nodeId>`): the free key-values set on its elements — the project, flows, steps, tables, endpoints, schedules, triggers, vocabularies and event types — each with the `version` a later write takes, plus the `limits` a write is held to. Pass `element=<kind>:<id>` for one element's keys. Answered whole, not paged. Send `If-None-Match` with the last `ETag` to get 304 when nothing changed. Metadata is not configuration and nothing a flow reads: for tunables a flow reads, use `/v1/project-config`. Elements are named as `GET /v1/descriptions` names them (`elementRef`), which is also where the platform's generated description of each element is. The flow board's groups are not here: they are the platform's own key, served by `/v1/board-groups`.
+Read a project's element metadata (`?project=<nodeId>`): the free key-values set on its elements — the project, flows, steps, tables, endpoints, schedules, triggers, vocabularies and event types — each with the `version` a later write takes, plus the `limits` a write is held to. Pass `element=<kind>:<id>` for one element's keys, or `flowId=<id>` for the keys of one flow and of every step of it. Answered whole, not paged. Send `If-None-Match` with the last `ETag` to get 304 when nothing changed. Metadata is not configuration and nothing a flow reads: for tunables a flow reads, use `/v1/project-config`. Elements are named as `GET /v1/descriptions` names them (`elementRef`), which is also where the platform's generated description of each element is. The flow board's groups are not here: they are the platform's own key, served by `/v1/board-groups`.
 
 **Query**
 
@@ -139,12 +139,13 @@ Read a project's element metadata (`?project=<nodeId>`): the free key-values set
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project whose metadata to read. |
 | `element` | `string` | no | Read one element's metadata only, as `<kind>:<id>`. An element the project does not have is 404. |
+| `flowId` | `string` | no | A flow's id: read the metadata of that flow and of every step of it only (the `flow:<flowId>` element and each `step:<flowId>:<stepKey>`), in one answer with its own `ETag`. A flow the project does not have is 404. Not with `element` (422). |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `entries` | `object[]` | yes | Every key on every element of the project (or on the one element asked for), ordered by element then key, not paged. Metadata of an element that has been deleted is left out, and so are the platform's own `kipory.` keys. |
+| `entries` | `object[]` | yes | Every key on every element of the project (or on the one element, or the one flow and its steps, asked for), ordered by element then key, not paged. Metadata of an element that has been deleted is left out, and so are the platform's own `kipory.` keys. |
 | `limits` | `object` | yes | The limits a write is held to. |
 
 Each item of `entries`:
