@@ -4,11 +4,11 @@ description: Start here for any work on a Kipory project — the primer that hol
 license: MIT
 ---
 
-<!-- field-ok: noteId — the example project's own type field -->
-<!-- field-ok: list-notes — the example project's own flow key -->
-<!-- field-ok: bodyText — a key of the kipory command's check file, not an API field -->
-<!-- field-ok: bodyFile — a key of the kipory command's check file, not an API field -->
-<!-- field-ok: userInfo — a run-ambient value an expression reads, not a request field -->
+<!-- field-ok: noteId — the example's own field -->
+<!-- field-ok: list-notes — the example's flow key -->
+<!-- field-ok: bodyText — a check-file key -->
+<!-- field-ok: bodyFile — a check-file key -->
+<!-- field-ok: userInfo — a run value an expression reads -->
 
 # Kipory: the primer
 
@@ -18,11 +18,12 @@ Kipory is a platform for a product's backend. A product on Kipory is a **project
 
 ## The `kipory` command
 
-This skill's `scripts/kipory.mjs` does the plumbing: write no HTTP client of your own. From the folder holding `.env`, the first call is `node .claude/skills/kipory-connect/scripts/kipory.mjs connect`: it writes `./kipory`, this command for every later call (`./kipory ship app.mjs`), proves the key and prints what the project holds. The shell is zsh and macOS `sed -i` needs `''`: edit files with your edit tool or a script. Below, `kipory <command>` is `./kipory <command>`.
+This skill's `scripts/kipory.mjs` does the plumbing: write no HTTP client of your own. From the folder holding `.env`, the first call is `node .claude/skills/kipory-connect/scripts/kipory.mjs connect`; every later one is `./kipory <command>`, which it writes. Edit files with your edit tool or a script, not `sed -i` (macOS). Below that is `kipory <command>`.
 
 ```
 kipory connect                          first call: writes ./kipory, proves the key, names the host, one line per element
 kipory summary                          what the project holds, again
+kipory pull                             the project now → project.kipory.yaml, with its read: edit, ship
 kipory ship app.mjs --check checks.json plan, apply when clean, then run every check: the whole loop in one call
 kipory plan app.mjs                     plan only: "plan ok <planId>", or one line per error with its path and a fix
 kipory check checks.json                run the checks again, without a plan
@@ -33,11 +34,13 @@ kipory find "sign a webhook"            can Kipory do it? the functions that do,
 kipory docs record query cursor         the best-matching section of the deeper skills
 ```
 
-**app.mjs** is a script that prints the document as JSON; a `.json` or `.yaml` file works too. Exit 1 means refused or a check failed, 2 a usage problem; `--json` prints the raw answer.
+**app.mjs** is a script that prints the document as JSON; a `.json` or `.yaml` file works too. Exit 1: refused or a check failed, 2: usage; `--json` prints the raw answer.
+
+**A plan never undoes someone else's edit unseen.** Each file is bound to its read (its `basedOn`, else its last apply's); an element changed since is `moved`, refusing the plan with each field's old and new value. Take those in (or keep yours), then run the `--seen <version>` line it prints. On a project you did not build, start with `kipory pull`. Limits: an element added under a taken name updates it; a file with no `basedOn`, restored, plans at its last read.
 
 ## Check: prove it as people, in one call
 
-A check file lists requests sent to the project's host as test users, in order, with what each should answer. Test users are made once and remembered in `.kipory/`. A project holds 20; for more, `PATCH /v1/projects/{nodeId}/settings {"testUserLimit": 50}` (up to 100) once, before making them.
+A check file lists requests sent to the project's host as test users, in order, with what each should answer. Test users are made once and remembered in `.kipory/`. A project holds 20; the refusal past that says how to raise it.
 
 <!-- prettier-ignore -->
 ```json
@@ -56,10 +59,10 @@ A check file lists requests sent to the project's host as test users, in order, 
 ```
 
 - **A request**: `as`, the method as a key with the path, then `headers`, `body` (JSON), `bodyText`, or `bodyFile` with `contentType`; `sign: {"header", "secret", "value": "sha256={{signature}}"}` adds an HMAC of the exact body sent. `{{name}}` reads a value an earlier request saved (`save` takes a dotted path into its answer, as `items[0].id`), `{{user.bob.id}}` a test user's id, `{{nonce}}` a value new to each run, `{{i}}` the index inside `times`.
-- **Running**: in order; `{"parallel": [...]}` runs its requests at once; `times: n` sends one request n times at once (races, idempotency, quotas); `{"wait": 2000}` pauses; `pages: true` follows `nextCursor` with `?after=` and joins the list as `items` (a view's `items`, or the `records` of a flow returning a `record.query` page; `{"param": "cursor"}` for that flow's own cursor input), up to 20 pages; `eventually: ms` asks a GET again each second until the answer holds. `{{timestamp}}` is the time in seconds. Redirects are not followed.
+- **Running**: in order; `{"parallel": [...]}` runs its requests at once; `times: n` sends one request n times at once (races, idempotency, quotas); `{"wait": 2000}` pauses; `pages: true` follows `nextCursor` with `?after=` and joins the list as `items` (a view's `items`, or the `records` of a flow returning a `record.query` page; `{"param": "cursor"}` for that flow's own cursor input), up to 20 pages; `eventually: ms` asks a GET again each second until the answer holds. `{{timestamp}}` is the time in seconds; redirects are not followed.
 - **What it should answer**: `status` (a number, a list, or `"4xx"`; a 2xx when left out), `statuses` (counts across `times`), `body` (a subset: each key given must match, a list item by item), `has` and `absent` (paths), `count` (`{path: n}`), `includes` (`{path: {fields}}`: the list holds an item like it), `unique` and `sorted` (`{path: "field"}`, `"-field"` for descending), `contains` (text in the raw body), `headers` (each must contain the text), `bytes`, `type`. With `times`, what a body holds is asked of the 2xx answers.
 - **Repeatable**: test users and what they wrote persist between runs, so assert what this run made: a saved id (`has`, `body`), `includes`, values carrying `{{nonce}}`; never a `count` over a remembered user's whole list.
-- It prints one line per failure (what came, what was expected, the body), one `skip` line for the requests that needed what a failed one did not save, and a tally. Keep the file beside the document and pass it to every `ship`, so each change is proved with everything before it.
+- Keep the file beside the document and pass it to every `ship`, so each change is proved with everything before it.
 
 ## The document
 
@@ -67,6 +70,7 @@ A check file lists requests sent to the project's host as test users, in order, 
 ```yaml
 kipory: 11
 types:
+  Title: { definition: { type: string, minLength: 1, maxLength: 200 } }
   Note:
     definition:
       type: object
@@ -85,7 +89,7 @@ types:
         endsOn: { type: string, maxLength: 10 }
 tables:
   notice:
-    ownerScope: project           # one shared set of rows; a job running as nobody reads them all
+    ownerScope: project           # one shared set of rows
     type: Notice
     uses:
       fields:
@@ -104,17 +108,11 @@ flows:
   create-note:
     label: Create a note
     inputs:
-      title: { typeName: string }
+      title: { typeName: Title }          # its limits live on its type
       dueOn: { typeName: string, optional: true }
     outputs:
       noteId: { typeName: string }
     steps:
-      - key: tooLong
-        if:
-          - test: { gt: [{ expr: "$length(title)" }, 200] }
-            steps:
-              - key: refuse
-                fail: { code: TITLE_TOO_LONG, message: The title is too long., status: 422 }
       - key: save
         function: record.create
         with:
@@ -235,17 +233,17 @@ flows:
 surfaces:
   endpoints:
     create-note:
-      contractConfig: { method: POST, path: /v1/app/notes, successStatus: 201, auth: required, params: {} }
-      targetConfig: { kind: flow.invoke, execution: sync, flow: create-note, inputs: { title: { from: body }, dueOn: { from: body } } }
+      contractConfig: { method: POST, path: /v1/app/notes, successStatus: 201 }
+      targetConfig: { kind: flow.invoke, execution: sync, flow: create-note }   # no inputs: bound by name
     get-note:
-      contractConfig: { method: GET, path: "/v1/app/notes/{id}", successStatus: 200, auth: required, params: { id: { in: path, type: string, required: true } } }
-      targetConfig: { kind: flow.invoke, execution: sync, flow: get-note, inputs: { noteId: { from: path.id } } }
+      contractConfig: { method: GET, path: "/v1/app/notes/{id}" }
+      targetConfig: { kind: flow.invoke, execution: sync, flow: get-note, inputs: { noteId: { from: path.id } } }   # a name differs
     list-notes:
-      contractConfig: { method: GET, path: /v1/app/notes, successStatus: 200, auth: required, params: {} }
-      targetConfig: { kind: flow.invoke, execution: sync, flow: list-notes, inputs: {} }
+      contractConfig: { method: GET, path: /v1/app/notes }
+      targetConfig: { kind: flow.invoke, execution: sync, flow: list-notes }
     close-overdue:
-      contractConfig: { method: POST, path: /v1/app/notes/close-overdue, successStatus: 202, auth: required, params: { before: { in: query, type: string, required: true } } }
-      targetConfig: { kind: flow.invoke, execution: async, flow: close-overdue, inputs: { before: { from: query.before } } }   # slow steps: async, 202 { id, status, statusPath }
+      contractConfig: { method: POST, path: /v1/app/notes/close-overdue, successStatus: 202, params: { before: { in: query } } }
+      targetConfig: { kind: flow.invoke, execution: async, flow: close-overdue, inputs: { before: { from: query.before } } }   # async: 202 { id, status, statusPath }
   schedules:
     daily:
       label: Nightly clean-up
@@ -261,37 +259,38 @@ surfaces:
 - **A flow is its steps, in the order they run.** A step is a function (`function` + `with`), `return`, `fail`, or a block: `if`/`else`, `each`, `repeat`, `try`/`catch` (all in `close-overdue`) and `parallel` (steps at once, none reading another). A step's key names its value (`save.recordId`); a value made inside a block is read outside only through the block's `out` (a `repeat`'s is its `vars`), and an `each` gives the list of its passes' `out`. A flow gives outputs only through `return`, never inside an `each`, `repeat` or `parallel`.
 - **What steps give.** A row (from `record.read`, `record.list`, `record.query`, a view) is its fields at the top level plus `id`, `status`, `createdAt`, `updatedAt` (ISO times) and `processing`, none of which makes a project row new (below); a field with no value is left out. `record.list` gives `{ records, nextCursor }` (`nextCursor` while more remain), `record.query` the same plus `bounded` and `explanation`, `record.read` a list of rows, `record.create` `{ recordId, tableKey, keyTaken }`, `record.update` `true`, or `false` when nothing matched.
 - **A run is all or nothing**: its writes are saved together when it ends, and a failed step or a `fail` keeps none of them; mail and requests leave only after the save. So a `record.list` or `record.query` later in the run does not see the rows it created; a `record.read` by id does. A failure inside `try`, a `fail` too, drops what `try` staged and runs `catch`; a failed `each` pass fails the block unless `maxFailedBranches` or `maxFailedShare` lets it go, and gives no `out`.
-- **Endpoint inputs** bind by `from`: `body` (the body field named like the input), `path.<p>`, `query.<p>` (declared in `params`, `type: string`; the value takes its input's type), `header.<name>` (lower case, an optional text input), `rawBody` (the exact text, for `request.verify-signature`), `patch`. A `typeName` is `string`, `number`, `boolean`, `object`, `file`, `probability`, a library type (`RecordRead`) or a type of yours, a list is `isList: true`; there is no `integer`.
+- **Endpoint inputs.** Leave `inputs` out and each flow input binds by its name: one named like a `{part}` of the path reads it; any other reads the query on GET and DELETE and the body on POST and PATCH; an input the flow gains later binds too. An object or list never comes from the query. State `inputs` only when a name differs or the value comes from elsewhere, each `{ from: … }`: `path.<p>`, `query.<p>` (declared in `params`), `header.<name>` (lower case, an optional text input), `rawBody` (the exact text, for `request.verify-signature`), `patch`, `body`. Stated, an input not listed is not bound. A value takes its input's type. A `typeName` is `string`, `number`, `boolean`, `object`, `file`, `probability`, a library type (`RecordRead`) or a type of yours, a list is `isList: true`; there is no `integer`.
+- **An input's limits go on its type.** `minLength`, `maxLength`, `minimum`, `maximum`, `pattern` and `enum` on the type an input names (`Title`; never beside `typeName`) are checked at the endpoint before any step runs: `422 VALIDATION_FAILED`, `details.reason` `FLOW_INPUT_INVALID`. Write no step that only checks an input. A start by another flow, a schedule or a trigger checks only a non-empty rule (`minLength: 1`).
 - **An argument** is exactly one of: a path (`title`, `rows.records`), `{ literal: … }`, `{ expr: "<JSONata>" }`, `{ path: x, optional: true }`, `{ path: x, default: … }`. Never mix their keys: a default for an expression goes inside it, `{ expr: "$default(limit, 20)" }`. A setting that names a thing (`tableKey`, `view`, `flow`) is a plain value. A test is one of `has`, `filled`, `eq`, `in`, `gt`, `gte`, `lt`, `lte`, `before`, `after`, `startsWith`, `contains`, `matches`, `expr`, combined with `and`, `or`, `not`. An expression reads `runInfo.now`, `runInfo.nonce`, and `userInfo.userId` (the caller; nothing on a schedule); `$now()` and `$random()` are refused.
 - **An endpoint answers its flow's outputs by name** (`{ "note": {…} }`); `contractConfig.responseBody: note` answers that one output bare, `redirect: { location: url }` answers a redirect to an output.
 - **A list over HTTP is a view**: one `record.view` step; the flow declares `<step>After`, `<step>Before`, `<step>Limit`; the endpoint answers `{ items, nextCursor }` and pages by `?after=`. A view orders by `created`, or by a field with a `filter` use (a text one needs `maxLength` ≤ 500). Any other list a caller pages is `record.list` (`limit: { path: limit, default: 50 }`; `order: asc` is oldest first by `createdAt`). Use `record.query` for a text range, meaning, or a text or number order; there `order: { by: created, direction: asc }` is oldest first (newest is the default), and `createdAt` is never a `by: field`.
-- **People's data** lives on `ownerScope: user` tables: reads see only the caller's rows, so write no owner field or filter. Sharing is `sharing: true` on the table plus `record.grant`. `ownerScope: project` rows are shared by everyone, and identical data there is one record: an org row holding only an equal name, or two equal transfers at once, share one id. Give each row that may repeat a field that tells it apart, `ref: { expr: "runInfo.nonce" }`. A nonce is for rows meant to be distinct; a once-only row (a payment, a signup) uses `key` with `onKeyTaken: skip`, so a client's retry doesn't duplicate it.
+- **People's data** lives on `ownerScope: user` tables: reads see only the caller's rows, so write no owner field or filter. Sharing is `sharing: true` on the table plus `record.grant`. `ownerScope: project` rows are shared by everyone, and identical data there is one record: an org row holding only an equal name, or two equal transfers at once, share one id. Give each row that may repeat a field that tells it apart, `ref: { expr: "runInfo.nonce" }`. A nonce is for rows meant to be distinct; a once-only row uses `key`, next.
 - **Once, by the platform**: a field with the `key` use, then `record.create` with `onKeyTaken: skip` answers `keyTaken: true` instead of a second row. A counter is `record.update` with `add: { views: { literal: 1 } }`. Calls at once on one record apply in turn: a save another call's change refused runs again (`record.update`'s `ifChangedMeanwhile`), so add no lock or retry; a quota counted with `record.count` holds.
 - **`null` at an endpoint.** An answer carries every field its declared type marks optional, `null` when it has no value — so type a record output with its table's own type (`outputs: {link: {typeName: Link}}`), never plain `object`. An optional input sent as `null` means not sent. To clear vs keep on an update, bind one object input `{"from": "patch"}` (its type's fields all optional) and pass it to `record.update` as `data`: a field sent `null` is removed, one left out is kept; `$exists(changes.x)` is true when `x` was sent. In a flow, clear a field with `{literal: null}` in `record.update`'s `fields` (a merge removes it; under `mode: replace`, leave it out).
-- **CSV.** Build the text with a `text.csv` step (`rows`, `columns`), return it as a required text output, and set the endpoint's `contractConfig` `responseBody` to it plus `responseType: "text/csv"`; errors stay JSON.
+- **CSV**: return a `text.csv` step's text (`rows`, `columns`) as a required output, named in `contractConfig.responseBody` with `responseType: "text/csv"`; errors stay JSON.
 - **A daily job runs as nobody**: `expire-notices` sees every project row. A start for everyone (`flow.start-per-person`, `people: { kind: project }`) starts real people only and answers `testUsersLeftOut`: while you test, `PATCH /v1/projects/{nodeId}/settings {"testUsersInStarts": true}`, off before real people use it.
 - **Mail needs an address first**: read `sendableDomains` from `GET /v1/managed-email-addresses?node=<nodeId>`, then `POST /v1/managed-email-addresses { node, localPart, domain, grade: "relay" }` once; `email.send`'s `address` names it. A test user receives no mail. A model call is `text.generate` (a `prompt`, `outputSchema` for a typed answer) or `text.decide` for yes/no, a pick or a score (`kipory-build`'s `references/models.md`).
 
 ## Rules that keep the first plan clean
 
 1. **`kipory: 11`** at the top; send the document alone, never an export's `{ version, document }` envelope. A document is partial: an element you leave out is untouched, but each element you state is whole, and a flow's `steps` are its whole list. Removal is `delete: true` on the element.
-2. **Every required read is proved present.** An optional input or `userInfo` (nothing on a schedule): read it `{ path: x, optional: true }` (the setting is then left out) or `{ path: x, default: … }`, or put the step under an `if` whose test is `{ filled: x }`. An item of a list read (`rows.records[0]`, `found[0]`) needs an `if` that fails when it is missing first, as `get-note` does (`STEP_INPUT_MAY_BE_ABSENT`). At a required read write `{ path: x, default: … }` or `$default(x, …)`, not a conditional on `$exists`, which the plan cannot prove.
+2. **Every required read is proved present.** An optional input or `userInfo` (nothing on a schedule): read it `{ path: x, optional: true }` (the setting is then left out) or `{ path: x, default: … }`, or put the step under an `if` whose test is `{ filled: x }`. An item of a list read (`rows.records[0]`, `found[0]`) needs an `if` that fails when it is missing first, as `get-note` does (`STEP_INPUT_MAY_BE_ABSENT`). At a required read write `{ path: x, default: … }` or `$default(x, …)`; `x ?? …` and `$exists(x) ? x : …` are refused over an unproved read (both keep a `null`).
 3. **A required output from a receipt is guarded**: before `return { noteId: save.recordId }`, an `if` on `{ not: { has: save.recordId } }` that fails (`FLOW_OUTPUT_MAY_BE_NOTHING`).
-4. **`fail.status` is 400–499**, but not 405, 408 or 426 (left out, 422); there is no 5xx of your own (`FAIL_STATUS_INVALID`). `fail.code` is capitals, digits and underscores, starting with a capital (`TITLE_TOO_LONG`); the caller gets it as `details.reason`.
+4. **`fail.status` is 400–499**, but not 405, 408 or 426 (left out, 422); there is no 5xx of your own (`FAIL_STATUS_INVALID`). `fail.code` is capitals, digits and underscores, starting with a capital (`BOX_PACKED`); the caller gets it as `details.reason`.
 5. **Text is `{ literal: … }`**: a bare string is always a path, and an unknown one is `STEP_READS_UNKNOWN`.
 6. **A function's settings are its own** (its catalog lines below): one it does not take is `STEP_SETTING_UNKNOWN`; `record.delete` takes `ids`, not `tableKey`.
 7. **Queried, ordered or totalled fields carry a `filter` use** on the table; on a table that already holds records, apply the new use before planning the steps that read it. An expression names a record's fields exactly as its type has them (`JSONATA_FIELD_UNKNOWN`). `record.list`, `record.count` and `record.aggregate` compare text only with `eq` or `in`; a range on text is `record.query`'s.
 8. **Expressions**: wrap a list one builds in `$list(…)` (JSONata gives one item as the item, none as nothing); `x != "v"` is false when `x` is missing, so write `$not(x = "v")`; a yes/no pattern test is `$contains(s, /re/)`, not `$match`; read a `cursor` from the previous page's `nextCursor` or an input, never a value step.
 9. **Keys**: step, table and input keys are camelCase, and no two steps of a flow share a key at any depth (`STEP_KEY_TAKEN`); flow and relation keys are kebab-case; type keys are PascalCase. Record fields never use `id`, `status`, `createdAt`, `updatedAt`, `processing` or `statusError`.
 10. **Blocks nest at most 4 deep** (move the inside to a flow and `flow.invoke` it); `repeat.max` is at most 50; a schedule's `failurePolicy` is `pause` or `keep-running`. A credential goes in `url.send`'s or `url.fetch`'s `secret`, never in `headers`.
-11. **Endpoints**: method GET, POST, PATCH or DELETE (no PUT); a path starts `/v1/<a word of yours>/` (`/v1/app/boxes`; `/v1/boxes` is a platform route); every query parameter an input reads is declared in `params`, and one feeding a required input is `required: true` (`ENDPOINT_INPUT_UNSATISFIED`); `successStatus` is 200, 201, 202, 204 or 206. A public endpoint (`auth: none`) is refused until the project's `publicSpendCapCredits` is set with `PATCH /v1/projects/{nodeId}/settings`.
+11. **Endpoints**: method GET, POST, PATCH or DELETE (no PUT); a path starts `/v1/<a word of yours>/` (`/v1/app/boxes`; `/v1/boxes` is a platform route); a parameter is `{ in: path }` or `{ in: query }`, and a stated `inputs` reads only declared ones (`ENDPOINT_INPUT_UNSATISFIED`); `successStatus` is 200, 201, 202, 204 or 206. A public endpoint (`auth: none`) is refused until the project's `publicSpendCapCredits` is set with `PATCH /v1/projects/{nodeId}/settings`.
 12. **Changing a flow or a type an endpoint already serves**: adding optional fields is adopted by itself; any other change needs `adoptSnapshots: true` on the element you change (`FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS`, `TYPE_RESHAPES_BOUND_SNAPSHOTS`).
 
-**A refused plan** prints one line per error with its path and, mostly, a `fix:` (step `edit`s, or `set` at document paths): apply the first fix of every error in one edit, an equal fix once per flow, then ship again. Only `error` refuses, but read every warning the plan prints: one naming a slot inside `[…]` (`JSONATA_ITEM_FIELD_NAMED_LIKE_SLOT`) means an expression reads another value than you meant — fix it. `kipory docs <CODE>` explains any code; `409 VERSION_CONFLICT` means someone changed the project since your read, so plan again.
+**A refused plan** prints one line per error with its path and, mostly, a `fix:` (step `edit`s, or `set` at document paths): apply each error's first fix in one edit, then ship again. Only `error` refuses, but read every warning: one naming a slot inside `[…]` (`JSONATA_ITEM_FIELD_NAMED_LIKE_SLOT`) means an expression reads the wrong value. `kipory docs <CODE>` explains any code.
 
 ## Every function, one line
 
-`name — title · what with takes (* required; a function's first words are the values it reads) → what it gives`. The functions most steps use name their inputs and prompt on the line and each setting below it, with its shape: `*` required, `= x` a default, `a|b` values, `{a*: t}` an object's members (deeper, only its `kind`, then `…`), `‹name›` a key you choose, `[…]` or `t[]` a list, `x or y` alternatives, `1–100`, `≥1`, `<5` bounds, in `items` or `chars` for a size, `value` an argument (a path, `{ literal }`, `{ expr }`), `⚠` what tells values apart; then what it `gives` and a worked `with`. Write a step from its lines; open a function's page (`kipory docs <key>`) only when a refusal names one of its settings. The deployment's catalog (`GET /v1/functions`) may hold functions added since this was written.
+`name — title · what with takes (* required; a function's first words are the values it reads) → what it gives`. The functions most steps use name their inputs and prompt on the line and each setting below it, with its shape: `*` required, `= x` a default, `a|b` values, `{a*: t}` an object's members (deeper, only its `kind`, then `…`), `‹name›` a key you choose, `[…]` or `t[]` a list, `x or y` alternatives, `1–100`, `≥1`, `<5` bounds, in `items` or `chars` for a size, `value` an argument (a path, `{ literal }`, `{ expr }`), `⚠` what tells values apart; then what it `gives` and a worked `with`. Write a step from its lines; open a function's page (`kipory docs <key>`) only when a refusal names one of its settings.
 
 <!-- generated: the function catalog, one line each, from the deployment's catalog; regenerated on every publish, so an edit inside this block is overwritten -->
 

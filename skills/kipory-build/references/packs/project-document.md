@@ -221,6 +221,15 @@ are ids on the row API and keys in the document — flows, types, sources, and a
 A flow's steps hold no id to re-spell: they are written the same way in the document and in
 `PUT /v1/flows/{id}/steps`, and a `flow.invoke` step names the flow it calls by key, as `flow` in its `with`.
 
+An endpoint states only what cannot be worked out, here as on the row API: a parameter is
+`{ in: path }` or `{ in: query }` (its `type` is `string`; its `required` follows the path and the
+flow's inputs), a `{part}` of the path needs no entry at all, and `targetConfig.inputs` left out binds every input of the flow by its name. Such
+an endpoint stays bound by name: the export states it with `inputsByName: true`, no `inputs` and
+only the parameters you stated, and each apply binds it again against the flow's inputs as they are.
+A plan says each value it worked out as an `info` finding, `DOCUMENT_FORM_READ`. An endpoint whose
+`inputs` were written is exported whole and keeps them when the document leaves them out
+(anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)).
+
 An endpoint's `contractConfig` is the row API's, whole: who may call it is stated there too.
 `auth: "none"` makes the endpoint public — callable with no key and no session — and `publicRpm`
 sets its requests per minute; see api-endpoints-anatomy (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`). The project's
@@ -278,7 +287,9 @@ refuses is exactly what an apply would refuse.
 wrote into the document, or `?basedOn=`, which overrides it: a read token (`<nodeId>@<version>`)
 or a bare version of THIS project. The answer's `planId` is what you apply (kept 24 hours;
 `GET …/document/plans/{planId}` reads it back), and `basedOn` echoes the read as a token. A plan
-you mean to apply without a read is a `422` naming `basedOn`; `?keep=false` plans a preview that
+you mean to apply without a read is a `422` naming `basedOn` — unless the project is still as
+created, its export stating nothing but its own name, description and routes, where the plan binds
+to the version it was planned on; `?keep=false` plans a preview that
 keeps nothing. `?label=agent-docs` names your session, so two sessions on one key are told apart.
 A plan gives way to real work: when a row it rehearses stays held by another write for more than
 a second, or the project already has two plans being worked out, it answers `409 DESIGN_BUSY`

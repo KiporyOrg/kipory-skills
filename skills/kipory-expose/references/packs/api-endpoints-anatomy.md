@@ -123,6 +123,44 @@ refer to this endpoint by for its whole life.
 The path must start with `/v1/`, each segment being a literal or a single parameter, with no two
 parameters adjacent.
 
+**A parameter states only where it is carried**: `params: { id: { in: path }, q: { in: query } }`.
+Its `type` is always `string` (the value is converted to the type of the input it feeds), and its
+`required`, left out, is worked out: a path parameter is required, and a query parameter is
+required exactly when a required input of the flow reads it. A stated `required` is kept as written.
+A read always returns the whole parameter.
+
+**Leave `inputs` out and every input of the flow is bound by its name.** An input named like a
+`{part}` of the path reads `path.<name>`; any other reads `query.<name>` on a GET or DELETE — its
+query parameter is declared for it — and `body` on a POST or PATCH. So a GET endpoint at `/v1/app/tasks/{id}` over a
+flow that takes `id` and `status` needs only its method, path and flow: a `{part}` of the path that
+`params` leaves out, or `params` left out whole, is declared for you, a required path parameter —
+on `POST /v1/api-endpoints` as in a project document. An object or list input is
+left unbound where only text arrives (the path, and the query of a GET or DELETE): bind it from the
+body, on a POST or PATCH.
+
+**An endpoint bound by name stays bound by name**: a read shows `inputsByName: true` beside the
+bindings worked out, and `paramsAsWritten`, the parameters as you wrote them. When you add an input
+to the flow and apply again, the endpoint binds it; when you remove one, its binding and the
+parameter declared for it go; a `required` you left out follows the input. A flow edit the endpoint
+could not be bound after (a required object input on a GET, say) is refused, naming the endpoint.
+The project document states such an endpoint as you wrote it — the marker, no `inputs`, only the
+parameters you stated — so an export applies back unchanged.
+
+On the row API a write is whole. A PATCH replaces both configs, so one that leaves `inputs` out
+binds by name, replacing bindings the endpoint held as written; a project document instead keeps
+the written bindings it holds. A read sent back as it came — dropping `signature`, `viewEndpoint`
+and the flow's `key`, as for any endpoint — is accepted with the marker, its bindings and both
+sets of parameters, when those bindings and parameters are what binding by name works out from
+`paramsAsWritten`: change something else and the endpoint stays bound by name. Change a binding
+or a parameter beside the marker and it is refused; drop the marker to take them over.
+
+**State `inputs` only when a name differs or a value comes from somewhere else** (a header, the raw
+body, `patch`, a query value on a POST) — and then it is taken exactly as written, and stays so: an
+input the map does not list is not bound, `{}` binds none, nothing is declared for it, and an input
+the flow gains later is not bound until you add it. To hand such an endpoint back to the platform,
+state `inputsByName: true` and no `inputs`; beside the marker, `inputs` are taken only as a read
+sent back with its `paramsAsWritten`.
+
 **Where each input comes from** is its binding's `from`:
 
 | `from`                     | Gives the input                                                                                     |
@@ -389,7 +427,7 @@ the calls one api process serves; correctness still rests on the save's own chec
 **Input mapping** binds each flow input to a request location: the body, a path parameter or
 a query parameter. At save time the grammar is enforced — every binding must reference a declared
 input, a path binding needs that path parameter declared and required, and every required input
-must be bound. **The ambient values (`userInfo` and the like) cannot be bound from HTTP at all**,
+must be bound — by name when `inputs` is left out, by the map when it is stated. **The ambient values (`userInfo` and the like) cannot be bound from HTTP at all**,
 which is what stops a caller claiming to be a different user.
 
 **A target declares no output mapping, and this is deliberate.** Its response shape comes from one

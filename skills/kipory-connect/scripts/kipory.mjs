@@ -6,8 +6,12 @@
 //   connect                    first call: writes ./kipory (this command, for every later
 //                              call: ./kipory <command>), proves the key, prints the summary
 //   summary                    what the project holds, one line per element
-//   plan <doc>                 plan a document: one line per error, warnings counted
-//   apply [--note <text>]      apply the plan `plan` just made
+//   pull [file.yaml]           the project as it is now, as YAML carrying its read
+//                              (basedOn), to project.kipory.yaml: edit it, ship it
+//   plan <doc> [--seen <version>]
+//                              plan a document: one line per error, warnings counted
+//   apply [<doc>] [--note <text>]
+//                              apply the plan `plan` made for that document (or the only one)
 //   ship <doc> [--check <spec>] [--note <text>]
 //                              plan, apply when the plan is clean, then run the checks
 //   check <spec>               run a list of requests as test users; one line per failure
@@ -26,7 +30,20 @@
 // the document (a generator); <spec> is a .json file or a generator of one
 // (kipory-connect's SKILL.md, "Check"). It reads KIPORY_BASE_URL, KIPORY_API_KEY
 // and KIPORY_PROJECT_ID from the environment, then ./.env (or --env <file>),
-// keeps its state in ./.kipory/, and never prints the key or a session. A
+// keeps its state in ./.kipory/, and never prints the key or a session. Each
+// file has one read of each project: the basedOn its text carries, always, else
+// the one kept for it in .kipory/reads/; a plan is bound to it, and an apply
+// moves it to the basedOn the apply answers, by rewriting the file's token (or
+// the kept read), and only while the file holds the text that was planned. So a
+// change someone else made after the read to anything the file states is
+// listed as moved and refuses the plan instead of being undone; after looking,
+// --seen <version> (as the refusal prints it) says the file accounts for
+// everything listed up to it. A file with no read is planned only where the
+// engine finds nothing authored. Every write of a file is whole and renamed
+// into place, keeping its mode and following a symlink. Two limits, the engine's own and this
+// command's: an element added to a file after its read, under a name someone
+// had already used, is planned as an update of theirs; and a file whose text
+// carries no read, restored to older text, is planned at its kept read. A
 // preview runs each `each` on its first 5 items unless --fan-out-cap says
 // otherwise; a flow a schedule starts previews as nobody, the way it fires,
 // and --as me runs as you. `call` follows no redirect and prints a binary answer's size, not
@@ -36,14 +53,18 @@
 import { execFileSync } from "node:child_process";
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import {
+  accessSync,
+  constants as fsConstants,
   existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   statSync,
   writeFileSync,
   renameSync,
   chmodSync,
+  rmSync,
 } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -93,6 +114,7 @@ const VALUED = new Set([
   "times",
   "page-param",
   "schedule",
+  "seen",
 ]);
 /** Flags that may be given more than once; each value is kept, in order. */
 const REPEATED = new Set(["header"]);
@@ -153,12 +175,19 @@ const KEY = env("KIPORY_API_KEY");
 const state = {
   read(name) {
     const p = join(STATE, name);
-    return existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : undefined;
+    if (!existsSync(p)) return undefined;
+    try {
+      return JSON.parse(readFileSync(p, "utf8"));
+    } catch (err) {
+      throw usage(
+        `.kipory/${name} is not JSON (${err.message}): move it away to start over (mv .kipory/${name} .kipory/${name}.bad); what it held is then forgotten`,
+      );
+    }
   },
   // Written whole and renamed into place: a command running at once in the
   // same folder reads the old file or the new one, never half of one.
   write(name, value) {
-    mkdirSync(STATE, { recursive: true });
+    mkdirSync(dirname(join(STATE, name)), { recursive: true });
     const tmp = join(STATE, `${name}.${process.pid}.tmp`);
     writeFileSync(tmp, `${JSON.stringify(value, null, 2)}\n`);
     renameSync(tmp, join(STATE, name));
@@ -293,7 +322,7 @@ const traceHeaders = () => {
   return tracing;
 };
 
-const api = async (method, path, body, contentType) => {
+const api = async (method, path, body, contentType, headers = {}) => {
   if (!BASE)
     throw usage(`KIPORY_BASE_URL is not set (environment or ${ENV_FILE})`);
   if (!KEY)
@@ -303,7 +332,7 @@ const api = async (method, path, body, contentType) => {
     body,
     contentType,
     token: KEY,
-    headers: traceHeaders(),
+    headers: { ...traceHeaders(), ...headers },
   });
 };
 
@@ -337,7 +366,11 @@ const grant = async () => {
       "KIPORY_PROJECT_ID is not set and the key reaches more than one project",
     );
   const project = (g?.projects ?? []).find((p) => p.id === id);
-  grantCache = { id, host: project?.baseUrl?.replace(/\/+$/, "") };
+  grantCache = {
+    id,
+    host: project?.baseUrl?.replace(/\/+$/, ""),
+    keyId: g?.key?.id,
+  };
   return grantCache;
 };
 const projectId = async () => (await grant()).id;
@@ -390,13 +423,23 @@ const loadDocument = (file) => {
     return {
       body: doc,
       contentType: "application/json",
-      basedOn: doc?.basedOn,
+      kind: "generator",
+      basedOn: doc && typeof doc === "object" ? doc.basedOn : undefined,
     };
   }
   const text = readFileSync(file, "utf8");
   if (ext === ".yaml" || ext === ".yml") {
-    const based = /^basedOn:\s*["']?([^\s"']+)/m.exec(text)?.[1];
-    return { body: text, contentType: "application/yaml", basedOn: based };
+    const line = YAML_BASED_ON.exec(text);
+    return {
+      body: text,
+      text,
+      contentType: "application/yaml",
+      kind: "yaml",
+      basedOn: line?.[3],
+      // A basedOn the engine may read and this line does not (a flow
+      // mapping, `basedOn :`, a quoted key): never taken for no read.
+      unclear: yamlReadUnclear(text),
+    };
   }
   let doc;
   try {
@@ -404,7 +447,13 @@ const loadDocument = (file) => {
   } catch (err) {
     throw usage(`${file} is not JSON: ${err.message}`);
   }
-  return { body: doc, contentType: "application/json", basedOn: doc?.basedOn };
+  return {
+    body: doc,
+    text,
+    contentType: "application/json",
+    kind: "json",
+    basedOn: doc && typeof doc === "object" ? doc.basedOn : undefined,
+  };
 };
 
 const currentVersion = async (id) => {
@@ -481,25 +530,365 @@ const printDiagnostics = (diagnostics) => {
   return errors.length;
 };
 
-const plan = async (file) => {
-  const id = await projectId();
+/** The version a read names: `<project>@<version>`. */
+const versionOf = (read) => {
+  const v = /(\d+)$/.exec(String(read ?? ""))?.[1];
+  return v === undefined ? undefined : BigInt(v);
+};
+
+/** The read a document's text carries: a read token only, as the export writes it. */
+const carriedRead = (basedOn) =>
+  typeof basedOn === "string" && /^[^@\s]+@\d+$/.test(basedOn)
+    ? basedOn
+    : undefined;
+
+const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const fileKey = (file) => relative(process.cwd(), resolve(file)) || file;
+
+// ── reads and plans ─────────────────────────────────────────────────────────
+//
+// The engine's own protocol (based-on.ts): a plan is bound to the read the
+// document was made from, and after each apply the author keeps the basedOn
+// the apply answered. The engine checks every row the document states from
+// that read, so an accepted apply means the whole file matched the project at
+// the read it answers. A file has ONE read per project: the basedOn token its
+// text carries, always (it travels with the text, so a restored or copied file
+// brings its own, and the command moves it only by rewriting that token in the
+// file); a file whose text carries none keeps its read in .kipory/reads/. One
+// record per file, so commands on two files at once never overwrite each
+// other's.
+
+const recordName = (dir, id, key) =>
+  `${dir}/${createHash("sha256").update(`${id}\0${key}`).digest("hex").slice(0, 16)}.json`;
+const records = (dir) => ({
+  get: (id, key) => state.read(recordName(dir, id, key)),
+  set: (id, key, value) =>
+    state.write(recordName(dir, id, key), { project: id, file: key, ...value }),
+  drop: (id, key) => {
+    const p = join(STATE, recordName(dir, id, key));
+    if (existsSync(p)) rmSync(p);
+  },
+  every: () => {
+    const d = join(STATE, dir);
+    if (!existsSync(d)) return [];
+    return readdirSync(d)
+      .filter((n) => n.endsWith(".json"))
+      .map((n) => state.read(`${dir}/${n}`))
+      .filter(Boolean);
+  },
+});
+/** Per (project, file): `read` (only for a text that carries none), `sent`, `pulled`. */
+const reads = records("reads");
+/** Per (project, file): the plan `plan` made last, which `apply <file>` applies. */
+const plans = records("plans");
+
+/**
+ * A YAML file's basedOn line, as the export writes it: `basedOn: <token>` at
+ * the top level. A `#` starts a comment only after whitespace, so
+ * `basedOn: p@2#x` is the value `p@2#x`, which is no read.
+ */
+const YAML_BASED_ON =
+  /^(﻿?basedOn:[ \t]*)(["']?)([^\s"']+)\2((?:[ \t]+#.*)?[ \t]*)$/m;
+
+/**
+ * Whether a YAML text names basedOn as a top-level key in any form but its
+ * one plain line: a quoted key, `basedOn :`, a second line, a complex key, or
+ * a document written as one flow mapping. Read from the top-level keys (lines
+ * at column 0), so a comment or an indented value that mentions the word is
+ * not one.
+ */
+const yamlReadUnclear = (text) => {
+  const lines = text.replace(/^﻿/, "").split("\n");
+  const content = lines.filter(
+    (l) => l.trim() !== "" && !/^\s*#/.test(l) && !/^(---|\.\.\.)\s*$/.test(l),
+  );
+  if (/^[{[]/.test(content[0] ?? ""))
+    return content.some((l) => /basedOn/.test(l));
+  let named = 0;
+  let plain = 0;
+  for (const l of lines) {
+    const line = l.replace(/^﻿/, "");
+    if (/^[\s#]/.test(line) || line === "") continue;
+    if (line.startsWith("?") && /basedOn/.test(line)) return true;
+    const key =
+      /^(?:"((?:[^"\\]|\\.)*)"|'((?:[^']|'')*)'|([^\s:#][^:#]*?))[ \t]*:(?:[ \t]|$)/.exec(
+        line,
+      );
+    if (!key) continue;
+    let name = key[3];
+    try {
+      if (key[1] !== undefined) name = JSON.parse(`"${key[1]}"`);
+    } catch {
+      return true;
+    }
+    if (key[2] !== undefined) name = key[2].replace(/''/g, "'");
+    if (name !== "basedOn") continue;
+    named += 1;
+    if (YAML_BASED_ON.test(`${line}\n`) && line.startsWith("basedOn:"))
+      plain += 1;
+  }
+  return named > 1 || named !== plain;
+};
+
+/**
+ * The span of a JSON document's top-level "basedOn" value, found by reading
+ * the document, so a nested "basedOn" or an escaped key is told apart.
+ * Undefined when the text is not one object, or holds the key twice.
+ */
+const jsonReadSpan = (text) => {
+  let i = 0;
+  const ws = () => {
+    while (i < text.length && /\s/.test(text[i])) i++;
+  };
+  const str = () => {
+    const s = i;
+    i++;
+    while (i < text.length && text[i] !== '"') i += text[i] === "\\" ? 2 : 1;
+    i++;
+    return [s, i];
+  };
+  const skip = () => {
+    ws();
+    const c = text[i];
+    if (c === '"') return str();
+    if (c === "{" || c === "[") {
+      let depth = 0;
+      do {
+        const d = text[i];
+        if (d === '"') {
+          str();
+          continue;
+        }
+        if (d === "{" || d === "[") depth++;
+        else if (d === "}" || d === "]") depth--;
+        i++;
+      } while (depth > 0 && i < text.length);
+      return undefined;
+    }
+    while (i < text.length && !/[,}\]\s]/.test(text[i])) i++;
+    return undefined;
+  };
+  ws();
+  if (text[i] !== "{") return undefined;
+  i++;
+  let found;
+  for (;;) {
+    ws();
+    if (text[i] === "}") break;
+    if (text[i] !== '"') return undefined;
+    const [ks, ke] = str();
+    let name;
+    try {
+      name = JSON.parse(text.slice(ks, ke));
+    } catch {
+      return undefined;
+    }
+    ws();
+    if (text[i] !== ":") return undefined;
+    i++;
+    ws();
+    const vs = i;
+    skip();
+    if (name === "basedOn") {
+      if (found !== undefined) return undefined;
+      found = [vs, i];
+    }
+    ws();
+    if (text[i] === ",") {
+      i++;
+      continue;
+    }
+    if (text[i] === "}") break;
+    return undefined;
+  }
+  return found;
+};
+
+/** The text with its carried read replaced, or undefined when it cannot be done exactly. */
+const rewriteRead = (kind, text, from, to) => {
+  if (kind === "yaml") {
+    const m = YAML_BASED_ON.exec(text);
+    if (!m || m[3] !== from) return undefined;
+    return text.replace(
+      YAML_BASED_ON,
+      (_, head, q, _v, tail) => `${head}${q}${to}${q}${tail}`,
+    );
+  }
+  if (kind === "json") {
+    const span = jsonReadSpan(text);
+    if (span === undefined) return undefined;
+    let now;
+    try {
+      now = JSON.parse(text.slice(span[0], span[1]));
+    } catch {
+      return undefined;
+    }
+    if (now !== from) return undefined;
+    return text.slice(0, span[0]) + JSON.stringify(to) + text.slice(span[1]);
+  }
+  return undefined;
+};
+
+/**
+ * A document written back whole: beside the file it names (a symlink's
+ * target) and renamed over it, so no reader sees half of it and the link
+ * still points at it, with the file's mode kept. A file its owner may not
+ * write is refused, not replaced.
+ */
+const writeDocument = (file, text) => {
+  const real = realpathSync(file);
+  accessSync(real, fsConstants.W_OK);
+  const mode = statSync(real).mode & 0o7777;
+  const tmp = `${real}.${process.pid}.kipory.tmp`;
+  writeFileSync(tmp, text);
+  chmodSync(tmp, mode);
+  renameSync(tmp, real);
+};
+
+const side = (f, which) =>
+  f[`${which}Length`] !== undefined
+    ? `(${f[`${which}Length`]} characters)`
+    : f[which] === undefined
+      ? "nothing"
+      : cut(oneLine(JSON.stringify(f[which])), 200);
+
+/** Each moved element: who changed it, when, and every field's old and new value. */
+const printMoved = (moved) => {
+  for (const m of moved) {
+    const who = m.actor?.displayName ?? m.actor?.raw ?? "someone";
+    out(
+      `moved ${m.path}: changed by ${who}${m.at ? ` at ${m.at}` : ""} ${m.version ? `(version ${m.version}) ` : ""}after your read${m.note ? ` ("${oneLine(m.note)}")` : ""}`,
+    );
+    const fields = Array.isArray(m.fields) ? m.fields : [];
+    for (const f of fields)
+      out(`  ${f.path}: ${side(f, "from")} → ${side(f, "to")}`);
+    // Empty when it was changed back, or when the change log kept too much to list it.
+    if (fields.length === 0)
+      out("  (its fields cannot be listed: changed back, or too large to log)");
+  }
+};
+
+/** The command that plans this file again, for a line that says what to run. */
+const againLine = (command, file, extra) =>
+  [
+    "kipory",
+    command,
+    file,
+    ...(command === "ship" && typeof flags.get("check") === "string"
+      ? ["--check", flags.get("check")]
+      : []),
+    ...(extra === undefined ? [] : [extra]),
+  ].join(" ");
+
+/** `--seen <version>`: this file accounts for everything listed up to that version. */
+const seenRead = (id) => {
+  const v = flags.get("seen");
+  if (v === undefined) return undefined;
+  if (/^\d+$/.test(v)) return `${id}@${v}`;
+  if (v.startsWith(`${id}@`) && /^\d+$/.test(v.slice(id.length + 1))) return v;
+  throw usage(
+    `--seen takes a version of this project, as a refused plan prints it: --seen 12; not ${v}`,
+  );
+};
+
+const GENERATOR_READ = (file) =>
+  `${file} prints its own basedOn, which the command cannot move: stop writing basedOn in the document it prints, and its read is kept beside it from then on`;
+
+const plan = async (file, command = "plan") => {
+  const g = await grant();
+  const id = g.id;
   const doc = loadDocument(file);
-  // A document that carries its read (an export) is planned against it, so a
-  // change someone made since is listed as moved. Otherwise: the project now.
-  const query = doc.basedOn
-    ? ""
-    : `?basedOn=${encodeURIComponent(await currentVersion(id))}`;
+  const key = fileKey(file);
+  if (doc.unclear)
+    throw usage(
+      `${file} names basedOn in a form this command cannot read for certain; write it on its own line at the top, as pull does (basedOn: ${id}@<version>), or remove it`,
+    );
+  if (doc.basedOn !== undefined && carriedRead(doc.basedOn) === undefined)
+    throw usage(
+      `${file}'s basedOn (${JSON.stringify(doc.basedOn)}) is not a read: a read is <project>@<version>, as pull writes it (${id}@12); fix it, or remove it`,
+    );
+  const carried = carriedRead(doc.basedOn);
+  const seen = seenRead(id);
+  const entry = reads.get(id, key);
+  const read = seen ?? carried ?? entry?.read;
+  // A first plan with no read sends none, and the engine decides: it keeps
+  // such a plan only on a project with nothing authored, and refuses it 422
+  // everywhere else.
   const res = await api(
     "POST",
-    `/v1/projects/${encodeURIComponent(id)}/document/plan${query}`,
+    `/v1/projects/${encodeURIComponent(id)}/document/plan${read === undefined ? "" : `?${new URLSearchParams({ basedOn: read })}`}`,
     doc.body,
     doc.contentType,
   );
+  const onRead =
+    res.status === 422 &&
+    (res.json?.details?.issues ?? []).some((i) => i.field === "basedOn");
+  if (read === undefined && onRead) {
+    const now = await currentVersion(id);
+    out(
+      `plan refused: ${file} has no read of this project, which holds something: planned against it as it is now, it would undo, unseen, what anyone changed since ${file} was written.`,
+    );
+    out(
+      `start from the project (kipory pull), or, once ${file} holds what you mean the project to hold: ${againLine(command, file, `--seen ${now}`)}`,
+    );
+    throw refused("");
+  }
+  if (onRead || (res.status === 409 && res.json?.code === "PLAN_STALE")) {
+    if (seen !== undefined)
+      out(
+        `plan refused: ${refusal(res)}; --seen ${versionOf(seen)} is not a read this project can check, so nothing is kept`,
+      );
+    else {
+      const now = await currentVersion(id);
+      out(`plan refused: ${refusal(res)}`);
+      out(
+        `${file}'s read (${read}) is not one this project can check. Read what it holds now (kipory pull now.yaml), keep in ${file} what you mean it to hold, then: ${againLine(command, file, `--seen ${now}`)}`,
+      );
+    }
+    throw refused("");
+  }
+  if (res.status === 409 && res.json?.code === "DESIGN_BUSY") {
+    out(`plan refused: ${refusal(res)}`);
+    out(`your read still holds: run it again (${againLine(command, file)})`);
+    throw refused("");
+  }
   const p = ok(res, "planning the document");
-  state.write("plan.json", {
+  // Said after looking, and checked by the engine (a plan it ran, so kept):
+  // the file's read from now on, in its own text when it carries one.
+  let text = doc.text;
+  if (seen !== undefined && p.planId) {
+    if (carried === undefined) reads.set(id, key, { ...entry, read: seen });
+    else if (doc.kind === "generator") {
+      if (!asJson) out(GENERATOR_READ(file));
+    } else {
+      const moved = rewriteRead(doc.kind, text, carried, seen);
+      try {
+        if (moved === undefined)
+          throw new Error("no basedOn this command can rewrite");
+        writeDocument(file, moved);
+        text = moved;
+        reads.set(id, key, {
+          ...entry,
+          wrote: seen,
+          written: sha(Buffer.from(moved)),
+        });
+        if (!asJson) out(`${file}: basedOn is now ${seen}`);
+      } catch (err) {
+        if (!asJson)
+          out(
+            `${file}'s basedOn could not be set to ${seen} (${err.code ?? err.message}); it stays ${carried}`,
+          );
+      }
+    }
+  }
+  plans.set(id, key, {
     planId: p.planId ?? null,
     version: p.version,
-    file,
+    path: file,
+    kind: doc.kind,
+    read: p.basedOn ?? read ?? null,
+    carried: (text !== doc.text ? seen : carried) ?? null,
+    sent: sha(text === undefined ? readFileSync(file) : Buffer.from(text)),
   });
   if (asJson) {
     out(JSON.stringify(p, null, 2));
@@ -512,18 +901,61 @@ const plan = async (file) => {
   out(
     p.ok ? `plan ok ${p.planId}  (${changed})` : `plan refused  (${changed})`,
   );
-  for (const m of p.moved ?? [])
-    out(
-      `moved ${m.path}: changed by ${m.actor?.displayName ?? m.actor?.raw ?? "someone"} after your read`,
-    );
+  const moved = p.moved ?? [];
+  if (moved.length > 0) {
+    printMoved(moved);
+    const last = moved
+      .map((m) => versionOf(m.version))
+      .filter((v) => v !== undefined)
+      .reduce((a, b) => (b > a ? b : a), 0n);
+    const seenFlag = `--seen ${last > 0n ? last : p.version}`;
+    const byThisKey =
+      g.keyId !== undefined &&
+      moved.every((m) => m.actor?.raw === `key:${g.keyId}`);
+    if (byThisKey)
+      out(
+        `those were applied with this key (your own earlier apply, or another session using the same key); to continue: ${againLine(command, file, seenFlag)}`,
+      );
+    else
+      out(
+        `take those changes into ${file}, or keep yours on purpose; then say ${file} accounts for them: ${againLine(command, file, seenFlag)}`,
+      );
+    // The command moved this file's read, and its text carries an older one
+    // again: something wrote the file anew with a fixed basedOn.
+    if (
+      carried !== undefined &&
+      entry?.wrote !== undefined &&
+      versionOf(carried) < versionOf(entry.wrote)
+    )
+      out(
+        `${file}'s basedOn went back from ${entry.wrote}, which this command wrote, to ${carried}: if something writes ${file} anew with a fixed basedOn, stop writing basedOn there, and its read is kept beside it`,
+      );
+    else if (doc.kind === "generator" && carried !== undefined)
+      out(GENERATOR_READ(file));
+  }
   printDiagnostics(p.diagnostics);
   return p;
 };
 
-const apply = async () => {
+const apply = async (named, rerun) => {
   const id = await projectId();
-  const last = state.read("plan.json");
-  if (!last?.planId) throw usage("no plan to apply: run plan <doc> first");
+  let key = named === undefined ? undefined : fileKey(named);
+  if (key === undefined) {
+    const open = plans.every().filter((p) => p.project === id && p.planId);
+    if (open.length > 1)
+      throw usage(
+        `${open.length} files have a plan: name one, apply <file> (${open
+          .map((p) => p.file)
+          .sort()
+          .join(", ")})`,
+      );
+    key = open[0]?.file;
+  }
+  const last = key === undefined ? undefined : plans.get(id, key);
+  if (!last?.planId)
+    throw usage(
+      `no plan to apply${named ? ` for ${named}` : ""}: run plan <doc> first`,
+    );
   const note =
     typeof flags.get("note") === "string"
       ? flags.get("note")
@@ -533,15 +965,35 @@ const apply = async () => {
     `/v1/projects/${encodeURIComponent(id)}/document`,
     { planId: last.planId, note },
   );
+  const code = res.json?.code;
+  if (res.status === 404 && code === "PLAN_UNKNOWN") {
+    plans.drop(id, key);
+    if (asJson) out(res.text);
+    else {
+      out(`apply refused: ${refusal(res)}`);
+      out(`plan again: kipory plan ${last.path}`);
+    }
+    throw refused("");
+  }
   if (res.status === 409) {
     if (asJson) out(res.text);
     else {
       out(`apply refused: ${refusal(res)}`);
-      for (const m of res.json?.details?.moved ?? [])
+      if (code === "DESIGN_BUSY")
         out(
-          `moved ${m.path}: changed by ${m.actor?.displayName ?? m.actor?.raw ?? "someone"}`,
+          `your plan still holds: run it again (${rerun ?? `kipory apply ${last.path}`})`,
         );
-      out("plan again, then apply");
+      else if (code === "PLAN_STALE")
+        out(
+          `the project changed since this plan was made: plan again (kipory plan ${last.path})`,
+        );
+      else if (code === "VERSION_CONFLICT") {
+        printMoved(res.json?.details?.moved ?? []);
+        out(
+          `plan again (kipory plan ${last.path}): it says what to do about each`,
+        );
+      }
+      // Any other conflict says what to do in its own message, printed above.
     }
     throw refused("");
   }
@@ -554,6 +1006,58 @@ const apply = async () => {
     throw refused("");
   }
   const a = ok(res, "applying the plan");
+  plans.drop(id, key);
+  // The file's next read is the basedOn the apply answered, moved only while
+  // the file still holds the text that was planned: a text changed since is
+  // not what the engine checked. The project has changed either way, so a
+  // file that cannot be written is said, not thrown.
+  const answered = typeof a?.basedOn === "string" ? a.basedOn : undefined;
+  const notes = [];
+  if (answered !== undefined) {
+    const entry = reads.get(id, key) ?? {};
+    const now = existsSync(last.path) ? readFileSync(last.path) : undefined;
+    const unchanged = now !== undefined && sha(now) === last.sent;
+    if (last.carried === null) {
+      if (unchanged)
+        reads.set(id, key, { ...entry, read: answered, sent: last.sent });
+      else {
+        reads.set(id, key, { ...entry, sent: last.sent });
+        notes.push(
+          `${last.path} changed since it was planned, so its read stays ${entry.read ?? "unset"}; its next plan lists this apply (--seen continues)`,
+        );
+      }
+    } else if (last.kind === "generator") notes.push(GENERATOR_READ(last.path));
+    else if (!unchanged) {
+      reads.set(id, key, { ...entry, sent: last.sent });
+      notes.push(
+        `${last.path} changed since it was planned, so its basedOn stays ${last.carried}; its next plan lists this apply (--seen continues)`,
+      );
+    } else {
+      const moved = rewriteRead(
+        last.kind,
+        now.toString("utf8"),
+        last.carried,
+        answered,
+      );
+      try {
+        if (moved === undefined)
+          throw new Error("no basedOn this command can rewrite");
+        writeDocument(last.path, moved);
+        reads.set(id, key, {
+          ...entry,
+          sent: sha(Buffer.from(moved)),
+          wrote: answered,
+        });
+        if (answered !== last.carried)
+          notes.push(`${last.path}: basedOn is now ${answered}`);
+      } catch (err) {
+        reads.set(id, key, { ...entry, sent: last.sent });
+        notes.push(
+          `${last.path}'s basedOn could not be moved to ${answered} (${err.code ?? err.message}); its next plan lists this apply (--seen continues)`,
+        );
+      }
+    }
+  }
   if (asJson) {
     out(JSON.stringify(a, null, 2));
     return a;
@@ -561,10 +1065,67 @@ const apply = async () => {
   const g = await grant();
   // `appliedVersion` is the project after the apply; `version` was the plan's read.
   out(`applied ${a?.appliedVersion ?? ""}  host ${g.host ?? "(none)"}`.trim());
+  for (const n of notes) out(n);
   printDiagnostics(
     (a?.diagnostics ?? []).filter((d) => d.severity === "error"),
   );
   return a;
+};
+
+// ── pull ────────────────────────────────────────────────────────────────────
+
+const PULL_FILE = "project.kipory.yaml";
+
+/**
+ * The project as it is now, as YAML carrying its read on its basedOn line. It
+ * never replaces text that pull did not write or that was not the text of the
+ * file's last applied plan (hashed when it was planned).
+ */
+const pull = async (file = PULL_FILE) => {
+  if (!/\.ya?ml$/.test(file))
+    throw usage(`pull writes YAML: name a .yaml file, not ${file}`);
+  const folder = dirname(resolve(file));
+  if (!existsSync(folder) || !statSync(folder).isDirectory())
+    throw usage(`no such folder: ${relative(process.cwd(), folder) || "."}`);
+  const id = await projectId();
+  const key = fileKey(file);
+  if (existsSync(file)) {
+    const now = sha(readFileSync(file));
+    const known = reads
+      .every()
+      .filter((e) => e.file === key)
+      .flatMap((e) => [e.pulled, e.sent, e.written]);
+    if (!known.includes(now))
+      throw refused(
+        `${file} holds text that pull did not write and no apply sent: ship it, or pull beside it (kipory pull <another>.yaml) and carry your edits over`,
+      );
+  }
+  const res = await api(
+    "GET",
+    `/v1/projects/${encodeURIComponent(id)}/document`,
+    undefined,
+    undefined,
+    { accept: "application/yaml" },
+  );
+  if (res.status < 200 || res.status >= 300)
+    throw refused(`reading the project: ${refusal(res)}`);
+  const read = carriedRead(YAML_BASED_ON.exec(res.text)?.[3]);
+  if (read === undefined)
+    throw refused(
+      "the project's YAML carries no basedOn: this deployment's export cannot be planned as a file",
+    );
+  if (existsSync(file)) writeDocument(file, res.text);
+  else writeFileSync(file, res.text);
+  // The file carries its read; only its text is kept for it.
+  reads.set(id, key, { pulled: sha(Buffer.from(res.text)) });
+  if (asJson) {
+    out(JSON.stringify({ file, basedOn: read, bytes: res.bytes.length }));
+    return;
+  }
+  out(`pulled ${read} → ${file} (${res.text.split("\n").length} lines)`);
+  out(
+    "edit it, then ship it: what someone else changes after this read is listed as moved, not undone",
+  );
 };
 
 // ── test users and calls ────────────────────────────────────────────────────
@@ -1923,12 +2484,12 @@ const summary = async () => {
     ),
     "reading the summary",
   );
-  if (asJson) {
-    out(JSON.stringify({ host: g.host, ...s }, null, 2));
-    return;
+  if (asJson) out(JSON.stringify({ host: g.host, ...s }, null, 2));
+  else {
+    out(`project ${g.id}  version ${s.version}  host ${g.host ?? "(none)"}`);
+    for (const l of s.lines ?? []) out(l);
   }
-  out(`project ${g.id}  version ${s.version}  host ${g.host ?? "(none)"}`);
-  for (const l of s.lines ?? []) out(l);
+  return s;
 };
 
 // ── docs ────────────────────────────────────────────────────────────────────
@@ -2043,9 +2604,9 @@ const HELP = (() => {
 
 /** The flags each command takes beyond --json, --env and --help: any other is refused, not ignored. */
 const COMMAND_FLAGS = {
-  plan: ["all"],
+  plan: ["all", "seen"],
   apply: ["note", "all"],
-  ship: ["check", "note", "all"],
+  ship: ["check", "note", "all", "seen"],
   check: ["all"],
   user: [],
   call: [
@@ -2061,6 +2622,7 @@ const COMMAND_FLAGS = {
   ],
   preview: ["as", "input", "apply", "fan-out-cap", "schedule"],
   summary: [],
+  pull: [],
   connect: [],
   docs: ["more", "full"],
   find: ["report"],
@@ -2094,10 +2656,10 @@ const main = async () => {
   }
   switch (command) {
     case "plan":
-      if (!(await plan(rest[0])).ok) throw refused("");
+      if (!(await plan(rest[0], "plan")).ok) throw refused("");
       return;
     case "apply":
-      await apply();
+      await apply(rest[0]);
       return;
     case "ship": {
       // The checks are read before anything is planned: a spec with a typo
@@ -2106,9 +2668,9 @@ const main = async () => {
         typeof flags.get("check") === "string"
           ? loadSpec(flags.get("check"))
           : undefined;
-      const p = await plan(rest[0]);
+      const p = await plan(rest[0], "ship");
       if (!p.ok) throw refused("");
-      await apply();
+      await apply(rest[0], againLine("ship", rest[0]));
       if (checks) await check(checks);
       return;
     }
@@ -2126,6 +2688,8 @@ const main = async () => {
       return connect();
     case "summary":
       return summary();
+    case "pull":
+      return pull(rest[0]);
     case "docs":
       return docs(rest);
     case undefined:

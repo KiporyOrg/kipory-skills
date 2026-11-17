@@ -2,20 +2,21 @@
 
 Read this after `quickstart-document.md`. Each answer is the shape to copy and where the detail lives; names are the example project's (`task`, `create-task`, `notify-due`). For more, run `kipory docs <words>` (the `kipory` command in `kipory-connect`).
 
-<!-- field-ok: readAfter — a paging input named after the step `read` -->
-<!-- field-ok: readBefore — a paging input named after the step `read` -->
-<!-- field-ok: readLimit — a paging input named after the step `read` -->
-<!-- field-ok: userInfo — a run-ambient value, not a request field -->
-<!-- field-ok: runInfo — a run-ambient value, not a request field -->
+<!-- field-ok: readAfter — a paging input -->
+<!-- field-ok: readBefore — a paging input -->
+<!-- field-ok: readLimit — a paging input -->
+<!-- field-ok: userInfo — a run value -->
+<!-- field-ok: runInfo — a run value -->
 
 ## How does an endpoint answer 404, 409, 422 or another status?
 
 - **404:** `record.read` with `"failIfEmpty": true` answers `404 RECORD_NOT_FOUND` when the id isn't there, or belongs to another person on a per-user table: `{"key": "tasks", "function": "record.read", "with": {"tableKey": "task", "ids": {"expr": "[taskId]"}, "failIfEmpty": true}}`.
-- **422 with your message:** a `fail` step, under an `if` whose test says when: `{"key": "tooLong", "fail": {"code": "TITLE_TOO_LONG", "message": "The title is too long.", "status": 422}}` answers `422 VALIDATION_FAILED` with your message and `details.reason: TITLE_TOO_LONG`.
+- **422 for a bad input** needs no step: a limit (`maxLength`, `maximum`, `pattern`, `enum`) on the type the input names answers `422 VALIDATION_FAILED`, `details.reason` `FLOW_INPUT_INVALID`, before the run.
+- **422 with your message**, for a rule no type says: a `fail` step under an `if`, `{"key": "packed", "fail": {"code": "BOX_PACKED", "message": "A packed box cannot change."}}`, answers it with `details.reason: BOX_PACKED`.
 - **409:**
   - a `record.create` whose `key` field another record holds answers `409 RECORD_NATURAL_KEY_TAKEN` (with `onKeyTaken: "refuse"`, the default);
   - a `record.update` with `"requireStatus": "READY", "failIfPreconditionUnmet": true` answers 409 when nothing matched.
-- **A status you choose:** the same `fail` step with another `status`, any 4xx but 405, 408 and 426. It stops the run and keeps nothing it wrote; the caller gets the platform's word for the status (`FORBIDDEN`, `CONFLICT`, …), or `REQUEST_REFUSED` for one with no word of its own (400, 402, 418), with your `code` as `details.reason`.
+- **A status you choose:** the same `fail` step with another `status`, any 4xx but 405, 408 and 426. It keeps nothing the run wrote; the caller gets the platform's word for the status (`FORBIDDEN`, `CONFLICT`, …), or `REQUEST_REFUSED` for one with no word of its own (400, 402, 418), with your `code` as `details.reason`.
 - **A public endpoint** (`auth: "none"`) spends up to `publicSpendCapCredits` a UTC day, then answers `402 PUBLIC_ENDPOINT_UNAVAILABLE` (`endpoint-answers.md`).
 - **Success** is `successStatus` on the endpoint: 200, 201, 202, 204 (no body) or 206; `statusOutput` names a number output to pick it per call.
 - **A redirect** is `"redirect": {"location": "url"}` on `contractConfig` (302 unless `status` says 301, 303, 307 or 308), `url` being a string output. `headers` sets response headers from outputs. Both, like `statusOutput`, only on a synchronous `flow.invoke`. Detail: `kipory-expose`'s `references/packs/api-endpoints-anatomy.md`.
@@ -35,8 +36,9 @@ Read this after `quickstart-document.md`. Each answer is the shape to copy and w
 
 ## How does an endpoint pass the request to the flow?
 
-- **`inputs`** maps each flow input to `{"from": "body"}` (the body field of the same name), `{"from": "path.id"}`, `{"from": "query"}` (the query parameter named like the input) or `{"from": "query.q"}`. Every query parameter is declared in `params` too, or the plan refuses the binding (`ENDPOINT_INPUT_UNSATISFIED`): `"params": {"limit": {"in": "query", "type": "string", "required": false}}`. `{"from": "header.x-signature"}` and `{"from": "rawBody"}` feed `request.verify-signature` for a signed webhook.
-- **A path parameter is declared and required:** `"params": {"id": {"in": "path", "type": "string", "required": true}}`. A param's `type` is always `"string"`; the input it feeds types the value.
+- **Leave `inputs` out** and each flow input binds by its name: one named like a `{part}` of the path reads it, any other the query on a GET or DELETE and the body on a POST or PATCH. An input the flow gains later binds too.
+- **State `inputs`** only when a name differs or the value comes from elsewhere: `{"from": "path.id"}`, `{"from": "query.q"}` on a POST (with `"params": {"q": {"in": "query"}}`, or the plan refuses `ENDPOINT_INPUT_UNSATISFIED`), `{"from": "header.x-signature"}` and `{"from": "rawBody"}` for a signed webhook's `request.verify-signature`. Stated, an input not listed is not bound.
+- **A parameter is `{"in": "path"}` or `{"in": "query"}`**; its `type` and `required` follow.
 - **Params go where the contract says:** `{id}` in the path, a GET's rest in the query.
 - **A query or path value takes the type of the input it feeds.** An input's `typeName` is `string`, `number`, `boolean`, `file`, `object`, `probability`, a library or project type (no `integer`; a list is `isList: true`). Fed to a `number` input, `?limit=20` is `20`; a value that isn't that type (`?limit=x`) is a 422 before the run, and so is one outside its type's bounds.
 

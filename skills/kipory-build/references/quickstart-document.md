@@ -1,20 +1,20 @@
 # Build a backend as one document
 
-A bigger worked project than the primer's (`kipory-connect`). It is one complete project for an invented fruit-box club — people sign in and keep their own membership and boxes, order and list them over HTTP, a total is kept for them, a model writes a packing slip, a daily job reminds members once by email — as one `kipory: 11` **project document**. Copy its shapes. Open another page only for something this one does not show (the last section says which).
+A bigger worked project than the primer's (`kipory-connect`): an invented fruit-box club — people sign in and keep their own membership and boxes, order and list them over HTTP, a total is kept for them, a model writes a packing slip, a daily job reminds members once by email — as one `kipory: 11` **project document**. Copy its shapes. Open another page only for something this one does not show (the last section says which).
 
 ## The loop
 
 Write the document (a `.json` file, or a `.mjs` script that prints it, as most builds do), then use the `kipory` command `kipory-connect` ships: `node .claude/skills/kipory-connect/scripts/kipory.mjs <command>`, written in full in every shell call and `kipory <command>` below.
 
 ```
-kipory plan app.mjs       plan it against the project now: "plan ok <planId>", or one line per error with its path
+kipory plan app.mjs       plan it: "plan ok <planId>", or one line per error with its path
 kipory apply              apply the plan you just read; prints the new version and the project's host
 kipory ship app.mjs       both, when you expect a clean plan
 ```
 
 Underneath, on the api host with your key: `GET /v1/projects/{nodeId}/document?section=project` (your read, `basedOn`), `POST /v1/projects/{nodeId}/document/plan?basedOn=<version>` (the document as the body), `POST /v1/projects/{nodeId}/document { "planId", "note" }`. The product's own endpoints answer on the project's host (`baseUrl` on `GET /v1/grant`).
 
-- **A plan you mean to apply needs `basedOn`** — your read — once the project holds anything. After an apply, the answer's `basedOn` is your next read.
+- **A plan you mean to apply needs `basedOn`**, your read: what someone else changed after it is listed as `moved` and refuses the plan. The command keeps each file's read.
 - **Gate on `ok` and on each diagnostic's `severity`.** Only `error` refuses; `warning` and `info` block nothing. A finding about steps carries `at` and ready `fixes` (step edits to make in your file) or the `decision` you must make. Fix every error of one plan in one edit, then plan again.
 - **The format is 11** (`kipory: 11`), sent as YAML (`content-type: application/yaml`) or JSON. Plan the document alone, never an export's envelope `{ "version", "document" }`.
 - **A document is partial and every element you state is whole.** Send the sections you change; state each row whole. An omitted row is untouched; a flow's `steps` are its whole list, so a step you leave out is removed.
@@ -25,6 +25,7 @@ Underneath, on the api host with your key: `GET /v1/projects/{nodeId}/document?s
 ```yaml
 kipory: 11
 types:
+  Pounds: { definition: { type: number, minimum: 0, maximum: 20 } }
   Member:
     definition:
       type: object
@@ -125,19 +126,10 @@ flows:
       memberId: { typeName: string }
       week: { typeName: string }
       fruit: { typeName: string }
-      pounds: { typeName: number, optional: true }
+      pounds: { typeName: Pounds, optional: true }
     outputs:
       boxId: { typeName: string }
     steps:
-      - key: tooHeavy
-        if:
-          - test: { gt: [pounds, 20] }
-            steps:
-              - key: refuse
-                fail:
-                  code: TOO_HEAVY
-                  message: A box holds at most 20 lb.
-                  status: 422
       - key: owner
         function: record.read
         with:
@@ -277,51 +269,31 @@ surfaces:
         method: POST
         path: /v1/club/members
         successStatus: 201
-        auth: required
-        params: {}
       targetConfig:
         kind: flow.invoke
         execution: sync
-        flow: join-club
-        inputs:
-          name: { from: body }
-          email: { from: body }
-          renewsOn: { from: body }
+        flow: join-club # no inputs: each binds by its name, from the body
     order-box:
       contractConfig:
         method: POST
         path: /v1/club/boxes
         successStatus: 201
-        auth: required
-        params: {}
       targetConfig:
         kind: flow.invoke
         execution: sync
         flow: order-box
-        inputs:
-          memberId: { from: body }
-          week: { from: body }
-          fruit: { from: body }
-          pounds: { from: body }
     list-boxes:
       contractConfig:
         method: GET
         path: /v1/club/boxes
-        successStatus: 200
-        auth: required
-        params: {}
       targetConfig:
         kind: flow.invoke
         execution: sync
         flow: list-boxes
-        inputs: {}
     pack-box:
       contractConfig:
         method: POST
         path: /v1/club/boxes/{id}/pack
-        successStatus: 200
-        auth: required
-        params: { id: { in: path, type: string, required: true } }
       targetConfig:
         kind: flow.invoke
         execution: sync
@@ -347,10 +319,11 @@ surfaces:
 <!-- field-ok: renewalNote — the example project's own table key -->
 <!-- field-ok: poundsOrdered — the example project's own computed field -->
 
-- **A flow is its steps, in the order they run.** `order-box` checks the weight, reads the member, saves the box, checks it was saved, returns its id — top to bottom. A step's key names its value: `save.recordId` is the id `save` created. A flow gives its outputs only through a `return` step.
+- **A flow is its steps, in the order they run.** `order-box` reads the member, saves the box, checks it was saved, returns its id — top to bottom. A step's key names its value: `save.recordId` is the id `save` created. A flow gives its outputs only through a `return` step.
 - **A setting reads a value by its path**: `memberId: memberId`, `to: member.email`. Text is `{ literal: "…" }` — a bare string is always a path. An expression is `{ expr: "[boxId]" }`. A setting that names a thing — `tableKey`, `address`, a prompt — is a plain value. `action-fields.md` has every form.
 - **An optional input is read with its tolerance.** `email` may be left out, so `join-club` reads it `{ path: email, optional: true }` (the field is then not written), and `order-box` reads `pounds` with `default: 10`. A text default is a literal: `default: { literal: apples }`. A plain `email` would be refused at plan: the save proves every required read is there on every path (`STEP_INPUT_MAY_BE_ABSENT`).
-- **A required output must be proved too.** Nothing proves `record.create`'s receipt holds `recordId`, so return `save.recordId` as a required output only after a step that fails the run when it is missing — `saved` and `joined` are that guard. `fail` with `status` is how an endpoint answers your own error: `refuse` answers `422 VALIDATION_FAILED`, `details.reason: TOO_HEAVY`.
+- **A required output must be proved too.** Nothing proves `record.create`'s receipt holds `recordId`, so return `save.recordId` as a required output only after a step that fails the run when it is missing — `saved` and `joined` are that guard. `fail` with `status` is how an endpoint answers an error of your own.
+- **An input's limits go on its type.** `pounds` is a `Pounds`, so no step checks the weight: the endpoint refuses over 20 lb before any step runs (422, `details.reason` `FLOW_INPUT_INVALID`). A flow another flow, a schedule or a trigger starts is checked only for a non-empty rule (`minLength: 1`).
 - **Ownership is a table setting, not a filter.** `ownerScope: user` makes every row the signed-in person's: their reads see only their rows, and `record.read` of another person's id finds nothing — with `failIfEmpty: true` that fails the call (`order-box` › `owner`). The save still does not count `owner[0]` as there: read its fields under `{filled: owner}`. Write no owner field and no owner filter.
 - **A total that must stay right is `computed`, not a read-time sum.** `member.poundsOrdered` is a `rollup` over the relation `of-member`; the platform recomputes it a few seconds after any box is created, changed or deleted. It needs the relation and a `link` use on the parent's id field (`box.memberId`). `rollup` also takes `count`, `avg`, `min`, `max`, `latest`.
 - **A model step is `text.generate` with its `prompt`.** A placeholder is `{{name}}`, `{{name.field}}` or `{{name[0]}}`; one item's field (`{{found[0].fruit}}`) is not one, so `line` reads the whole `found`. A placeholder naming a whole object or list is refused at save (`INTERPOLATE_BARE_STRUCTURED_SLOT`): name a field, write `{{name | json}}`, or loop with a section. With no `outputSchema` it answers text.

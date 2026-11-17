@@ -221,18 +221,11 @@ A reading circle: `author` and `book` are the project's, `follow` and `hide` are
   "surfaces": {
     "endpoints": {
       "shelf": {
-        "contractConfig": {
-          "method": "GET",
-          "path": "/v1/shelf",
-          "params": {},
-          "successStatus": 200,
-          "auth": "required"
-        },
+        "contractConfig": { "method": "GET", "path": "/v1/shelf" },
         "targetConfig": {
           "kind": "flow.invoke",
           "execution": "sync",
-          "flow": "get-shelf",
-          "inputs": {}
+          "flow": "get-shelf"
         }
       },
       "book": {

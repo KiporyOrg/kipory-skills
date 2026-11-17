@@ -43,7 +43,9 @@ make it public, callable with no credential. No shipped template declares one â€
 no public spend cap, and a public endpoint cannot be saved without it â€” so every endpoint a template
 gives you needs a key or a session until you decide otherwise. An endpoint there is written as on
 `POST /v1/api-endpoints`, `responseType` and a `from: "patch"` input included: read `responseType`
-to know an endpoint answers CSV or other text rather than JSON.
+to know an endpoint answers CSV or other text rather than JSON. A template file may leave out a
+parameter's `type` and `required`, a path parameter's entry and an endpoint's `inputs`, as any
+project document may; the project it creates stores them whole.
 
 ## Create a project from one
 

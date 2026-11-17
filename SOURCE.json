@@ -1,7 +1,14 @@
 {
-  "source": "9d264ed6432d760d83aff8e79833642365731ce2",
+  "source": "595895c10b5d8684dab24ed65fd3c49f4c192bf1",
   "since": "2026-08-19",
   "history": [
+    {"sha":"595895c10b5d","skills":"A shipped file no longer undoes someone else's edit unseen, an endpoint leaves out what the engine can work out, and the presence proof credits more expressions and names the real cause (#3759)"},
+    {"sha":"a20b8acc9c4d"},
+    {"sha":"3f1642bb1c0e"},
+    {"sha":"9182b6e5243e"},
+    {"sha":"936a61f2ced0"},
+    {"sha":"37e8cf0a8a9a"},
+    {"sha":"744704359b72"},
     {"sha":"9d264ed6432d","skills":"The primer says record.query orders by creation oldest first too, and that a flow clears a field with a fixed null (#3752)"},
     {"sha":"5d33a3484d1f","skills":"The engine reads time from one injected clock, route tests load the app once per file, an organization switches its connection's daily tests from the page, and an endpoint run is charged once and closed once per attempt (engine-hardening follow-ups, round 2) (#3748)"},
     {"sha":"aef00dc9b79f","skills":"record.query orders by creation oldest first too, a record.update merge clears a field with a fixed null, and five refusals say what is true with the edit that clears them (tidy-up) (#3751)"},
@@ -994,13 +1001,6 @@
     {"sha":"79755aa29192"},
     {"sha":"edd402ed6b6e"},
     {"sha":"946ad39879a5"},
-    {"sha":"417e33cac5c0"},
-    {"sha":"d4490017bdb8"},
-    {"sha":"cc1ae66bc1a0"},
-    {"sha":"905dba5d4e9a"},
-    {"sha":"c8e4364c8ba6"},
-    {"sha":"d6a750a1057e"},
-    {"sha":"e048822c2886"},
-    {"sha":"53046b00db67"}
+    {"sha":"417e33cac5c0"}
   ]
 }
