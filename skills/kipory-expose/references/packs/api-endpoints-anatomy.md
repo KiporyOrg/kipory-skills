@@ -82,11 +82,10 @@ to get them all.
 
 A flow-backed target names its flow **by id only** — the save reads the flow's key, so it is not a
 field you may send. It comes back on every read, and so does `viewEndpoint` on a view endpoint
-(below), which the save derives the same way. A stored target may also still carry a `signature`
-member, a copy of the flow the platform no longer reads; it is not a field you may send either.
+(below), which the save derives the same way.
 
-**So you cannot echo a stored target config back verbatim.** Strip `signature`, `viewEndpoint`
-and the flow key first. An unknown key is refused loudly, naming the key, rather than being silently dropped — which
+**So you cannot echo a stored target config back verbatim.** Strip `viewEndpoint` and the flow key
+first. An unknown key is refused loudly, naming the key, rather than being silently dropped — which
 is the right behaviour and also means a round-trip that "should" work fails until you understand
 why.
 
@@ -148,8 +147,8 @@ parameters you stated — so an export applies back unchanged.
 
 On the row API a write is whole. A PATCH replaces both configs, so one that leaves `inputs` out
 binds by name, replacing bindings the endpoint held as written; a project document instead keeps
-the written bindings it holds. A read sent back as it came — dropping `signature`, `viewEndpoint`
-and the flow's `key`, as for any endpoint — is accepted with the marker, its bindings and both
+the written bindings it holds. A read sent back as it came — dropping `viewEndpoint` and the flow's
+`key`, as for any endpoint — is accepted with the marker, its bindings and both
 sets of parameters, when those bindings and parameters are what binding by name works out from
 `paramsAsWritten`: change something else and the endpoint stays bound by name. Change a binding
 or a parameter beside the marker and it is refused; drop the marker to take them over.
@@ -675,6 +674,14 @@ the current schema — corrupt data, typically left behind by a breaking schema 
 written before it. **It is listed rather than dropped, and that is the point:** the key is still
 taken and the traffic still 404s, so hiding it would make a broken endpoint read as a deleted
 one. It cannot be shown or edited until it is re-saved.
+
+One kind of unreadable row also stops a design write: a row that still carries a stored copy of
+its flow's signature (`targetConfig.signature`), saved by an older platform version. A flow edit,
+type edit, rename or document apply that reaches such an endpoint answers 409 `CONFLICT` with
+`details.reason: "endpoint-unreadable"` and the endpoint keys in the `endpoints` list of `details`, and writes
+nothing, because what it would change for that endpoint's callers cannot be checked. Re-save each
+named endpoint (`PATCH /v1/api-endpoints/{id}` with its `version` and both configs), then send the
+write again. A row unreadable for any other reason does not block a write that reaches it.
 
 Each entry carries `contractIssues` and `targetIssues` — **one entry per failed field**, each a
 `path` and a `message`:
