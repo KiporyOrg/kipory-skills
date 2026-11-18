@@ -594,15 +594,18 @@ vocabulary and create another, which removes its terms and strips them off every
   table surfacing this vocabulary has a field by that name (the term would hide the field), or
   every record already carries it (`id`, say).
 - **Endpoints and tables over a renamed type:** the rename's own rewrite of the `$vocabularyKey`
-  marker is no change, since the check reads each copy's old side through the same rename, so the
+  marker is no change, since the check reads each old side through the same rename, so the
   rename changes no caller's contract. The marker is not a label: re-pointing a field's
-  `$vocabularyKey` by hand is not classified, so it breaks each copy that holds the field. Each endpoint's and flow-backed table's copy of a type it
-  rewrites is re-taken in the same write and listed in the answer's `touched` at its new
-  `version` (`[]` when the edit renames nothing). Every PATCH answer, and its dry run, carries
-  `contractChanges` — normally `[]`. A copy that had already drifted from its flow can still make
-  the re-take a break: then the PATCH is refused like any write that breaks a caller (409
-  `CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks: {endpoints, tables}` names each one, 403
-  `CONTRACT_BREAK_FORBIDDEN` below ADMIN), and the dry run says so beside
+  `$vocabularyKey` by hand is not classified, so it breaks each endpoint and table whose contract
+  holds the field. An endpoint serves its flow as it is now: it meets the new key on its next
+  request with its `version` unmoved and is not in `touched`, and its contract history gains one
+  `write` with verdict `safe` and `changes: []`, its contract under the new key. Each flow-backed
+  table's copy of a type it rewrites is re-taken in the same write and listed in the answer's
+  `touched` at its new `version` (`[]` when the edit moves no table). Every PATCH answer, and its
+  dry run, carries `contractChanges` — normally `[]`. A table's copy that had already drifted from
+  its flow can still make the re-take a break: then the PATCH is refused like any write that
+  breaks a caller (409 `CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks.tables` names each one,
+  403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN), and the dry run says so beside
   `permissions.mayAcceptBreaks`. A name in `acceptBreaks` the project does not have is a 422; one
   the edit does not break comes back in `acceptBreaksNotNeeded`.
 

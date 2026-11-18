@@ -77,7 +77,7 @@ A provider that is off for the project has no routes: its paths answer 404 and a
 | `references/pitfalls.md`                    | what will bite you when exposing a flow, each trap with its remedy                                                   |
 | `references/sign-in.md`                     | end-user sign-in per kind of client, the `authConfig` document, own-domain handoff, the end-user profile, test users |
 | `references/account.md`                     | signing out, the `/v1/me` account routes, account deletion, push devices                                             |
-| `references/packs/api-endpoints-anatomy.md` | the judgment: lifecycle, contract and target, snapshots, refusals                                                    |
+| `references/packs/api-endpoints-anatomy.md` | the judgment: lifecycle, contract and target, the live contract, its history, refusals                               |
 | `references/api/api-endpoints.md`           | every field of the create, patch and read                                                                            |
 | `references/api/route-enablement.md`        | the group toggle and the coded-route manifest                                                                        |
 | `references/api/end-users.md`               | auth config, profile schema, the users roster, members' standing and credits                                         |

@@ -15,17 +15,18 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `GET` | [`/v1/api-endpoints/{id}`](#get-v1-api-endpoints-id) |  |
 | `PATCH` | [`/v1/api-endpoints/{id}`](#patch-v1-api-endpoints-id) |  |
 | `DELETE` | [`/v1/api-endpoints/{id}`](#delete-v1-api-endpoints-id) |  |
+| `GET` | [`/v1/api-endpoints/{id}/contract-history`](#get-v1-api-endpoints-id-contract-history) |  |
 
 ### `GET /v1/api-endpoints`
 
-List one project's endpoints (`?project=<nodeId>`) — the routes your product serves, each binding a method and path to a flow (`flow.invoke`, `flow.stream`) or to an event subscription — each with the `version` its PATCH takes and, in `access`, whether it is public (callable with no credential) and which model or vendor steps its flow reaches. A stored row that no longer parses is listed in `unreadable` rather than failing the read. `expand=drift` flags an endpoint whose bound flow's signature moved since it was saved, `expand=flowLabel` names the bound flow, `expand=shadowed` the platform route that has grown over its path. The same rows, as authored, ride `GET /v1/bootstrap` (`surfaces.apiEndpoints`) and the `surfaces.endpoints` section of `GET /v1/projects/{nodeId}/document`. The flows they bind: `GET /v1/flows?project=`.
+List one project's endpoints (`?project=<nodeId>`) — the routes your product serves, each binding a method and path to a flow (`flow.invoke`, `flow.stream`) or to an event subscription — each with the `version` its PATCH takes and, in `access`, whether it is public (callable with no credential) and which model or vendor steps its flow reaches. A stored row that no longer parses is listed in `unreadable` rather than failing the read. `expand=contract` adds the contract its callers meet now (what they send and read back, from the flow as it is now), `expand=flowLabel` names the bound flow, `expand=shadowed` the platform route that has grown over its path. The same rows, as authored, ride `GET /v1/bootstrap` (`surfaces.apiEndpoints`) and the `surfaces.endpoints` section of `GET /v1/projects/{nodeId}/document`. The flows they bind: `GET /v1/flows?project=`.
 
 **Query**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project whose endpoints to list. |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: drift, flowLabel, shadowed. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: contract, flowLabel, shadowed. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
@@ -51,9 +52,9 @@ Each item of `apiEndpoints`:
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `signatureDrift` | `boolean \| null` | no | `expand=drift` — whether the bound flow's signature has changed since this endpoint snapshotted it, which means the published request or response contract no longer matches the flow. Null for a non-flow-backed target. Absent unless asked for. |
+| `contract` | `object \| null` | no | `expand=contract` — the contract callers meet now: what they send and what they read back, built from the flow as it is now, with its identifier. Null for an endpoint that runs no flow, and for one whose flow cannot be resolved (deleted, or not this project's): then what callers meet is not known. Absent unless asked for. |
 | `flowLabel` | `object \| null` | no | `expand=flowLabel` — the bound flow's current id, key and label. Null when the target is not flow-backed or the flow cannot be resolved. Absent unless asked for. |
-| `shadowedBy` | `object \| null` | no | `expand=shadowed` — the platform route that has grown over this endpoint's method and path shape, which means YOUR ENDPOINT IS NOT BEING SERVED: the platform route wins the match and the request never reaches you. Re-path the endpoint to fix it. Unlike `signatureDrift`, null here is a real answer and never means undetermined — nothing shadows this endpoint. Absent unless asked for. |
+| `shadowedBy` | `object \| null` | no | `expand=shadowed` — the platform route that has grown over this endpoint's method and path shape, which means YOUR ENDPOINT IS NOT BEING SERVED: the platform route wins the match and the request never reaches you. Re-path the endpoint to fix it. Unlike `contract`, null here is a real answer and never means undetermined — nothing shadows this endpoint. Absent unless asked for. |
 | `partiallyShadowedBy` | `object[]` | no | `expand=shadowed` — platform routes that take ONE value of a parameter in your path, so your endpoint never receives that value. Empty when none does. Absent unless asked for. A path whose first segment is a parameter is the usual case: it saves, and platform routes under that parameter take their values first. |
 
 Each item of `unreadable`:
@@ -69,7 +70,7 @@ Each item of `unreadable`:
 
 ### `POST /v1/api-endpoints`
 
-Create one endpoint: a method and path under the project's host, bound to a flow of this project (`flow.invoke`, or `flow.stream` for a live answer) or to an event subscription. The bound flow's signature is snapshotted, so a later change to the flow shows as drift on the endpoint rather than as a silent break; the flow itself is authored at `/v1/flows`. `contractConfig.auth: "none"` makes it PUBLIC — callable with no key and no session, paid from the project's wallet up to its public spend cap; it is accepted only for a synchronous `flow.invoke` whose flow declares no `userInfo` input (a step inside it that reads the calling user is not caught at save and fails when called), and only once the project has set `publicSpendCapCredits` (`PATCH /v1/projects/{nodeId}/settings`), else 422 with the issue code `PUBLIC_ENDPOINT_KIND_UNSUPPORTED`, `PUBLIC_ENDPOINT_NEEDS_USER` or `PUBLIC_SPEND_CAP_REQUIRED`. With `validateOnly: true` it answers whether the create would be refused, who could call the draft and where it would sit in the match order (`derived`), and for a public draft the warnings `PUBLIC_ENDPOINT_SPENDS`, `PUBLIC_ENDPOINT_WRITES` and `PUBLIC_ENDPOINT_NAMES_PERSON`, writing nothing. Several endpoints at once, beside the flows they bind: the `surfaces.endpoints` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Create one endpoint: a method and path under the project's host, bound to a flow of this project (`flow.invoke`, or `flow.stream` for a live answer) or to an event subscription. The endpoint serves the flow as it is now: a later change to the flow reaches its callers on their next request, judged first by the write that makes it (a break needs that write's `acceptBreaks`); the flow itself is authored at `/v1/flows`. `contractConfig.auth: "none"` makes it PUBLIC — callable with no key and no session, paid from the project's wallet up to its public spend cap; it is accepted only for a synchronous `flow.invoke` whose flow declares no `userInfo` input (a step inside it that reads the calling user is not caught at save and fails when called), and only once the project has set `publicSpendCapCredits` (`PATCH /v1/projects/{nodeId}/settings`), else 422 with the issue code `PUBLIC_ENDPOINT_KIND_UNSUPPORTED`, `PUBLIC_ENDPOINT_NEEDS_USER` or `PUBLIC_SPEND_CAP_REQUIRED`. With `validateOnly: true` it answers whether the create would be refused, who could call the draft and where it would sit in the match order (`derived`), and for a public draft the warnings `PUBLIC_ENDPOINT_SPENDS`, `PUBLIC_ENDPOINT_WRITES` and `PUBLIC_ENDPOINT_NAMES_PERSON`, writing nothing. Several endpoints at once, beside the flows they bind: the `surfaces.endpoints` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 
@@ -129,9 +130,9 @@ Each item of `contractChanges`:
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `signatureDrift` | `boolean \| null` | no | `expand=drift` — whether the bound flow's signature has changed since this endpoint snapshotted it, which means the published request or response contract no longer matches the flow. Null for a non-flow-backed target. Absent unless asked for. |
+| `contract` | `object \| null` | no | `expand=contract` — the contract callers meet now: what they send and what they read back, built from the flow as it is now, with its identifier. Null for an endpoint that runs no flow, and for one whose flow cannot be resolved (deleted, or not this project's): then what callers meet is not known. Absent unless asked for. |
 | `flowLabel` | `object \| null` | no | `expand=flowLabel` — the bound flow's current id, key and label. Null when the target is not flow-backed or the flow cannot be resolved. Absent unless asked for. |
-| `shadowedBy` | `object \| null` | no | `expand=shadowed` — the platform route that has grown over this endpoint's method and path shape, which means YOUR ENDPOINT IS NOT BEING SERVED: the platform route wins the match and the request never reaches you. Re-path the endpoint to fix it. Unlike `signatureDrift`, null here is a real answer and never means undetermined — nothing shadows this endpoint. Absent unless asked for. |
+| `shadowedBy` | `object \| null` | no | `expand=shadowed` — the platform route that has grown over this endpoint's method and path shape, which means YOUR ENDPOINT IS NOT BEING SERVED: the platform route wins the match and the request never reaches you. Re-path the endpoint to fix it. Unlike `contract`, null here is a real answer and never means undetermined — nothing shadows this endpoint. Absent unless asked for. |
 | `partiallyShadowedBy` | `object[]` | no | `expand=shadowed` — platform routes that take ONE value of a parameter in your path, so your endpoint never receives that value. Empty when none does. Absent unless asked for. A path whose first segment is a parameter is the usual case: it saves, and platform routes under that parameter take their values first. |
 
 Each item of `partiallyShadowedBy`:
@@ -144,7 +145,7 @@ Each item of `partiallyShadowedBy`:
 
 ### `GET /v1/api-endpoints/{id}`
 
-Read one endpoint. `expand` takes the list's keys (`drift`, `flowLabel`, `shadowed`). Every endpoint at once: `GET /v1/api-endpoints?project=`.
+Read one endpoint. `expand` takes the list's keys (`contract`, `flowLabel`, `shadowed`). Every endpoint at once: `GET /v1/api-endpoints?project=`.
 
 **Path parameters**
 
@@ -156,7 +157,7 @@ Read one endpoint. `expand` takes the list's keys (`drift`, `flowLabel`, `shadow
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: drift, flowLabel, shadowed. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: contract, flowLabel, shadowed. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
@@ -175,9 +176,9 @@ Read one endpoint. `expand` takes the list's keys (`drift`, `flowLabel`, `shadow
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `signatureDrift` | `boolean \| null` | no | `expand=drift` — whether the bound flow's signature has changed since this endpoint snapshotted it, which means the published request or response contract no longer matches the flow. Null for a non-flow-backed target. Absent unless asked for. |
+| `contract` | `object \| null` | no | `expand=contract` — the contract callers meet now: what they send and what they read back, built from the flow as it is now, with its identifier. Null for an endpoint that runs no flow, and for one whose flow cannot be resolved (deleted, or not this project's): then what callers meet is not known. Absent unless asked for. |
 | `flowLabel` | `object \| null` | no | `expand=flowLabel` — the bound flow's current id, key and label. Null when the target is not flow-backed or the flow cannot be resolved. Absent unless asked for. |
-| `shadowedBy` | `object \| null` | no | `expand=shadowed` — the platform route that has grown over this endpoint's method and path shape, which means YOUR ENDPOINT IS NOT BEING SERVED: the platform route wins the match and the request never reaches you. Re-path the endpoint to fix it. Unlike `signatureDrift`, null here is a real answer and never means undetermined — nothing shadows this endpoint. Absent unless asked for. |
+| `shadowedBy` | `object \| null` | no | `expand=shadowed` — the platform route that has grown over this endpoint's method and path shape, which means YOUR ENDPOINT IS NOT BEING SERVED: the platform route wins the match and the request never reaches you. Re-path the endpoint to fix it. Unlike `contract`, null here is a real answer and never means undetermined — nothing shadows this endpoint. Absent unless asked for. |
 | `partiallyShadowedBy` | `object[]` | no | `expand=shadowed` — platform routes that take ONE value of a parameter in your path, so your endpoint never receives that value. Empty when none does. Absent unless asked for. A path whose first segment is a parameter is the usual case: it saves, and platform routes under that parameter take their values first. |
 
 Each item of `partiallyShadowedBy`:
@@ -190,7 +191,7 @@ Each item of `partiallyShadowedBy`:
 
 ### `PATCH /v1/api-endpoints/{id}`
 
-Change one endpoint: its contract (method, path, parameters) and its target, both replaced whole; the key is permanent. Saving re-snapshots the bound flow's signature, which is how drift is cleared. Setting `contractConfig.auth` to `"none"` makes it public under the rules `POST /v1/api-endpoints` states; setting it back to `"required"` takes effect on the next request. A save that changes what the endpoint's callers send or read — a parameter, a setting such as `headers` or `responseBody`, or another flow — answers each change in `contractChanges`; one that breaks them is refused (409) until `acceptBreaks` names the endpoint, and only an admin of the project may accept (403 otherwise). Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be refused, what it would publish (`derived`) and what it changes for callers (`contractChanges`), writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Change one endpoint: its contract (method, path, parameters) and its target, both replaced whole; the key is permanent. Setting `contractConfig.auth` to `"none"` makes it public under the rules `POST /v1/api-endpoints` states; setting it back to `"required"` takes effect on the next request. A save that changes what the endpoint's callers send or read — a parameter, a setting such as `headers` or `responseBody`, or another flow — answers each change in `contractChanges`; one that breaks them is refused (409) until `acceptBreaks` names the endpoint, and only an admin of the project may accept (403 otherwise). Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be refused, what it would publish (`derived`) and what it changes for callers (`contractChanges`), writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -229,9 +230,9 @@ Shape 1, with `id`, `project`, `key`, `contractConfig`, `targetConfig`, `invokeU
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `signatureDrift` | `boolean \| null` | no | `expand=drift` — whether the bound flow's signature has changed since this endpoint snapshotted it, which means the published request or response contract no longer matches the flow. Null for a non-flow-backed target. Absent unless asked for. |
+| `contract` | `object \| null` | no | `expand=contract` — the contract callers meet now: what they send and what they read back, built from the flow as it is now, with its identifier. Null for an endpoint that runs no flow, and for one whose flow cannot be resolved (deleted, or not this project's): then what callers meet is not known. Absent unless asked for. |
 | `flowLabel` | `object \| null` | no | `expand=flowLabel` — the bound flow's current id, key and label. Null when the target is not flow-backed or the flow cannot be resolved. Absent unless asked for. |
-| `shadowedBy` | `object \| null` | no | `expand=shadowed` — the platform route that has grown over this endpoint's method and path shape, which means YOUR ENDPOINT IS NOT BEING SERVED: the platform route wins the match and the request never reaches you. Re-path the endpoint to fix it. Unlike `signatureDrift`, null here is a real answer and never means undetermined — nothing shadows this endpoint. Absent unless asked for. |
+| `shadowedBy` | `object \| null` | no | `expand=shadowed` — the platform route that has grown over this endpoint's method and path shape, which means YOUR ENDPOINT IS NOT BEING SERVED: the platform route wins the match and the request never reaches you. Re-path the endpoint to fix it. Unlike `contract`, null here is a real answer and never means undetermined — nothing shadows this endpoint. Absent unless asked for. |
 | `partiallyShadowedBy` | `object[]` | no | `expand=shadowed` — platform routes that take ONE value of a parameter in your path, so your endpoint never receives that value. Empty when none does. Absent unless asked for. A path whose first segment is a parameter is the usual case: it saves, and platform routes under that parameter take their values first. |
 | `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
 | `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
@@ -331,3 +332,46 @@ Each item of `diagnostics`:
 | `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
+
+### `GET /v1/api-endpoints/{id}/contract-history`
+
+Read one endpoint's contract history, newest first: an entry for each saved change that gave its callers a different contract (`write`, with the verdict, each change, who made it and who accepted a break), each saved change that took it off its flow (`unbound`, likewise), each platform release that changed it (`release`), and the entry it started with (`created`, `bound` or `first`, carrying that whole contract). A label edit adds no entry of its own, but every committed write that reaches an endpoint, a label edit included, first records what was left unrecorded: an endpoint whose history is empty gains its `first`, and one whose live contract has moved past its last entry (a release before its walk, a database restore) gains a `release` with that difference. So a label edit adds nothing only when the last entry is the live contract. A rename of a vocabulary or relation its contract names adds a `write` with verdict `safe` and `changes: []`: no caller meets the moved key, but the contract the history holds now names it. Walk older entries with `after` and newer ones with `before`. The contract callers meet now: `GET /v1/api-endpoints/{id}?expand=contract`. The changes a write is about to make, before saving it: the write with `validateOnly: true`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The endpoint's id, as returned by create or list. Not the `endpoint` key you chose — that names the endpoint, this addresses it. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `after` | `string` | no | Read the entries older than this one — pass back the `nextCursor` you were given. Refused together with `before`. |
+| `before` | `string` | no | Read the entries newer than this one — pass back the `prevCursor` you were given. Refused together with `after`. |
+| `limit` | `integer` | no | How many entries per page, up to 100. Defaults to 20. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `entries` | `object[]` | yes | The entries, newest first. |
+| `paging` | `null` | yes | Always null here: the history is read by cursor, with no page jump. |
+| `nextCursor` | `string \| null` | yes | Pass as `after` for the older entries. Null when there are none. |
+| `prevCursor` | `string \| null` | yes | Pass as `before` for the newer entries. Null on the newest page. |
+
+Each item of `entries`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `seq` | `string` | yes | The entry's place in the history; pass it as `after` to read the entries before it. |
+| `kind` | `"created" \| "bound" \| "first" \| "write" \| "unbound" \| "release"` | yes | `created`: the endpoint was created with a flow. `bound`: a write gave it a flow. `first`: the contract it had when its history began, recorded by the first write or release that reached it, a label edit included. `write`: a saved change gave callers a different contract, or re-deriving a view endpoint from its view did; with verdict `safe` and `changes: []`, a rename moved a vocabulary or relation key the contract names, which no caller meets. `unbound`: a saved change took it off its flow, so it takes and answers nothing of one. `release`: a platform release changed it. |
+| `at` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `actor` | `object \| null` | yes | Who made the change: the person or API key whose write it was on `created`, `bound`, `write` and `unbound`, or the platform when its own job made the write (the daily sweep re-deriving a view endpoint); the platform on `first` and `release`. Null when none was recorded. |
+| `structureVersion` | `string \| null` | yes | The project version the change was saved at. Null on `first` and `release`. |
+| `release` | `string \| null` | yes | The platform release that changed the contract, on `release`; null otherwise. |
+| `verdict` | `"safe" \| "breaking" \| null` | yes | `breaking` when a caller written against the contract before can fail against this one; `safe` when every such caller keeps working. Null on `created`, `bound` and `first`. |
+| `changes` | `object[] \| null` | yes | What changed for this endpoint's callers, each change exactly as the write that made it answered it in `contractChanges`; on `release`, and on a `write` from re-deriving a view endpoint, as the platform judged it. `[]` on a rename's `write`. Null where `verdict` is. |
+| `acceptedBy` | `string \| null` | yes | Who accepted a breaking change: the actor who named the endpoint in `acceptBreaks`, or the platform's ruling for a release. Null otherwise. |
+| `contractId` | `string` | yes | Names the contract: two endpoints, or one endpoint at two moments, have the same identifier exactly when every caller meets the same contract. A wording change of a label leaves it as it was. |
+| `contract` | `object` | no | The whole contract the entry started, on `created`, `bound` and `first`. For the contract callers meet now, read the endpoint with `expand=contract`. |

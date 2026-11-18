@@ -2,6 +2,27 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261118.120437 — 2026-11-18
+
+Synced from the Kipory monorepo at `58c852a9f`.
+
+Routes added: `GET /v1/api-endpoints/{id}/contract-history`.
+
+- changed: `skills/kipory-connect/references/expand.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-expose/references/api/api-endpoints.md`
+- changed: `skills/kipory-expose/references/consumer.md`
+- changed: `skills/kipory-expose/references/errors.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-model/references/api/relations.md`
+- changed: `skills/kipory-model/references/api/types.md`
+- changed: `skills/kipory-model/references/api/vocabularies-and-terms.md`
+- changed: `skills/kipory-model/references/packs/relations-and-links.md`
+- changed: `skills/kipory-model/references/packs/vocabularies.md`
+
 ## 1.20261117.190232 — 2026-11-17
 
 Synced from the Kipory monorepo at `5e2fad4e7`.

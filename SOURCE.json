@@ -1,7 +1,8 @@
 {
-  "source": "5e2fad4e7dfba42b7b51fc69c7cfb810f072b063",
+  "source": "58c852a9fcd02485452818cb7406b1366bfbe654",
   "since": "2026-08-19",
   "history": [
+    {"sha":"58c852a9fcd0","skills":"An endpoint serves its flow as it is now and keeps a history of its contract, and a platform release that breaks a built-in type for callers fails lint (436 slice 2a) (#3766)"},
     {"sha":"5e2fad4e7dfb","skills":"A design write that reaches a bound endpoint or table is judged by one contract check and a break needs an admin's acceptBreaks, and the save judges a repeat's next and a default's reads (436 slice 1, BMS package F) (#3764)"},
     {"sha":"1c98c21ee6cb"},
     {"sha":"c79eeb7ca7d4"},
@@ -1000,7 +1001,6 @@
     {"sha":"53aaed27fe38"},
     {"sha":"fadb89327eec"},
     {"sha":"7e89a7ba9636"},
-    {"sha":"063eda2b78ef"},
-    {"sha":"655eeea3ce5e"}
+    {"sha":"063eda2b78ef"}
   ]
 }

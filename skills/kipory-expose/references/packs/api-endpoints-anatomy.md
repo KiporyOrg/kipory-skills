@@ -80,12 +80,12 @@ to get them all.
 
 ⚠️ **The write body is the read shape minus everything the server derives.**
 
-A flow-backed target names its flow **by id only** and carries **no signature** — the save reads
-the flow's key and snapshots the signature off the live flow, so neither is a field you may send.
-Both come back on every read, and so does `viewEndpoint` on a view endpoint (below), which the save
-derives the same way.
+A flow-backed target names its flow **by id only** — the save reads the flow's key, so it is not a
+field you may send. It comes back on every read, and so does `viewEndpoint` on a view endpoint
+(below), which the save derives the same way. A stored target may also still carry a `signature`
+member, a copy of the flow the platform no longer reads; it is not a field you may send either.
 
-**So you cannot echo a stored target config back verbatim.** Strip the signature, `viewEndpoint`
+**So you cannot echo a stored target config back verbatim.** Strip `signature`, `viewEndpoint`
 and the flow key first. An unknown key is refused loudly, naming the key, rather than being silently dropped — which
 is the right behaviour and also means a round-trip that "should" work fails until you understand
 why.
@@ -410,7 +410,7 @@ the attempt is discarded and the flow runs again, up to `maxAttempts`. That equa
 comparison — there is no operator to choose, and a `retryWhen` carrying an `op` is refused (422) —
 so make the retry-worthy case an output your flow's `return` sets to a known value. `feedback` wires the last
 attempt's output into the next attempt's inputs; `onExhausted` names the error a caller gets when
-the last attempt still asks for a retry. Every output it names must be in the snapshot below.
+the last attempt still asks for a retry. Every output it names must be an output of the flow.
 
 **Calls that must not overlap take turns on a declared key** (`serialize`, synchronous invoke
 only). `"serialize": { "key": ["path.slotId"] }` names request values an input already reads —
@@ -431,25 +431,26 @@ must be bound — by name when `inputs` is left out, by the map when it is state
 which is what stops a caller claiming to be a different user.
 
 **A target declares no output mapping, and this is deliberate.** Its response shape comes from one
-place — the flow signature snapshot (below) — so there is nothing to configure on the way out.
+place — the flow as it is now (below) — so there is nothing to configure on the way out.
 Records are read through the `record.read` / `record.list` functions inside a flow, so a
 record-shaped response is a flow output like any other, given by its `return`.
 
-The practical consequence for an architect: **to change what an endpoint returns, change the flow
-and re-save the endpoint.** There is no response mapping to edit, and no way for the published
-contract to disagree with the flow it was snapshotted from.
+The practical consequence for an architect: **to change what an endpoint returns, change the
+flow.** There is no response mapping to edit and nothing to re-save: the endpoint serves the flow
+as it is now, so the published contract cannot disagree with it.
 
-## The snapshot, and the check that guards it
+## The live contract, and the check that guards it
 
-The bound flow's signature is **snapshotted at save**, authoritatively — there is no field for you
-to supply your own copy. Saving again re-takes it. Each captured output is a name, its type
-and whether it is required, and every one of them is a field of the response: a flow has no output
-that travels beside its result.
+An endpoint's contract is **built from its bound flow as it is now**, on every request and in the
+published schema — there is no copy to adopt and no field for you to supply your own. Each output
+is a name, its type and whether it is required, and every one of them is a field of the response:
+a flow has no output that travels beside its result. `GET /v1/api-endpoints/{id}?expand=contract`
+answers the contract callers meet now — what they send and what they read back, every named type
+written out — with its `identifier`, which changes exactly when that contract does.
 
-**Every write that reaches the snapshot re-takes it in the same transaction.** A change to the
-flow's inputs or outputs, to a type they name, or to the endpoint's own settings is compared, for
-each endpoint and flow-backed table it reaches, before and after the whole write, and each one
-whose contract differs gets a verdict:
+**Every write that changes it is judged.** A change to the flow's inputs or outputs, to a type they
+name, or to the endpoint's own settings is compared, for each endpoint and flow-backed table it
+reaches, before and after the whole write, and each one whose contract differs gets a verdict:
 
 - **Safe** — an optional input or output added, an input made optional, an output made required,
   a limit loosened. It saves for anyone who may make the edit.
@@ -471,8 +472,26 @@ table loses every processed field, an endpoint every flow input and output — s
 acceptance, and a live `/v1` route sits unbound in the middle. A re-take that cannot complete refuses the write
 (`TYPE_ADOPT_INCOMPLETE`).
 
-`expand=drift` on the endpoint read answers "did this endpoint's snapshot fall behind its flow" for
-an endpoint you did not just write.
+**A setting that names what the write removes is a validation error, never a break.** When a flow
+or type edit leaves an endpoint's own settings naming something gone — a binding whose input was
+removed, a `responseBody` or `retry` naming an output gone, a public endpoint whose flow now takes
+the calling user — the write is refused `422 VALIDATION_FAILED`, an issue per setting naming the
+endpoint, exactly as the endpoint's own save would refuse it. `acceptBreaks` does not waive it:
+change the endpoint first, or change the edit. A setting that was already wrong before the write
+is not the write's doing and does not refuse it.
+
+**Each endpoint keeps its contract history.** `GET /v1/api-endpoints/{id}/contract-history` reads
+it newest first, paged with `after` (older) and `before` (newer): the entry it started with
+(`created`, `bound` or `first`, carrying that whole contract), then one `write` entry for each saved
+change that gave its callers a different contract — its verdict, each change, who made it and who
+accepted a break — an `unbound` entry, judged the same way, for the write that takes it off its
+flow, and a `release` entry for each platform release that changed it. A view endpoint re-derived
+from its view gets a `write` entry too, accepted by nobody, made by whoever's edit moved it or by
+the daily sweep (`system:endpoint-drift-sweep`). A label edit adds no entry of
+its own; like any saved change, it first gives an endpoint with no history its `first`, and records a
+`release` where the endpoint's contract had already moved since its last entry without a save that
+judged it. Read it to answer "what changed for my callers, and when"; to see what a write is about
+to change, send it with `validateOnly: true`.
 
 ## A view endpoint: the contract comes from the view
 
@@ -482,8 +501,7 @@ an endpoint you did not just write.
 
 A `GET`, synchronous `flow.invoke` whose response body (`responseBody`, or the flow's only output)
 is the value of a `record.view` step, returned unchanged, is a **view endpoint**. Declare no params and no
-bindings for it: the save derives them from the view and snapshots them as `viewEndpoint`, beside
-the signature.
+bindings for it: the save derives them from the view and snapshots them as `viewEndpoint`.
 
 - **Query**: the view's params, typed and bounded as the view declares them, plus the three
   paging names — `after` to page on, `before` to page back, and `limit` (1 to the view's
@@ -543,8 +561,8 @@ NOT_FOUND` whether it does not exist or the caller may not read it. A cursor fro
   apply, and the plan lists each as an `update` of `surfaces.endpoints.<key>` whose `fields` name
   what callers see move (`published.query.<param>` for a param renamed, retyped, added or
   removed). A relation pairing added or removed, in a document or through its own route,
-  re-derives the view endpoints whose reads go through that relation. The daily drift sweep
-  re-adopts anything else that left a snapshot behind.
+  re-derives the view endpoints whose reads go through that relation. A daily sweep re-derives
+  any view endpoint whose view or shape moved by another way.
 
 ## The life of a request
 
@@ -572,8 +590,8 @@ NOT_FOUND` whether it does not exist or the caller may not read it. A cursor fro
    step that changes data (the contract section above lists which), or a function the platform cannot
    resolve. It is checked _after_ matching, so a
    bogus path still 404s rather than revealing itself as a 403.
-5. **Compile the contract** — from the _snapshot_, not the live flow. The same fragments back the
-   published schema, so the wire and the docs cannot disagree.
+5. **Compile the contract** — from the flow as it is now, once per change to the project, not per
+   request. The same fragments back the published schema, so the wire and the docs cannot disagree.
 6. **Validate and assemble.** Undeclared or wrong-typed fields are refused.
 7. **Run the flow.**
 8. **Project the output.** The outputs the flow's `return` gave are taken, **undeclared extras are

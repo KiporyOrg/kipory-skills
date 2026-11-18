@@ -578,10 +578,11 @@ relation and create another, which deletes its links.
   while it applies (`renames[].pauseMs`).
 - **Still frozen:** `producer` (`RELATION_PRODUCER_IMMUTABLE`). A refusal moves nothing.
 - **Endpoints and tables:** the rename's own rewrite of the marker in a type (a generated field's
-  `x-owned-by-link`) is no change: the check reads each copy's old side through the same rename,
-  so each endpoint's and flow-backed table's copy is re-taken with no contract change and listed
-  in the answer's `touched` at its new `version`. The marker is not a label: any other change to
-  it is not classified, so it breaks each copy that holds the field.
+  `x-owned-by-link`) is no change: the check reads each old side through the same rename, so no
+  contract changes. Each flow-backed table's copy is re-taken and listed in the answer's `touched`
+  at its new `version`; an endpoint serves its flow as it is now, so it meets the new marker on
+  its next request with its `version` unmoved. The marker is not a label: any other change to it
+  is not classified, so it breaks each endpoint and table whose contract holds the field.
 
 The inverse rename is the undo.
 
@@ -590,10 +591,14 @@ The inverse rename is the undo.
 A `generate` create writes a field into the holder table's type, and a key rename rewrites a
 marker in it, so both reach every dynamic endpoint and flow-backed table whose contract carries that
 type. They are judged by the one check every design write runs: each such endpoint and table is
-compared before and after. The generated field is an optional addition, so normally it is safe:
-the create saves for an EDITOR, its copy is re-taken, and the row is listed in `contractChanges`.
-A change that would break a caller — usually a copy that had already drifted from its flow — is
-refused, writing nothing: 403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN, and for an admin 409
+compared before and after, as the contract its callers meet: `inputs` and `outputs`, each keyed
+`<location>.<name>` (where a caller sends or reads the value, then its name) with `required` and
+its `schema`, every named type written out. An endpoint's is built from its flow as it is now, so
+it meets the field on its next request; `GET /v1/api-endpoints/{id}?expand=contract` reads it with its `identifier`. A table's
+copy is re-taken. The generated field is an optional addition, so normally it is safe: the create
+saves for an EDITOR and the row is listed in `contractChanges`. A change that would break a caller
+— for a table, usually a copy that had already drifted from its flow — is refused, writing
+nothing: 403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN, and for an admin 409
 `CONTRACT_BREAK_NOT_ACCEPTED` until the body's `acceptBreaks: {endpoints, tables}` names each
 breaking one by key (the 409's fix sets it). `POST /v1/relations` and `PATCH /v1/relations/{id}`
 take `acceptBreaks`; their answers carry `contractChanges` (`[]` when no contract changed), and
