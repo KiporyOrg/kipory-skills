@@ -776,7 +776,9 @@ bigger than a batch of edits.
 
 The flow's label, description and signature change with `PATCH /v1/flows/{id}` (also with its
 `version`). Changing the inputs or outputs re-proves every step, and is checked for every endpoint
-and table over the flow: the answer's `contractChanges` lists what their callers would meet. A safe
+and table over the flow: the answer's `contractChanges` lists what their callers would meet, and a
+table's row says in `consequences` what the change does to its stored records (`shape-behind`,
+`field-values-hidden`: Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)). A safe
 change (an optional input, a new output, a label) saves; a breaking one (a required input added, an
 output removed, a type changed) is refused `409 CONTRACT_BREAK_NOT_ACCEPTED` until an admin of the
 project names each broken endpoint or table in `acceptBreaks: {endpoints, tables}`, and

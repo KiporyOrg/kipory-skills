@@ -464,7 +464,10 @@ reaches, before and after the whole write, and each one whose contract differs g
 A label edit (a title, a description, examples, field order, `x-record-ref`) is no change and
 gets no verdict. Every dry run (`validateOnly`, a document plan), every successful write and both
 refusals answer the report as `contractChanges`: one row per endpoint or table, its `verdict`,
-each change (its side, path, before and after, rule and message) and `mustAccept`. Read it before
+each change (its side, path, before and after, rule and message) and `mustAccept`; a table's row
+also carries `consequences`, what the change does to its stored records
+(Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)). No run closes because a table fell out of step with its
+flow: a table's processed fields are its flow's outputs as the flow is now. Read it before
 you accept: every caller of an accepted endpoint meets the change at once. ⛔ **Do not decompose a
 change into unbind → change → rebind** to get round the check: the unbind is judged itself — a
 table loses every processed field, an endpoint every flow input and output — so it needs the same

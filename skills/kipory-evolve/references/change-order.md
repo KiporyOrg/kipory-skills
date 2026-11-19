@@ -150,7 +150,8 @@ admin. Every caller of an accepted endpoint meets the change at once.
 ### Editing the processing flow of a table that holds records
 
 A step added, removed or re-configured in a table's processing flow saves like any steps write —
-unless it changes the flow's `inputs` or `outputs`, which is the contract class above. What the
+unless it changes the flow's `inputs` or `outputs`, which is the contract class above and can
+hide stored values (`refusals-and-cascades.md`). What the
 edit does not do is touch a stored record:
 
 - **Records processed from now on run the new steps.** That includes a record created after the

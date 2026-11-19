@@ -33,7 +33,7 @@ types where one refers to the other are two writes: the referenced type first.
   several places — is a **type**, referenced from flows and steps.
 - **A kind of record people create and the system processes** is a **table**, referencing a
   type for its data and optionally a flow that processes it.
-- **Derived fields are not authored.** They are _captured_ from the bound flow's outputs. To
+- **Derived fields are not authored.** They are the bound flow's outputs as they are now. To
   change a table's derived fields you edit the flow, never the table.
 
 ## The sequence
@@ -70,7 +70,7 @@ list — every event type and table whose version moved with it — as the table
 flow PATCHes do.
 
 Both are scoped by `project`. Reads take useful expansions: the synthesised derived output fields,
-a **drift** verdict, and the type-reference graph.
+the table's records by the shape they hold (`expand=shape`, on `GET /v1/tables/{id}` only), and the type-reference graph.
 
 ## The model to hold
 
@@ -79,14 +79,17 @@ a **drift** verdict, and the type-reference graph.
    projection** of that type — there is no inline definition to edit. Every table is the
    project's own: any table may be renamed or deleted, by the same rules.
 2. **Flow-backedness is just a bound flow.** There is no separate flag and no named output type.
-   Binding captures a snapshot of the flow's signature, and that snapshot's outputs become
-   the table's flat derived fields.
-3. **Drift is a first-class read**, and it has **five** answers, not two: `ok`, `drift`,
-   `flow-missing` (bound to a flow that no longer exists — nothing to re-capture from),
-   `uncaptured` (bound, but no snapshot was ever taken), and `not-flow-backed`. ⚠️ Never read
-   `uncaptured` or `flow-missing` as `ok` — neither means "matches"; both mean there is nothing to
-   compare against, and `flow-missing` is the actionable one. Branch on those literals: `ok` and
-   `drift` are the wire values, not "clean" and "drifted".
+   The flow's outputs, as they are now, are the table's flat derived (processed) fields. Edit
+   the flow's outputs, or a type they use, and the table's fields move in that write. The table
+   keeps no copy of the flow to save again, and no record fails because the flow changed.
+3. **A record says which shape it holds.** `GET /v1/tables/{id}?expand=shape` answers
+   `shape: { identifier, records: { current, older, unstamped } }`. The identifier names the
+   processed fields as they are now: each field, its type and whether it is required. A label
+   edit or a change to the flow's steps leaves it. The three counts are exact and sum to the
+   table's processed records: stored under this shape, under an older one, or with no stamp
+   (processed before records carried one, put back by an undo to such values, or patched by a
+   flow's `record.update` while not on the current shape). Each record answers its own `shapeStamp`. A record counted under `older` and
+   one counted under `unstamped` both stay readable. ⚠️ A table read takes no `expand=drift`: it is a 422.
 4. **A table declares no source families.** Files attach to any record, a flow commits terms to
    any record, and `record.read` / `record.list` honour their vocabularies and files include-flags
    for every table. Ask the flow binding what a table derives; ask the record what it holds.
@@ -525,8 +528,7 @@ Things to know before you declare one:
   that adds a filter on a text field with no length limit warns `TEXT_FILTER_LENGTH_UNBOUNDED`.
   Give a short field a `maxLength` of 500 or fewer (500 characters fit in 2,000 bytes in any
   script), a list of values, or a date or uuid format — for a field the table's flow fills, on the
-  type its output field `ref`s, then re-bind the table (`PATCH /v1/tables/{id}` with the same
-  `flowId`) so its captured signature reads the new length. Long text you want to find by its words
+  type its output field `ref`s; the table reads the new length in that write. Long text you want to find by its words
   belongs in a `search` use, not a filter.
 - **Not every field can be filtered.** Objects, nested lists, untyped fields and fields that can
   hold more than one kind of value are refused when you save, with the reason. Project the value
@@ -1105,6 +1107,49 @@ A create or upsert carrying the duplicate's key value lands on the survivor, as 
 held that key: a create meets the key as taken by the survivor (`RECORD_NATURAL_KEY_TAKEN` names
 it, `onKeyTaken` acts on it), and an upsert updates the survivor and keeps the survivor's own key.
 
+## A change to a table's processed fields
+
+A flow-backed table's processed fields are its flow's outputs, so the writes that change them are
+an edit to the flow's outputs, an edit to a type those outputs use, and whatever carries one of
+those: a project document, a checkpoint restore. Each is judged like any write a caller meets, and
+the table's row in `contractChanges` says what it does.
+
+- **A safe change saves and is reported**: a new output, an optional field, a label.
+- **A break needs an admin's `acceptBreaks` naming the table**: a field removed or retyped. Until
+  then it is 409 `CONTRACT_BREAK_NOT_ACCEPTED`, and 403 `CONTRACT_BREAK_FORBIDDEN` below admin.
+- **The table's row carries `consequences`**, the same in the plan, the answer and the refusal:
+  `restamp`, `reindex`, `reembed`, `stream-migration`, `shape-behind` (the records not on the new
+  shape) and `field-values-hidden` (the records holding a value a read no longer answers: every
+  value of a removed field, and for a retyped field the values of a kind the new type does not
+  allow). The write carries out each one it states.
+- **A retype a filter can still take saves**, with a `restamp`: the filter is resolved again and
+  the stored records are re-stamped.
+- ⛔ **A field a declaration still names cannot go.** Removing a processed field, or giving it a
+  type the declaration cannot take, while a `filter`, a `search` field, a relation or a `stream`
+  use names it is a validation error with that declaration's own code (`TABLE_QUERYABLE_INVALID`,
+  `TABLE_SEARCHABLE_INVALID`, `TABLE_RELATIONS_INVALID`, `TABLE_USES_INVALID`), whatever
+  `acceptBreaks` holds. A `search` field retyped to something that is not text answers
+  `TABLE_USES_INVALID`, as a retyped `stream` field does; a removed one `TABLE_SEARCHABLE_INVALID`. Remove or change the declaration first, or in the same project document.
+  A declaration that was already broken before the write does not refuse it.
+
+What the stored records do after such a write:
+
+- **A removed field's stored values are not answered**, from that write on. They stay stored until
+  the record is next processed, and are answered again if the output is restored before then.
+- **A retyped field's old values** of a kind the field no longer declares are hidden the same way.
+- **A record keeps the shape it was stored under until it is processed again.** `expand=shape`
+  counts them: the `older` count and the `unstamped` count. `POST /v1/records/{id}/reprocess` brings one record to the
+  current shape, and is charged like a first processing.
+
+What a run checks before it stores anything:
+
+- **Each processed value is checked against its field's declared type.** A value that does not fit
+  fails that record, nothing of that run is stored, and the error names the field
+  (`PROCESSED_VALUE_MISMATCH`). In practice the flow's `return` step usually fails first, with
+  `OUTPUT_TYPE_MISMATCH`.
+- **A step that patches processed values is checked the same way.** A `record.update` that sets a
+  processed field to a value its type does not allow fails, naming the field.
+
 ## Values Kipory keeps: `computed` and `reprocessOn`
 
 A table may declare `computed` fields: a `rollup` over a relation (`count`, `countDistinct`, `sum`,
@@ -1242,8 +1287,10 @@ is yours to change in the same save.
 vocabulary's (which also carries `assignedTerms`); anything else in the query is refused.
 
 - **A declaration the contract has moved out from under.** Each declaration is validated when it is
-  saved; editing the type or re-capturing the flow afterwards can leave one naming a field the
-  table no longer has, and nothing refuses until the next save that restates it.
+  saved; editing the type afterwards can leave one naming a field the
+  table no longer has, and nothing refuses until the next save that restates it. (A flow or type
+  change that takes a processed field away from a declaration that names it is refused when it
+  is made: "A change to a table's processed fields", above.)
   `GET /v1/tables/{id}?expand=diagnostics` runs the save's own validators over what is stored
   now and lists every issue with its code, path and the contract `field` it names — empty when all
   of them still hold. A table is checked the way a save checks it: its `uses` statement is
@@ -1478,8 +1525,8 @@ flow being replaced no longer is.
 
 Things to hold about it:
 
-- **A proposed flow is resolved against its LIVE signature**, which is what a re-bind actually
-  captures — not against the snapshot the descriptor already stores. Ask before you bind and the
+- **A proposed flow is resolved against its LIVE signature**: the outputs the
+  flow has now, which are what the table's processed fields become. Ask before you bind and the
   answer is the one the save will use.
 - ⚠️ **They are not independent, and the type one is the reason.** Re-pointing the type re-binds
   the flow against it, so a `dataTypeId`-only proposal is resolved against the flow's **live**
@@ -1502,7 +1549,7 @@ rather than sharing it; the effect on you is the same, and it is why nothing par
 route is how you find that out before you send it.
 
 ⛔ **Do not re-derive the contract yourself.** It is a pure function of the type's schema and
-the flow's captured signature, and re-implementing it in an editor is how a declaration gets
+the flow's outputs as they are now, and re-implementing it in an editor is how a declaration gets
 approved against one vocabulary and indexed against another. Ask.
 
 ### And ask what the SAVE would do: `validateOnly` on the write itself
@@ -1871,11 +1918,12 @@ lists the runs.
   step whose compiled schema depends on it — directly or through a nested chain — and that
   version is folded into the ingest cache key. So a type edit re-runs dependent cached ingests
   with no manual cache bust. Useful, and expensive if you did not expect it.
-- **A type edit is a contract change for every endpoint and table it reaches.** Each captured
-  signature is rewritten in the same write; one whose callers meet a breaking change (a field
-  removed or retyped, an input field made required) is refused until an admin names it in
-  `acceptBreaks`, and a safe one (an optional field, a label) saves unasked. Read `contractChanges`
-  in the dry run first. The drift read owns the live comparison — which is why `uncaptured` matters.
+- **A type edit is a contract change for every endpoint and table it reaches.** An endpoint
+  serves its flow as it is now, and a flow-backed table's processed fields follow the type in the
+  same write; one whose callers meet a breaking change (a field removed or retyped, an input field
+  made required) is refused until an admin names it in `acceptBreaks`, and a safe one (an optional
+  field, a label) saves unasked. Read `contractChanges` in the dry run first: a table's row also
+  says what the change does to its stored records ("A change to a table's processed fields").
 - **Vector guards fail open.** An unreachable vector store does not block a save, so a save can
   succeed while the search half of your change quietly did not land.
 - **A table is named by key in function config**, not by id — which is why a table rename

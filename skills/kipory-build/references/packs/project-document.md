@@ -513,7 +513,12 @@ The answer holds the `version` the plan was computed against, its `planId` and `
   counts the stored rows a rename rewrites in place, per store; ids, embeddings and stamps are kept,
   and the plan's `renames[]` says what else moves and what it breaks. A `filter`
   use added, removed or moved reports `restamp` — every record's filter columns are rewritten — and
-  on a searchable table it also queues a `reindex` that embeds nothing.
+  on a searchable table it also queues a `reindex` that embeds nothing. ⚠️ A change to a flow-backed
+  table's processed fields is not in this list: its `shape-behind` (the records not on the new
+  shape, each brought to it by `POST /v1/records/{id}/reprocess`) and `field-values-hidden` (the
+  records holding a value a read no longer answers: every value of a removed field, and for a
+  retyped field the values of a kind the new type does not allow) are on that
+  table's row in `contractChanges`, in its own `consequences`.
 - `contractChanges` — every endpoint and table whose callers would meet a change, with each change
   (its side, path, before and after, verdict, rule and message), the row's `verdict` and
   `mustAccept`; beside it `acceptBreaksNotNeeded` and `permissions.mayAcceptBreaks`. A row marked

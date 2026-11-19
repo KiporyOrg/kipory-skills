@@ -130,14 +130,14 @@ the class decides the sequence, and every sequence is written out once, in
 | **Adding**                                                    | the dependency exists before the thing that names it: type → flow → table → endpoint → schedule                                                      |
 | **Removing**                                                  | the reverse: delete the leaf, then what it hung from. A flow delete is `409 FLOW_HAS_DEPENDENTS` while anything names it, a disabled schedule too    |
 | **Changing a type under live records**                        | four moves: widen (add the field as optional), backfill, patch the fixed inputs of schedules and triggers, then narrow. Narrowing first is an outage |
-| **Editing the processing flow of a table that holds records** | the edit saves and stored records keep what the old steps wrote. Reprocess them (`kipory-data`); a reprocess is charged like a first processing      |
+| **Editing the processing flow of a table that holds records** | a steps edit saves and records keep what was stored; a changed output is judged and can hide stored values (`references/refusals-and-cascades.md`)   |
 | **Renaming a step's key**                                     | its key is its value's name: one steps write that renames it and every reader, rehearsed with `validateOnly` first                                   |
 | **Changing a flow's own inputs or outputs**                   | a change to the product's API: only an admin may break it, naming each endpoint in `acceptBreaks`; an editor key gets `403`                          |
 | **Renaming a flow's input or output**                         | `renameInputs` / `renameOutputs` on the flow's PATCH: one write moves every step, caller, endpoint, schedule, trigger and eval case; ADMIN           |
 
 ## What refuses, and what cascades instead
 
-Which destructive changes are refused, which cascade instead, and what each carries: `references/refusals-and-cascades.md`.
+Which destructive changes are refused, which cascade instead, what each carries, and what a changed output does to stored records: `references/refusals-and-cascades.md`.
 
 ## Rolling back
 

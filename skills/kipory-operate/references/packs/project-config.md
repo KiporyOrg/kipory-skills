@@ -101,7 +101,9 @@ Three corners worth holding:
   contracts.** Creating one, re-binding its type or deleting it changes what the callers of every
   endpoint and flow-backed table bound to a flow typed by `ProjectInfo` read. The write is judged
   by the one check every design write runs: the answer lists each change in `contractChanges`
-  (`[]` when none moved), and a change that breaks callers — a delete removes the member they
+  (`[]` when none moved; a table's row also carries `consequences`, what the change does to its
+  stored records, `shape-behind` and `field-values-hidden` among them:
+  Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)), and a change that breaks callers — a delete removes the member they
   read — is refused, writing nothing: 403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN, and for an
   admin 409 `CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks: {endpoints, tables}` names each
   broken one by key (in the POST body, or in the DELETE's optional body). Both dry runs answer the

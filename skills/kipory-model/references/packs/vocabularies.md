@@ -599,12 +599,11 @@ vocabulary and create another, which removes its terms and strips them off every
   `$vocabularyKey` by hand is not classified, so it breaks each endpoint and table whose contract
   holds the field. An endpoint serves its flow as it is now: it meets the new key on its next
   request with its `version` unmoved and is not in `touched`, and its contract history gains one
-  `write` with verdict `safe` and `changes: []`, its contract under the new key. Each flow-backed
-  table's copy of a type it rewrites is re-taken in the same write and listed in the answer's
-  `touched` at its new `version` (`[]` when the edit moves no table). Every PATCH answer, and its
-  dry run, carries `contractChanges` — normally `[]`. A table's copy that had already drifted from
-  its flow can still make the re-take a break: then the PATCH is refused like any write that
-  breaks a caller (409 `CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks.tables` names each one,
+  `write` with verdict `safe` and `changes: []`, its contract under the new key. A flow-backed
+  table reads its flow as it is now too, so it meets the new key in the same write with its
+  `version` unmoved. Every PATCH answer, and its
+  dry run, carries `contractChanges` — normally `[]`. A change that does break a caller is refused
+  like any write that breaks one (409 `CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks.tables` names each one,
   403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN), and the dry run says so beside
   `permissions.mayAcceptBreaks`. A name in `acceptBreaks` the project does not have is a 422; one
   the edit does not break comes back in `acceptBreaksNotNeeded`.

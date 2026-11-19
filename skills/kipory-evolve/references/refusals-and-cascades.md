@@ -91,4 +91,42 @@ What starts each one:
 - **Editing a processing flow re-runs nothing.** Stored records keep what the old steps wrote
   until each is reprocessed.
 
+## A change to a table's processed fields
+
+A flow-backed table's processed fields are its flow's outputs as they are now. Nobody saves the
+table again after a flow change, and no record fails because the flow changed. A write that changes
+those fields (the flow's `outputs`, a type they use, a document, a checkpoint restore) is judged:
+
+- **A safe change saves and is reported** in `contractChanges`: a new output, an optional field.
+- **A break** (an output removed or retyped) needs an admin's `acceptBreaks` naming the table.
+- **The table's row carries `consequences`**, in the plan, the answer and the refusal alike:
+  `restamp`, `reindex`, `reembed`, `stream-migration`, `shape-behind` (the records not on the new
+  shape) and `field-values-hidden` (the records holding a value a read no longer answers: every value of a removed
+  field, and for a retyped field the values of a kind the new type does not allow).
+- **A retype a filter can still take saves**, with a `restamp`.
+- **A field a declaration still names cannot go.** Removing it, or retyping it out of that
+  declaration's reach, is a validation error with the declaration's own code
+  (`TABLE_QUERYABLE_INVALID` for a list filter, `TABLE_SEARCHABLE_INVALID` for a removed search
+  field, `TABLE_RELATIONS_INVALID` for a relation, `TABLE_USES_INVALID` for a stream use and for a
+  search field retyped to something that is not text), whatever
+  `acceptBreaks` holds. Remove or change the declaration first, or in the same document.
+
+After it saves:
+
+- **A removed field's stored values are not answered**, at once. They stay stored until the record
+  is next processed, and come back if the output is restored before then. A retyped field's old
+  values of a kind it no longer declares are hidden the same way.
+- **Each record keeps the shape it was stored under.** A record carries `shapeStamp`;
+  `GET /v1/tables/{id}?expand=shape` answers
+  `shape: {identifier, records: {current, older, unstamped}}`. `unstamped` is a record with
+  processed values and no stamp: processed before stamps existed, put back by an undo or a rewind
+  to such values, or patched by a flow's `record.update` while not on the current shape (the patch
+  clears the stamp; an undo restores the stamp of the values it restores).
+- **Only a reprocess brings a record to the current shape**: `POST /v1/records/{id}/reprocess`,
+  one record a call, charged like a first processing (`kipory-data`).
+- **A run checks what it stores.** A processed value that does not fit its field's declared type
+  fails that record, stores nothing of that run, and the error names the field
+  (`PROCESSED_VALUE_MISMATCH`; the flow's `return` usually fails first, `OUTPUT_TYPE_MISMATCH`).
+  A `record.update` that patches a processed field is checked the same way.
+
 Keep the response. It is the only record of what a change reached.

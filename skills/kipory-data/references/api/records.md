@@ -184,6 +184,7 @@ Each item of `records`:
 | `updatedAt` | `string` | yes | When it last changed. |
 | `version` | `integer` | yes | Its optimistic-concurrency token, for a later write. |
 | `computing` | `boolean` | yes | True while this record's computed values are not yet current: a related record changed, or the table's computed fields are still being computed for stored records. A value carried over from a field kept by hand has no `computedAt` until computed. Always false for a table with no computed fields. |
+| `shapeStamp` | `string \| null` | yes | Names the processed shape this record's processed values were last stored under by its table's flow. Equal to the table's `shape.identifier` (`GET /v1/tables/{id}?expand=shape`) when the record holds the table's current processed fields. Null for a record never processed, for one processed before records were stamped, for one an undo or a rewind put back to values from then, and for one a flow's `record.update` gave processed values while it was not on the table's current shape. A record not on the current shape answers only the fields the table has now; bring it to the current shape with `POST /v1/records/{id}/reprocess`. |
 
 ### `POST /v1/records`
 
@@ -734,6 +735,7 @@ Each item of `records`:
 | `updatedAt` | `string` | yes | When it last changed. |
 | `version` | `integer` | yes | Its optimistic-concurrency token, for a later write. |
 | `computing` | `boolean` | yes | True while this record's computed values are not yet current: a related record changed, or the table's computed fields are still being computed for stored records. A value carried over from a field kept by hand has no `computedAt` until computed. Always false for a table with no computed fields. |
+| `shapeStamp` | `string \| null` | yes | Names the processed shape this record's processed values were last stored under by its table's flow. Equal to the table's `shape.identifier` (`GET /v1/tables/{id}?expand=shape`) when the record holds the table's current processed fields. Null for a record never processed, for one processed before records were stamped, for one an undo or a rewind put back to values from then, and for one a flow's `record.update` gave processed values while it was not on the table's current shape. A record not on the current shape answers only the fields the table has now; bring it to the current shape with `POST /v1/records/{id}/reprocess`. |
 | `linked` | `object` | no | The records this record is linked to, one key per linked read of the query's `linked`: a record (absent when there is none) for a linked read that brings one, a list (empty when none) for a linked read that brings several. Each is a record of its own table in this same shape, its `values` holding the fields the linked read names. Present only when the query names `linked`. |
 | `linkedMore` | `object` | no | The `linked` lists cut at their `limit` under `onMore: "stop"`, by linked read name. Absent when none was cut. |
 

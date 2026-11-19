@@ -238,7 +238,7 @@ not fire, and — for a fire — the invocation with its live `status` and, once
 `failure`: the run's closing record, with its `class` (`logic`, `vendor`, `platform-fault`,
 `platform-account`, …), its `owner` (who has to act), whether it is `retryable`, the `attempt` that
 closed it, the step that failed (its key in `stepKey`, `phase`, and a `code`) when one did — otherwise the
-`cause` that closed it (a stop from outside also names the steps that were running, `runningSteps`) and, for changes refused
+`cause` that closed it (a stop from outside also names the steps that were running, `runningSteps`; no cause names a table out of step with its flow, since a table's processed fields are its flow's outputs as the flow is now) and, for changes refused
 when they were saved, the `refusedWrite` (a save that ran past its time budget reads `timed-out` with its
 `budgetMs`: the platform's fault, and the run is not started again) — and a `reason` when it is one a caller may read (the rule a function named, such as
 `RECORD_READ_HAS_MORE`, or a mail refusal,

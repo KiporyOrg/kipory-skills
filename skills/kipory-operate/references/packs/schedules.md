@@ -202,7 +202,7 @@ run's invocation. Reach for them in this order:
     steps that were running in `runningSteps`.
   - `cause` — what closed the run when no step failed, such as: a stop (`shutdown`, `watchdog`,
     `worker-crash`, `deadline`, `cancelled`), a fault of the platform (`engine-error`), a flow that
-    cannot run as stored (`flow-unresolved`, `definition-drift`), or its changes refused when they
+    cannot run as stored (`flow-unresolved`), or its changes refused when they
     were saved: `precondition-conflict` (a record it read was written by another run meanwhile —
     a scheduled run is started again), `natural-key-collision` (a record it wrote carries a key
     another record already holds), `unique-violation`, `write-refused` (a write the platform

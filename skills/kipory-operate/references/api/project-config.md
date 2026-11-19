@@ -92,6 +92,7 @@ Each item of `contractChanges`:
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
 | `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+| `consequences` | `object[]` | no | On a table's row: what the change does to the table's stored records, each with a count. The write carries each one out. A count never refuses the write; one consequence can: a `stream-migration` on a table whose stream is already being migrated is refused with 409 `STREAM_MIGRATING`. Absent on an endpoint's row and when nothing stored is affected. |
 
 Shape 2, with `ok`, `diagnostics`, `complete`, `permissions`:
 
@@ -123,6 +124,7 @@ Each item of `contractChanges`:
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
 | `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+| `consequences` | `object[]` | no | On a table's row: what the change does to the table's stored records, each with a count. The write carries each one out. A count never refuses the write; one consequence can: a `stream-migration` on a table whose stream is already being migrated is refused with 409 `STREAM_MIGRATING`. Absent on an endpoint's row and when nothing stored is affected. |
 
 ### `DELETE /v1/project-config/{id}`
 
@@ -181,6 +183,7 @@ Each item of `contractChanges`:
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
 | `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+| `consequences` | `object[]` | no | On a table's row: what the change does to the table's stored records, each with a count. The write carries each one out. A count never refuses the write; one consequence can: a `stream-migration` on a table whose stream is already being migrated is refused with 409 `STREAM_MIGRATING`. Absent on an endpoint's row and when nothing stored is affected. |
 
 Shape 2, with `ok`, `diagnostics`, `complete`, `permissions`:
 
@@ -212,3 +215,4 @@ Each item of `contractChanges`:
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
 | `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+| `consequences` | `object[]` | no | On a table's row: what the change does to the table's stored records, each with a count. The write carries each one out. A count never refuses the write; one consequence can: a `stream-migration` on a table whose stream is already being migrated is refused with 409 `STREAM_MIGRATING`. Absent on an endpoint's row and when nothing stored is affected. |
