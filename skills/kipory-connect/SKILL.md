@@ -107,8 +107,9 @@ views:
 flows:
   create-note:
     label: Create a note
+    caller: user
     inputs:
-      title: { typeName: Title }          # its limits live on its type
+      title: { typeName: Title }
       dueOn: { typeName: string, optional: true }
     outputs:
       noteId: { typeName: string }
@@ -125,6 +126,7 @@ flows:
         return: { noteId: save.recordId }
   get-note:
     label: Read one note
+    caller: user
     inputs: { noteId: { typeName: string } }
     outputs: { note: { typeName: Note } }
     steps:
@@ -135,6 +137,7 @@ flows:
         return: { note: "found[0]" }
   list-notes:
     label: List my notes
+    caller: user
     inputs:
       notesAfter: { typeName: string, optional: true }
       notesBefore: { typeName: string, optional: true }
@@ -167,6 +170,7 @@ flows:
                 with: { ids: { expr: "$list(ended.records.id)" } }
   close-overdue:
     label: Close my overdue notes, each with a summary
+    caller: user
     inputs: { before: { typeName: string } }
     outputs: { closed: { typeName: number } }
     steps:
@@ -249,7 +253,7 @@ surfaces:
 - **A run is all or nothing**: its writes are saved together when it ends, and a failed step or a `fail` keeps none of them; mail and requests leave only after the save. So a `record.list` or `record.query` later in the run does not see the rows it created; a `record.read` by id does. A failure inside `try`, a `fail` too, drops what `try` staged and runs `catch`; a failed `each` pass fails the block unless `maxFailedBranches` or `maxFailedShare` lets it go, and gives no `out`.
 - **Endpoint inputs.** Leave `inputs` out and each flow input binds by its name: one named like a `{part}` of the path reads it; any other reads the query on GET and DELETE and the body on POST and PATCH; an input the flow gains later binds too. An object or list never comes from the query. State `inputs` only when a name differs or the value comes from elsewhere, each `{ from: … }`: `path.<p>`, `query.<p>` (declared in `params`), `header.<name>` (lower case, an optional text input), `rawBody` (the exact text, for `request.verify-signature`), `patch`, `body`. Stated, an input not listed is not bound. A value takes its input's type. A `typeName` is `string`, `number`, `boolean`, `object`, `file`, `probability`, a library type (`RecordRead`) or a type of yours, a list is `isList: true`; there is no `integer`.
 - **An input's limits go on its type.** `minLength`, `maxLength`, `minimum`, `maximum`, `pattern` and `enum` on the type an input names (`Title`; never beside `typeName`) are checked at the endpoint before any step runs: `422 VALIDATION_FAILED`, `details.reason` `FLOW_INPUT_INVALID`. Write no step that only checks an input. A start by another flow, a schedule or a trigger checks only a non-empty rule (`minLength: 1`).
-- **An argument** is exactly one of: a path (`title`, `rows.records`), `{ literal: … }`, `{ expr: "<JSONata>" }`, `{ path: x, optional: true }`, `{ path: x, default: … }`. Never mix their keys: a default for an expression goes inside it, `{ expr: "$default(limit, 20)" }`. A setting that names a thing (`tableKey`, `view`, `flow`) is a plain value. A test is one of `has`, `filled`, `eq`, `in`, `gt`, `gte`, `lt`, `lte`, `before`, `after`, `startsWith`, `contains`, `matches`, `expr`, combined with `and`, `or`, `not`. An expression reads `runInfo.now`, `runInfo.nonce`, and `userInfo.userId` (the caller; nothing on a schedule); `$now()` and `$random()` are refused.
+- **An argument** is exactly one of: a path (`title`, `rows.records`), `{ literal: … }`, `{ expr: "<JSONata>" }`, `{ path: x, optional: true }`, `{ path: x, default: … }`. Never mix their keys: a default for an expression goes inside it, `{ expr: "$default(limit, 20)" }`. A setting that names a thing (`tableKey`, `view`, `flow`) is a plain value. A test is one of `has`, `filled`, `eq`, `in`, `gt`, `gte`, `lt`, `lte`, `before`, `after`, `startsWith`, `contains`, `matches`, `expr`, combined with `and`, `or`, `not`. An expression reads `runInfo.now`, `runInfo.nonce`, and `userInfo.userId` (the caller); `$now()` and `$random()` are refused.
 - **An endpoint answers its flow's outputs by name** (`{ "note": {…} }`); `contractConfig.responseBody: note` answers that one output bare, `redirect: { location: url }` answers a redirect to an output.
 - **A list over HTTP is a view**: one `record.view` step; the flow declares `<step>After`, `<step>Before`, `<step>Limit`; the endpoint answers `{ items, nextCursor }` and pages by `?after=`. A view orders by `created`, or by a field with a `filter` use (a text one needs `maxLength` ≤ 500). Any other list a caller pages is `record.list` (`limit: { path: limit, default: 50 }`; `order: asc` is oldest first by `createdAt`). Use `record.query` for a text range, meaning, or a text or number order; there `order: { by: created, direction: asc }` is oldest first (newest is the default), and `createdAt` is never a `by: field`.
 - **People's data** lives on `ownerScope: user` tables: reads see only the caller's rows, so write no owner field or filter. Sharing is `sharing: true` on the table plus `record.grant`. `ownerScope: project` rows are shared by everyone, and identical data there is one record: two equal transfers at once share one id. Give each row that may repeat a field that tells it apart, `ref: { expr: "runInfo.nonce" }`. A once-only row uses `key`, next.
@@ -262,8 +266,8 @@ surfaces:
 ## Rules that keep the first plan clean
 
 1. **`kipory: 11`** at the top; send the document alone, never an export's `{ version, document }` envelope. A document is partial: an element you leave out is untouched, but each element you state is whole, and a flow's `steps` are its whole list. Removal is `delete: true` on the element.
-2. **Every required read is proved present.** An optional input or `userInfo` (nothing on a schedule): fail first with your own code (`if` on `{ not: { has: x } }`), run the step under `{ filled: x }`, or read it `{ path: x, optional: true }` (the setting is left out). An item of a list or query result (`rows.records[0]`) needs an `if` on `{ not: { filled: rows.records } }` that fails first (`STEP_INPUT_MAY_BE_ABSENT`); a `record.read` with `failIfEmpty: true` proves its first row (not under `onOversize: cut`), as `get-note` reads `found[0]`. A default only for a real fallback (`[]`, 0, a label), never an id, owner, amount or status; `x ?? …` and `$exists(x) ? x : …` keep a `null` and are refused.
-3. **A required output is proved like a required read** (`FLOW_OUTPUT_MAY_BE_NOTHING`): before `return { id: userInfo.userId }`, an `if` on `{ not: { has: userInfo.userId } }` that fails. A create's `recordId` is always there: `return { noteId: save.recordId }` needs no guard.
+2. **Every required read is proved present.** A signed-in-only flow states `caller: user`: a run with no user is refused, so `userInfo.userId` is always there (a schedule on it is refused). An optional input, or `userInfo` in a flow without it: fail first with your own code (`if` on `{ not: { has: x } }`), run the step under `{ filled: x }`, or read it `{ path: x, optional: true }` (the setting is left out). An item of a list or query result (`rows.records[0]`) needs an `if` on `{ not: { filled: rows.records } }` that fails first (`STEP_INPUT_MAY_BE_ABSENT`); a `record.read` with `failIfEmpty: true` proves its first row (not under `onOversize: cut`), as `get-note` reads `found[0]`. A default only for a real fallback (`[]`, 0, a label), never an id, owner, amount or status; `x ?? …` and `$exists(x) ? x : …` keep a `null` and are refused.
+3. **A required output is proved like a required read** (`FLOW_OUTPUT_MAY_BE_NOTHING`). A create's `recordId` is always there: `return { noteId: save.recordId }` needs no guard.
 4. **`fail.status` is 400–499**, but not 405, 408 or 426 (left out, 422); there is no 5xx of your own (`FAIL_STATUS_INVALID`). `fail.code` is capitals, digits and underscores, starting with a capital (`BOX_PACKED`); the caller gets it as `details.reason`.
 5. **Text is `{ literal: … }`**: a bare string is always a path, and an unknown one is `STEP_READS_UNKNOWN`.
 6. **A function's settings are its own** (its catalog lines below): one it does not take is `STEP_SETTING_UNKNOWN`; `record.delete` takes `ids`, not `tableKey`.

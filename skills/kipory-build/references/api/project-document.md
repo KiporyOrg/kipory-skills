@@ -113,7 +113,7 @@ Apply a kept plan: `{planId, note}`, the plan from `POST …/document/plan` with
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `planId` | `string \| null` | no | The id to apply this plan by (`POST …/document` with `{planId, note}`), kept for 24 hours. Null when the plan was asked not to be kept (`keep=false`), when you may not apply on this project, or when the document did not parse. |
-| `basedOn` | `string` | yes | The read to plan your next change from, as `<nodeId>@<version>`: `appliedVersion` when nobody else changed the project in between, else your earlier read. Send it as the next plan's `basedOn`. |
+| `basedOn` | `string` | yes | The read to plan your next change from, as `<nodeId>@<version>`: `appliedVersion` when nobody else changed the project in between, or only changed rows this document states and changed them back, else your earlier read. Send it as the next plan's `basedOn`. |
 | `ok` | `boolean` | yes | True when `diagnostics` holds no `error` this document introduces — an error with `introduced: false` was already in the project, is reported, and does not gate. An apply of this document would commit exactly when this is true. |
 | `version` | `string` | yes | The project's structure version the plan was computed against. |
 | `changes` | `object[]` | yes | The rows that change, in the document's own order, then any row a delete takes along. Rows the document states that already say this are only counted, under `counts.unchanged`. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |

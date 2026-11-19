@@ -24,9 +24,14 @@ list, and every error it finds arrives with a ready fix you can post as it is.
 - **`try`/`catch` is the only way to survive a failure.** Without it, a failed step fails the run.
 - **Preview writes unless you say otherwise.** `apply` defaults to `true`; `apply: false` is the
   dry run. → _Preview a whole flow_
-- **A schedule has no user.** `userInfo` is absent on a scheduled run. A required read of it that
-  you write is a save error until you guard it with `if` and `has`; a per-user table read that
-  leaves its user to the run is not seen at save and fails at run (403 at an endpoint).
+- **A flow for signed-in people says so: `caller: user`.** A run with no signed-in user is then
+  refused before any step, however it started (403 to a key's call of its endpoint), and its
+  steps read `userInfo.userId` with no guard. A schedule, a trigger or a public endpoint on such
+  a flow is refused at plan.
+- **A schedule has no user.** `userInfo` is absent on a scheduled run. In a flow that does not
+  state `caller: user`, a required read of it that you write is a save error until you guard it
+  with `if` and `has`; a per-user table read that leaves its user to the run is not seen at save
+  and fails at run (403 at an endpoint).
 
 ## What a flow is
 

@@ -1,7 +1,8 @@
 {
-  "source": "fb2fc8b5f9256164cc395a0771bfec3407e28bb7",
+  "source": "b99a892c5319688fdc66e81d79daa92788687b68",
   "since": "2026-08-19",
   "history": [
+    {"sha":"b99a892c5319","skills":"A flow can say it runs only for a signed-in user, so its reads of the user need no guard, and a type with limits is taken where its plain scalar is (#3759 benchmark) (#3775)"},
     {"sha":"fb2fc8b5f925","skills":"A refusal for a value that may be missing says to fail first or guard the step, and keeps a default for a real fallback, never an id, owner, amount or status (#3778)"},
     {"sha":"7278d0bd188f"},
     {"sha":"a716d1508783","skills":"An element changed and changed back after a read is not moved, so a paused-and-resumed schedule refuses no plan (#3759 benchmark) (#3771)"},
@@ -1000,7 +1001,6 @@
     {"sha":"4cbdb7bac0da"},
     {"sha":"285e23770511"},
     {"sha":"747b63dd5ecd"},
-    {"sha":"ef60f05aa72e"},
-    {"sha":"fb05c3080cc7"}
+    {"sha":"ef60f05aa72e"}
   ]
 }

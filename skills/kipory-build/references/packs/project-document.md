@@ -404,6 +404,13 @@ callers it breaks, and `cost` — a rename calls no model and is not charged, an
 `b`→`a`) in one document is refused: rename one word to a free name first. The tables pack has the
 whole rule.
 
+A flow's row may state `caller: user`: the flow runs only for a signed-in user. A run with none
+is refused before any step, however it was started, so its steps read `userInfo.userId` with no
+guard step. A plan refuses what starts such a flow with nobody signed in: an enabled schedule or
+trigger, a project table's processing, a vocabulary's resolver or an eval suite with no run-as
+member (`FLOW_CALLER_NEVER_SIGNED_IN`), and a public endpoint (`PUBLIC_ENDPOINT_NEEDS_USER`). A
+flow you restate without `caller` no longer states it; an export writes it only where it is set.
+
 A flow's row may carry `renameInputs` and `renameOutputs` (`{"<old name>": "<new name>"}`) beside
 its `inputs` and `outputs` as they read after the rename. The apply moves every place that names
 the input or output: the reads in the flow's own steps and the keys of its `return` steps, the
@@ -600,7 +607,8 @@ alone keeps the results cached under it.
 
 The answer is the plan plus `applied`, `appliedVersion` and `basedOn` — no document; read it with
 `GET …/document`. `basedOn` is the read your next part binds to: `appliedVersion` when nobody else
-changed the project in between, else your earlier read. With a `label`, your own applies and row
+changed the project in between, or only changed rows your document states and changed them back,
+else your earlier read. With a `label`, your own applies and row
 saves after a read never count as moves for your later parts. Without one, nothing tells your
 writes from anyone else's: when the answered `basedOn` is still your earlier read (someone else
 wrote in between), your own earlier parts are listed under `moved` too — export again before the
