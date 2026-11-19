@@ -2,6 +2,19 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261119.12503 — 2026-11-19
+
+Synced from the Kipory monorepo at `7076edefe`.
+
+- changed: `skills/kipory-build/references/action-fields.md`
+- changed: `skills/kipory-build/references/action-inputs.md`
+- changed: `skills/kipory-build/references/functions/record.read.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/quickstart-document.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20261118.224438 — 2026-11-18
 
 Synced from the Kipory monorepo at `77559019f`.

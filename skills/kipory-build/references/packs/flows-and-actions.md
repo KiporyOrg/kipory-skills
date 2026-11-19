@@ -556,7 +556,9 @@ calls, endpoint fields. `""`, `[]` and `{}` are **values**:
 - **An index read needs a test before it.** `found.records[0].id` is refused
   (`STEP_INPUT_MAY_BE_ABSENT`) even after `has`, since a list may be `[]`: guard it with
   `{filled: found.records}`, which proves `[0]`, `[first]` and `[last]`. `[1]` and beyond need
-  `{has: found.records[1]}`.
+  `{has: found.records[1]}`. A `record.read` with `failIfEmpty: true` fails the run when nothing is
+  found, so its `[0]`, `[first]` and `[last]` are proved with no test (not when the step says
+  `onOversize: cut`).
 
   ```yaml
   - key: firstHit

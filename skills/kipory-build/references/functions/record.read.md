@@ -18,9 +18,9 @@ Returns records in the order of the ids given; on user-owned types, only the use
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a field inside `data` is empty or filled. ⚠️ A missing key counts as no value; only the submitted value is checked. |
-| `failIfEmpty` | boolean | no | `false` | Fail when nothing is found instead of returning an empty list. ⚠️ The save does not count it as proof of `[0]`: test `{filled: <step>}` before reading `<step>[0]`. |
+| `failIfEmpty` | boolean | no | `false` | Fail when nothing is found instead of returning an empty list. ⚠️ Written as `true`, it proves `<step>[0]` to the save, unless the step says `onOversize: cut`. |
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ Unknown field names are ignored. |
-| `ids` | union | yes | — | A list of ids, or a path like `hits[].recordId`. ⚠️ One id needs no list: a lone id reads that record; `[]` as its only input skips the step. |
+| `ids` | union | yes | — | A list of ids, or a path like `hits[].recordId`. ⚠️ A lone id needs no list; no ids answer `[]`, or a 404 with `failIfEmpty: true`. |
 | `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on the record. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `redirect` | `follow` \| `report` | no | `"follow"` | A merged id: `follow` reads its survivor; `report` fails the read. ⚠️ With `follow`, two ids merged into one record read as that record once. |

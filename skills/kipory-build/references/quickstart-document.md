@@ -111,12 +111,6 @@ flows:
             name: name
             email: { path: email, optional: true }
             renewsOn: renewsOn
-      - key: joined
-        if:
-          - test: { not: { has: join.recordId } }
-            steps:
-              - key: noMember
-                fail: { code: NO_RESULT, message: The member was not saved. }
       - key: done
         return:
           memberId: join.recordId
@@ -146,12 +140,6 @@ flows:
             fruit: fruit
             pounds: { path: pounds, default: 10 }
             state: { literal: planned }
-      - key: saved
-        if:
-          - test: { not: { has: save.recordId } }
-            steps:
-              - key: noBox
-                fail: { code: NO_RESULT, message: The box was not saved. }
       - key: done
         return:
           boxId: save.recordId
@@ -319,12 +307,12 @@ surfaces:
 <!-- field-ok: renewalNote — the example project's own table key -->
 <!-- field-ok: poundsOrdered — the example project's own computed field -->
 
-- **A flow is its steps, in the order they run.** `order-box` reads the member, saves the box, checks it was saved, returns its id — top to bottom. A step's key names its value: `save.recordId` is the id `save` created. A flow gives its outputs only through a `return` step.
+- **A flow is its steps, in the order they run.** `order-box` reads the member, saves the box, returns its id — top to bottom. A step's key names its value: `save.recordId` is the id `save` created. A flow gives its outputs only through a `return` step.
 - **A setting reads a value by its path**: `memberId: memberId`, `to: member.email`. Text is `{ literal: "…" }` — a bare string is always a path. An expression is `{ expr: "[boxId]" }`. A setting that names a thing — `tableKey`, `address`, a prompt — is a plain value. `action-fields.md` has every form.
 - **An optional input is read with its tolerance.** `email` may be left out, so `join-club` reads it `{ path: email, optional: true }` (the field is then not written), and `order-box` reads `pounds` with `default: 10`. A text default is a literal: `default: { literal: apples }`. A plain `email` would be refused at plan: the save proves every required read is there on every path (`STEP_INPUT_MAY_BE_ABSENT`).
-- **A required output must be proved too.** Nothing proves `record.create`'s receipt holds `recordId`, so return `save.recordId` as a required output only after a step that fails the run when it is missing — `saved` and `joined` are that guard. `fail` with `status` is how an endpoint answers an error of your own.
+- **A required output must be proved too** (`FLOW_OUTPUT_MAY_BE_NOTHING`), like any required read: a value that may be nothing, such as `userInfo.userId`, is returned only after a step that fails the run when it is missing. `record.create`'s receipt always holds `recordId`, so `save.recordId` is returned as it is, with no guard. `fail` with `status` is how an endpoint answers an error of your own.
 - **An input's limits go on its type.** `pounds` is a `Pounds`, so no step checks the weight: the endpoint refuses over 20 lb before any step runs (422, `details.reason` `FLOW_INPUT_INVALID`). A flow another flow, a schedule or a trigger starts is checked only for a non-empty rule (`minLength: 1`).
-- **Ownership is a table setting, not a filter.** `ownerScope: user` makes every row the signed-in person's: their reads see only their rows, and `record.read` of another person's id finds nothing — with `failIfEmpty: true` that fails the call (`order-box` › `owner`). The save still does not count `owner[0]` as there: read its fields under `{filled: owner}`. Write no owner field and no owner filter.
+- **Ownership is a table setting, not a filter.** `ownerScope: user` makes every row the signed-in person's: their reads see only their rows, and `record.read` of another person's id finds nothing — with `failIfEmpty: true` that fails the call (`order-box` › `owner`), so a later step may read `owner[0]` with no test before it (unless the read says `onOversize: cut`). Write no owner field and no owner filter.
 - **A total that must stay right is `computed`, not a read-time sum.** `member.poundsOrdered` is a `rollup` over the relation `of-member`; the platform recomputes it a few seconds after any box is created, changed or deleted. It needs the relation and a `link` use on the parent's id field (`box.memberId`). `rollup` also takes `count`, `avg`, `min`, `max`, `latest`.
 - **A model step is `text.generate` with its `prompt`.** A placeholder is `{{name}}`, `{{name.field}}` or `{{name[0]}}`; one item's field (`{{found[0].fruit}}`) is not one, so `line` reads the whole `found`. A placeholder naming a whole object or list is refused at save (`INTERPOLATE_BARE_STRUCTURED_SLOT`): name a field, write `{{name | json}}`, or loop with a section. With no `outputSchema` it answers text.
 - **`try` is the only way past a failure.** If the model call fails, `write`'s `catch` gives a fixed slip instead; both lists give `slip` through `out`, read after the block as `write.slip`. A value made inside a block is read outside only through its `out`.

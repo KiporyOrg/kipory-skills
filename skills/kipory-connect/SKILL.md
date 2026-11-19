@@ -121,12 +121,6 @@ flows:
             title: title                          # a bare string is a path to a value
             state: { literal: open }              # text is a literal
             dueOn: { path: dueOn, optional: true } # an optional input is read with its tolerance
-      - key: saved
-        if:
-          - test: { not: { has: save.recordId } }
-            steps:
-              - key: noNote
-                fail: { code: NO_RESULT, message: The note was not saved., status: 409 }
       - key: done
         return: { noteId: save.recordId }
   get-note:
@@ -136,13 +130,7 @@ flows:
     steps:
       - key: found
         function: record.read
-        with: { tableKey: note, ids: { expr: "[noteId]" }, failIfEmpty: true }   # 404 when missing or another person's
-      - key: one
-        if:
-          - test: { not: { filled: found } }   # proves found[0] for the save
-            steps:
-              - key: none
-                fail: { code: NOT_FOUND, message: No such note., status: 404 }
+        with: { tableKey: note, ids: { expr: "[noteId]" }, failIfEmpty: true }   # 404 when missing or another person's; proves found[0]
       - key: done
         return: { note: "found[0]" }
   list-notes:
@@ -274,8 +262,8 @@ surfaces:
 ## Rules that keep the first plan clean
 
 1. **`kipory: 11`** at the top; send the document alone, never an export's `{ version, document }` envelope. A document is partial: an element you leave out is untouched, but each element you state is whole, and a flow's `steps` are its whole list. Removal is `delete: true` on the element.
-2. **Every required read is proved present.** An optional input or `userInfo` (nothing on a schedule): read it `{ path: x, optional: true }` (the setting is then left out) or `{ path: x, default: … }`, or put the step under an `if` whose test is `{ filled: x }`. An item of a list read (`rows.records[0]`, `found[0]`) needs an `if` that fails when it is missing first, as `get-note` does (`STEP_INPUT_MAY_BE_ABSENT`). At a required read write `{ path: x, default: … }` or `$default(x, …)`; `x ?? …` and `$exists(x) ? x : …` are refused over an unproved read (both keep a `null`).
-3. **A required output from a receipt is guarded**: before `return { noteId: save.recordId }`, an `if` on `{ not: { has: save.recordId } }` that fails (`FLOW_OUTPUT_MAY_BE_NOTHING`).
+2. **Every required read is proved present.** An optional input or `userInfo` (nothing on a schedule): read it `{ path: x, optional: true }` (the setting is then left out) or `{ path: x, default: … }`, or put the step under an `if` whose test is `{ filled: x }`. An item of a list or query result (`rows.records[0]`) needs an `if` on `{ not: { filled: rows.records } }` that fails first (`STEP_INPUT_MAY_BE_ABSENT`); a `record.read` with `failIfEmpty: true` proves its first row (not under `onOversize: cut`), as `get-note` reads `found[0]`. At a required read write `{ path: x, default: … }` or `$default(x, …)`; `x ?? …` and `$exists(x) ? x : …` are refused over an unproved read (both keep a `null`).
+3. **A required output is proved like a required read** (`FLOW_OUTPUT_MAY_BE_NOTHING`): before `return { id: userInfo.userId }`, an `if` on `{ not: { has: userInfo.userId } }` that fails. A create's `recordId` is always there: `return { noteId: save.recordId }` needs no guard.
 4. **`fail.status` is 400–499**, but not 405, 408 or 426 (left out, 422); there is no 5xx of your own (`FAIL_STATUS_INVALID`). `fail.code` is capitals, digits and underscores, starting with a capital (`BOX_PACKED`); the caller gets it as `details.reason`.
 5. **Text is `{ literal: … }`**: a bare string is always a path, and an unknown one is `STEP_READS_UNKNOWN`.
 6. **A function's settings are its own** (its catalog lines below): one it does not take is `STEP_SETTING_UNKNOWN`; `record.delete` takes `ids`, not `tableKey`.
