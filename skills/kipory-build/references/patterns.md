@@ -36,7 +36,7 @@ The examples are one invented project, **Orchard Club**, a fruit-box subscriptio
 
 **Nothing and empty are different.** `null` and a missing value are nothing; `""`, `[]` and `{}` are values. A step given `[]` runs with `[]`, a read that matched nothing answers `[]`, and an `each` over `[]` gives `[]`. `default` and `$default(x, y)` fill only nothing; `$ifEmpty(x, y)` fills nothing or empty. Nothing is ever skipped in silence: a step whose required value is missing at run fails with a typed error.
 
-**The save proves every read.** A required read of a value that may be nothing on some path — an optional flow input, a step inside an `if` read outside it, a function whose value may be nothing (`url.fetch`, `text.decide`, `web.search`, `value.transform`, …), `userInfo` — is the save error `STEP_INPUT_MAY_BE_ABSENT`, with a ready fix. Guard it with `if` + `{has: x}`, or read `{path: x, optional: true}` / `{path: x, default: …}`. A function input that must not be empty, fed a value that may be empty, is `STEP_INPUT_MAY_BE_EMPTY`: guard with `filled`, since a default never covers empty.
+**The save proves every read.** A required read of a value that may be nothing on some path — an optional flow input, a step inside an `if` read outside it, a function whose value may be nothing (`url.fetch`, `text.decide`, `web.search`, `value.transform`, …), `userInfo` — is the save error `STEP_INPUT_MAY_BE_ABSENT`, with a ready fix. Fail first with your own code, guard it with `if` + `{has: x}`, or read `{path: x, optional: true}`; a `default` only for a real fallback (`[]`, 0, a label), never an id, owner, amount or status. A function input that must not be empty, fed a value that may be empty, is `STEP_INPUT_MAY_BE_EMPTY`: guard with `filled`, since a default never covers empty.
 
 ## 1. A line of steps
 
@@ -105,7 +105,7 @@ flows:
 ```
 
 - **`inputs` maps each input of the called flow to an argument**, checked against that input's type at save. Only mapped inputs cross; a required one left out is `CALL_INPUT_MISSING`. One value may feed several inputs (`{title: book.title, author: book.author}`).
-- **The called flow gives only what its `return` gives.** An output it declares optional may be nothing, so a required read of `brief.<it>` needs `if has` or `optional`/`default`, as for any value.
+- **The called flow gives only what its `return` gives.** An output it declares optional may be nothing, so a required read of `brief.<it>` needs `if has`, a `fail` first or `optional`, as for any value.
 - **The call is all or nothing.** When the called flow fails, everything it staged is dropped and the call fails like any step. To carry on, put the call in a `try` (§5). A sub-flow that failed for the platform's own reasons, a spend cap or a cancel still fails the run.
 - The save refuses a cycle, a depth over the limit and a flow of another project.
 - **Nesting past the project's `design.block-depth`** is `BLOCK_DEPTH_EXCEEDED`: move part of it into a flow of its own and call it.

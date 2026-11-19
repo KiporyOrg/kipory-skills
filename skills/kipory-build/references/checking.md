@@ -70,7 +70,7 @@ A finding about steps carries where it is and what to do:
 - **`at` is a key path from the flow**, never a position: `steps[perMember].steps[reachable].if[0].steps[note].with.fields.noteKey`. In a document plan the same finding's `field` starts `flows.<flow>.`.
 - **`fixes` are ready step edits, best first.** Pick one and post its `edit` as is: `POST /v1/flows/{id}/steps/edit { "version": <the flow's version>, "edits": <the fix's edit> }`. In a document, make the same change in your file and plan again. A fix raises no finding the flow did not already have.
 - **A fix may change a type instead:** `{title, typeEdit: {type, key, declare}}` declares `minLength` or `minItems` on a field of a type the flow reads; send `declare` to `PATCH /v1/types/{id}` (`type` is the id) with the type's version. It changes the type for every reader. A type new in the same document has no id yet, so `type` is absent: declare the keyword on that field under `types.<key>` in the document.
-- **`decision` replaces `fixes` when no edit clears the finding without changing what you meant** — it names the step, the field and what to choose (`Wrap it in $default(…, <value>), or guard the names it reads with if has`). Exactly one of the two is set.
+- **`decision` replaces `fixes` when no edit clears the finding without changing what you meant** — it names the step, the field and what to choose (`fail first or guard its names (if has); $default needs a real fallback`). Exactly one of the two is set.
 - **Fix every error of one answer in one edit, then save again.**
 - A refused edit batch names the edit: `STEP_EDIT_REFUSED` with `editIndex`, the 0-based place of the edit in `edits`.
 

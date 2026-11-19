@@ -30,7 +30,7 @@
       "page": "kipory-build/references/packs/flow-checkpoints.md"
     },
     "flows-and-actions": {
-      "hash": "bd1983f73fa1",
+      "hash": "d98815f96beb",
       "page": "kipory-build/references/packs/flows-and-actions.md"
     },
     "limits": {
@@ -42,7 +42,7 @@
       "page": "kipory-plan/references/packs/planning-protocol.md"
     },
     "project-config": {
-      "hash": "6e828abaad80",
+      "hash": "c9ca3b537bdd",
       "page": "kipory-operate/references/packs/project-config.md"
     },
     "project-document": {
@@ -1850,7 +1850,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "4fce17e30abd",
+      "hash": "5d265abc3972",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

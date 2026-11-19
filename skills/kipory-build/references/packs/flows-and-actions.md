@@ -246,7 +246,7 @@ ref: "RenewalNote"}}`); every save — `PUT …/steps`, `steps/edit`, a plan, an
 key, and an unknown key is refused at save, with a fix per near key. The save types the step's
 readers from it and the run checks the answer against it. Only then does a reader of a declared
 field of the answer count as proved: with no `outputSchema`, a required read of a field of the answer needs
-a guard (`if` + `has`, `optional`, `default`) like any other unproved read.
+a guard (`if` + `has`, a `fail` first, `optional`) like any other unproved read.
 
 ## Values and keys
 
@@ -642,9 +642,11 @@ It speaks only where the type is sure: text, a number, a yes/no, a list, a fille
 more, and stays silent, as do a value with no declared type, a function output the platform does not
 check (`text.generate` with no `outputSchema`), a record read's value (an undeclared field of the record itself is refused by its table's name), the platform's own values (`runInfo`, `projectInfo`, `userInfo`, `tableInfo`) for an object type, and stored project config and user profile values at any depth. What a prompt renders of a list read by name (`{{tags.length}}`, `{{tags.first}}`, `{{files.name}}` and their like) is never a missing field. A flow that already holds such a read carries `STEP_READS_NO_SUCH_FIELD_STORED`, a warning that blocks no save of that flow, whichever of its steps the save edits. One case stays an error on a stored flow: a required step input with no `optional` or `default` and no value proved for it, which the save refused before this rule too.
 
-Three ways clear a may-be-nothing read: put the step inside `if` with `{has: x}` (or `{filled: x}`),
-read it `{path: x, optional: true}` (the step runs without it), or read it `{path: x, default: …}`.
-Choose by what the step should do without the value: not run, run without, or run with a stand-in.
+Three ways clear a may-be-nothing read: fail first with your own code and status (an `if` on
+`{not: {has: x}}`), put the step inside `if` with `{has: x}` (or `{filled: x}`), or read it
+`{path: x, optional: true}` (the step runs without it). Choose by what the step should do without the
+value: refuse, not run, or run without. A `default` is right only for a real fallback the product
+wants (`[]`, 0 for a count, a label), never an id, an owner, an amount or a status.
 
 **Functions whose value may be nothing.** Fetches and lookups that can find nothing —
 `url.fetch`, `url.scrape`, `url.metadata`, `web.search`, `place.details`, `location.resolve`,

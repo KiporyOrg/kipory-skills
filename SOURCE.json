@@ -1,7 +1,9 @@
 {
-  "source": "a716d150878374116eaa18078d5ea9739a5c5f19",
+  "source": "fb2fc8b5f9256164cc395a0771bfec3407e28bb7",
   "since": "2026-08-19",
   "history": [
+    {"sha":"fb2fc8b5f925","skills":"A refusal for a value that may be missing says to fail first or guard the step, and keeps a default for a real fallback, never an id, owner, amount or status (#3778)"},
+    {"sha":"7278d0bd188f"},
     {"sha":"a716d1508783","skills":"An element changed and changed back after a read is not moved, so a paused-and-resumed schedule refuses no plan (#3759 benchmark) (#3771)"},
     {"sha":"57d87b244571"},
     {"sha":"82cf24c7ed17","skills":"A burst waits up to 3 s for a running slot instead of a 429, the default caps rise tenfold a minute, and a decision can match a typed answer whatever its case (#3773)"},
@@ -999,8 +1001,6 @@
     {"sha":"285e23770511"},
     {"sha":"747b63dd5ecd"},
     {"sha":"ef60f05aa72e"},
-    {"sha":"fb05c3080cc7"},
-    {"sha":"a80f9917dd1b"},
-    {"sha":"107833b5094c"}
+    {"sha":"fb05c3080cc7"}
   ]
 }

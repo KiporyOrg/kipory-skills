@@ -76,7 +76,7 @@ Three corners worth holding:
 
 - **A project with no config reads as empty**, and a missing namespace or field is nothing. A
   required read of nothing fails the step, so read a field that may be missing with
-  `{path, optional: true}` or `{path, default: …}`.
+  `{path, optional: true}`, or `{path, default: …}` when the setting has a real fallback.
 - **Edits are not live mid-run.** A running flow keeps the snapshot it started with; the next run
   sees the change. This is what makes a run reproducible, but it also means "I changed it and
   nothing happened" is expected for anything already in flight.
