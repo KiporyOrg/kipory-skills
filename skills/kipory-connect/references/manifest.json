@@ -1428,7 +1428,7 @@
       "hash": "ef8141a82c90"
     },
     "PATCH /v1/nodes/{nodeId}/connections/{slug}": {
-      "hash": "39c1089e5630",
+      "hash": "7fa55adeeaa1",
       "page": "kipory-gather/references/api/connections.md"
     },
     "PATCH /v1/nodes/{nodeId}/connections/{slug}/abilities/{operation}": {
@@ -1616,11 +1616,11 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "POST /v1/nodes/{nodeId}/connections": {
-      "hash": "97c084302143",
+      "hash": "2674f73a3408",
       "page": "kipory-gather/references/api/connections.md"
     },
     "POST /v1/nodes/{nodeId}/connections/{slug}/authorizations": {
-      "hash": "4eee7963416c",
+      "hash": "74b5b42fbf02",
       "page": "kipory-gather/references/api/connections.md"
     },
     "POST /v1/nodes/{nodeId}/connections/{slug}/checks": {

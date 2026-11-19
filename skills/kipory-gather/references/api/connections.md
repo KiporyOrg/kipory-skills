@@ -93,7 +93,7 @@ Connect an OpenAPI 3.0 or 3.1 document to your organization with a credential: e
 | `sourceKind` | `"openapi" \| "mcp"` | yes | What the link points at: an `openapi` document (3.0 or 3.1) or a remote `mcp` server. |
 | `sourceUrl` | `string` | yes | The link to the OpenAPI document or the MCP server. Its host is the only host the connection may call. |
 | `credential` | `object` | yes | How Kipory signs requests to this source. Kept in your organization's vault; never shown again. |
-| `operations` | `string[]` | no | The operations or tools to add, by name or as `"GET /parcels/{id}"`; absent, every one that can be served. |
+| `operations` | `string[]` | no | The operations or tools to add, by name, as `"GET /parcels/{id}"`, or by the document's `operationId`; absent, every one that can be served. |
 | `reads` | `string[]` | no | Operations or tools that only read, though the source says they send — a search sent as a `POST`, say — by name, as `"POST /search"` or by its `operationId` in the document. Each is tested and served as a read. Absent: every `GET` or `HEAD` operation, and every tool marked read-only, is a read; every other one sends. |
 | `include` | `object` | no | Narrows which operations of the document are considered. |
 | `validateOnly` | `boolean` | no | When true, reads the source and answers what would be added, with nothing written. |
@@ -106,7 +106,7 @@ Connect an OpenAPI 3.0 or 3.1 document to your organization with a credential: e
 | `types` | `object[]` | yes | The output types it would add. |
 | `hosts` | `string[]` | yes | The hosts its functions would call: one. |
 | `warnings` | `string[]` | yes | What to know before connecting. |
-| `signIn` | `object` | no | For a connection that signs in: what the sign-in would ask once it is created. Nothing is read from the server before then. |
+| `signIn` | `object` | no | For a connection that signs in: what the sign-in would ask once it is created. Nothing behind the sign-in is read before then; an OpenAPI document, read with no credential, is. |
 
 Each item of `operations`:
 
@@ -183,7 +183,7 @@ Change which operations a connection serves, or replace its credential, with its
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `operations` | `string[]` | no | Every operation to serve from now on, by name or as `"GET /parcels/{id}"`: one left out stops being served and its function retires; a new one is tested and added. Where a breaking change put a new function beside the old one, name the functions to keep: leaving the old one's name out (`get-carrier`, keeping `get-carrier-2`) drops it, and the new one takes the operation over. |
+| `operations` | `string[]` | no | Every operation to serve from now on, by name, as `"GET /parcels/{id}"`, or by the document's `operationId`: one left out stops being served and its function retires; a new one is tested and added. Where a breaking change put a new function beside the old one, name the functions to keep: leaving the old one's name out (`get-carrier`, keeping `get-carrier-2`) drops it, and the new one takes the operation over. |
 | `credential` | `object` | no | A new credential: a key, on which every function is tested again before it is kept; or, for a connection that signs in, your own app at its server (`kind: "oauth2"`), saved for that server and used by the next sign-in. Never shown again. |
 | `version` | `string` | yes | The `lock` you last read. A write against an older one answers 409 `VERSION_CONFLICT`. |
 
@@ -276,11 +276,17 @@ Start a sign-in on a connection that signs in with OAuth (`waiting-for-sign-in`,
 | `nodeId` | `string` | yes | The organization. |
 | `slug` | `string` | yes | The connection's name, lower-kebab: the first word of every function it adds (`parcel-desk.get-parcel`). |
 
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `returnTo` | `string` | no | The app page to come back to after the sign-in, as a path (`/acme/services/linear`); absent, the connection's page under its organization. |
+
 **Response `201`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `authorizeUrl` | `string` | yes | Where the person's browser goes next: the server's sign-in page, asking for the permissions it names. It comes back to Kipory's callback, then to the connection's page. |
+| `authorizeUrl` | `string` | yes | Where the person's browser goes next: the server's sign-in page, asking for the permissions it names. It comes back to Kipory's callback, then to `returnTo` when given, else the connection's page. |
 | `expiresAt` | `string` | yes | When the sign-in must be finished by: ten minutes from now. |
 
 ### `POST /v1/nodes/{nodeId}/connections/{slug}/checks`

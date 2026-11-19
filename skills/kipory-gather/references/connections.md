@@ -248,13 +248,15 @@ Some servers take no key: a person signs in once and allows access. Connect one 
 source alike). Kipory finds the server's sign-in from its link; it is refused (422, with
 `details.reason`) when the server names another issuer (`issuer-mismatch`), cannot protect a
 sign-in (`no-s256`), has an endpoint on a private address (`refused-url`) or offers none
-(`no-metadata`).
+(`no-metadata`). An OpenAPI document is read too, with no credential: a link that is no
+document (an MCP server sent as `openapi`) is 422 `unreadable`; the dry run lists its operations.
 
 1. **You create it.** The answer (201) is the connection with `status: "waiting-for-sign-in"`, no
    operations yet, and `signIn`: `url` (the connection's page in the Kipory app), `server`,
    `scopes` (what the sign-in asks, as the server names them), `client`, `callbackUrl` and
-   `serverNamesItself`. `operations` and `reads` given here are kept and applied when the functions
-   are first read. When none of the named `operations` exists at the server, nothing is served: the
+   `serverNamesItself`. `operations` and `reads` given here (by name, `"GET /path"` or
+   `operationId`) are kept and applied when the functions are first read; for an OpenAPI document
+   the dry run already warns about a name it lacks. When none of the named `operations` exists at the server, nothing is served: the
    connection is `active` with no function, and its `statusReason` lists what the server offers —
    name them with `PATCH …/connections/{slug}` `operations`.
 2. **A person signs in.** Give them `signIn.url`. An admin of the organization presses

@@ -1,7 +1,8 @@
 {
-  "source": "7076edefe55f08688f551fcf9c80b068d5794b34",
+  "source": "0cf8180c1e94f8fcf6303f92322fab5a17109197",
   "since": "2026-08-19",
   "history": [
+    {"sha":"0cf8180c1e94","skills":"A person can connect and disconnect a service in the app, from the organization or from any project's Services page, and a sign-in comes back to the page it started from (#3768)"},
     {"sha":"7076edefe55f","skills":"A record.read that says failIfEmpty: true proves its first row to the save, so the guard agents wrote after it is no longer needed, and the run holds the function to that promise (#3774)"},
     {"sha":"77559019f8d8","skills":"A run is read on its flow's own outline: every step in place with what this run did, each item's own values, and a tabbed inspector that opens any step or block (flow-debug slice 1) (#3769)"},
     {"sha":"d1a81967b25c","skills":"An endpoint keeps no copy of its flow; the strip stops the app while it runs (436 slice 2b) (#3770)"},
@@ -1000,7 +1001,6 @@
     {"sha":"107833b5094c"},
     {"sha":"ac1c02f9edcb"},
     {"sha":"9d1847063ae0"},
-    {"sha":"7e8f36f98380"},
-    {"sha":"13f4462d47a8"}
+    {"sha":"7e8f36f98380"}
   ]
 }
