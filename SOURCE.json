@@ -1,7 +1,9 @@
 {
-  "source": "b3266a00d981cfb059e2cf2f627dcb745a69f6c7",
+  "source": "1babbc0c7c864e2ecb9df50e564eedee6f767d24",
   "since": "2026-08-19",
   "history": [
+    {"sha":"1babbc0c7c86","skills":"A view endpoint's contract is derived where it is used: no stored copy, no drift sweep (436 slice 5) (#3780)"},
+    {"sha":"bf42aec48f6a"},
     {"sha":"b3266a00d981","skills":"A flow-backed table follows its flow: no drift failures, values checked before they are stored, and each record says which shape it holds (436 slice 3a) (#3776)"},
     {"sha":"b99a892c5319","skills":"A flow can say it runs only for a signed-in user, so its reads of the user need no guard, and a type with limits is taken where its plain scalar is (#3759 benchmark) (#3775)"},
     {"sha":"fb2fc8b5f925","skills":"A refusal for a value that may be missing says to fail first or guard the step, and keeps a default for a real fallback, never an id, owner, amount or status (#3778)"},
@@ -999,8 +1001,6 @@
     {"sha":"0f7ba4187ed0"},
     {"sha":"3739740f97b5"},
     {"sha":"052e7cb219a7"},
-    {"sha":"4cbdb7bac0da"},
-    {"sha":"285e23770511"},
-    {"sha":"747b63dd5ecd"}
+    {"sha":"4cbdb7bac0da"}
   ]
 }

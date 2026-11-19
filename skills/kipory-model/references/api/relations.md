@@ -51,7 +51,7 @@ Each item of `relationPairings`:
 
 ### `POST /v1/relation-pairings`
 
-Add one table pair to an existing relation. The relation and both tables must exist (else 422); a pair already standing is 409 `CONFLICT`; a `join-record` relation takes exactly one pair (409 `RELATION_JOIN_PAIRING_AMBIGUOUS`). With `validateOnly: true` it answers whether the pair would be added, writing nothing (200; an added pair is 201). A relation's first pairs are seeded by `POST /v1/relations` itself; there is no PATCH — re-target by deleting and adding. A relation's whole pair list at once: its `pairings` in `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Add one table pair to an existing relation. The relation and both tables must exist (else 422); a pair already standing is 409 `CONFLICT`; a `join-record` relation takes exactly one pair (409 `RELATION_JOIN_PAIRING_AMBIGUOUS`). A pair decides which tables a view's linked read reaches: what adding it changes for the callers of an endpoint answering such a view is listed in `contractChanges`, and a change that breaks them is refused (409 `CONTRACT_BREAK_NOT_ACCEPTED`) until `acceptBreaks` names the endpoint, which only an admin of the project may do (403 `CONTRACT_BREAK_FORBIDDEN` otherwise). With `validateOnly: true` it answers whether the pair would be added, writing nothing (200; an added pair is 201). A relation's first pairs are seeded by `POST /v1/relations` itself; there is no PATCH — re-target by deleting and adding. A relation's whole pair list at once: its `pairings` in `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 
@@ -62,6 +62,7 @@ Add one table pair to an existing relation. The relation and both tables must ex
 | `fromTableKey` | `string` | yes | Key of an existing table — the source end. |
 | `toTableKey` | `string` | yes | Key of an existing table — the target end. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
+| `acceptBreaks` | `object` | no | The endpoints whose callers this pair may break. A pair decides which tables a view's linked read reaches, so adding one can change what an endpoint answering that view answers; each change is listed in `contractChanges`, and one that breaks callers is refused 409 `CONTRACT_BREAK_NOT_ACCEPTED` until this names the endpoint. Only an admin of the project may accept (403 `CONTRACT_BREAK_FORBIDDEN` otherwise); a name the project does not have is 422. |
 
 **Response `200`**
 
@@ -70,6 +71,9 @@ Add one table pair to an existing relation. The relation and both tables must ex
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `contractChanges` | `object[]` | no | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `permissions` | `object` | no | What the caller's role lets the write do. |
 
 Each item of `diagnostics`:
 
@@ -79,6 +83,18 @@ Each item of `diagnostics`:
 | `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+| `consequences` | `object[]` | no | On a table's row: what the change does to the table's stored records, each with a count. The write carries each one out. A count never refuses the write; one consequence can: a `stream-migration` on a table whose stream is already being migrated is refused with 409 `STREAM_MIGRATING`. Absent on an endpoint's row and when nothing stored is affected. |
 
 **Response `201`**
 
@@ -91,6 +107,20 @@ Each item of `diagnostics`:
 | `toTableKey` | `string` | yes | Key of the table at the target end, for a directional relation. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+| `consequences` | `object[]` | no | On a table's row: what the change does to the table's stored records, each with a count. The write carries each one out. A count never refuses the write; one consequence can: a `stream-migration` on a table whose stream is already being migrated is refused with 409 `STREAM_MIGRATING`. Absent on an endpoint's row and when nothing stored is affected. |
 
 ### `GET /v1/relation-pairings/{id}`
 
@@ -116,7 +146,7 @@ Read one pairing by id. Every pairing of a project: `GET /v1/relation-pairings?p
 
 ### `DELETE /v1/relation-pairings/{id}`
 
-Remove one pair from its relation; nothing cascades. Refused (409) while live links stand on the pair or it is the relation's last — delete the relation itself with `DELETE /v1/relations/{id}` — and (422 `RELATION_INVALID`) when a table's declaration of the relation could not stand without it. A read of the relation publishes that verdict per pair as `deleteRefusal` (`GET /v1/relations/{id}?expand=pairings`); with `?validateOnly=true` this answers it now, writing nothing. A relation's whole pair list at once: its `pairings` in `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Remove one pair from its relation; nothing cascades. Refused (409) while live links stand on the pair or it is the relation's last — delete the relation itself with `DELETE /v1/relations/{id}` — and (422 `RELATION_INVALID`) when a table's declaration of the relation could not stand without it. A read of the relation publishes those verdicts per pair as `deleteRefusal` (`GET /v1/relations/{id}?expand=pairings`). It is also refused (409 `CONTRACT_BREAK_NOT_ACCEPTED`) when removing it breaks the callers of an endpoint answering a view that reads through the relation: change the view or the endpoint first, or remove the pair in the project document with `acceptBreaks`. With `?validateOnly=true` this answers every one of these verdicts now, the contract changes included, writing nothing. A relation's whole pair list at once: its `pairings` in `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -148,6 +178,9 @@ Shape 2, with `ok`, `diagnostics`, `complete`:
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `contractChanges` | `object[]` | no | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `permissions` | `object` | no | What the caller's role lets the write do. |
 
 Each item of `diagnostics`:
 
@@ -157,6 +190,18 @@ Each item of `diagnostics`:
 | `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+| `consequences` | `object[]` | no | On a table's row: what the change does to the table's stored records, each with a count. The write carries each one out. A count never refuses the write; one consequence can: a `stream-migration` on a table whose stream is already being migrated is refused with 409 `STREAM_MIGRATING`. Absent on an endpoint's row and when nothing stored is affected. |
 
 ### `GET /v1/relations`
 

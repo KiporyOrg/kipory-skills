@@ -773,6 +773,12 @@ bigger than a batch of edits.
 - **Stale** (409 `VERSION_CONFLICT`): the flow changed since you read its `version` — another edit,
   a checkpoint restore, a document apply. Re-read the flow, re-apply your change to what is there
   now, send the new `version`. Do not retry blind: edits are not idempotent.
+- **A break** (409 `CONTRACT_BREAK_NOT_ACCEPTED`, or 403 `CONTRACT_BREAK_FORBIDDEN` below admin):
+  the flow answers an endpoint over a view, and the steps change what that endpoint takes or answers
+  (the `record.view` step reads another view, or its paging inputs change). The answer's
+  `contractChanges` names the endpoint and each change; an admin resends with
+  `acceptBreaks: {endpoints: [...]}`. A save that changes nothing a caller meets answers
+  `contractChanges: []`. See Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`).
 
 The flow's label, description and signature change with `PATCH /v1/flows/{id}` (also with its
 `version`). Changing the inputs or outputs re-proves every step, and is checked for every endpoint

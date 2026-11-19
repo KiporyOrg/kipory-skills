@@ -19,7 +19,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `PUT /v1/flows/{id}/steps`
 
-Replace the flow's whole steps list, against the `version` you read. Every step is checked before anything is written: each value it reads must be there when it runs, keys unique, settings known. A refused save writes nothing and answers 422 `VALIDATION_FAILED` with every finding in `details.diagnostics`, each with where it sits (`at`) and ready `fixes` or the `decision` it needs; a stale `version` answers 409. `validateOnly: true` answers the same check as a verdict and writes nothing, with every expression the steps hold printed as TypeScript (`expressions`); on it, `typescript` or `python` sends expressions written as TypeScript or Python, read back as the JSONata `fromTypeScript` or `fromPython` answers and judged in place. To change a few steps, `POST /v1/flows/{id}/steps/edit` is shorter; the current list is `GET /v1/flows/{id}`.
+Replace the flow's whole steps list, against the `version` you read. Every step is checked before anything is written: each value it reads must be there when it runs, keys unique, settings known. A refused save writes nothing and answers 422 `VALIDATION_FAILED` with every finding in `details.diagnostics`, each with where it sits (`at`) and ready `fixes` or the `decision` it needs; a stale `version` answers 409. Steps that change what an endpoint answering a view takes or answers are listed in `contractChanges`; a change that breaks its callers is refused 409 `CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks` names the endpoint, and only an admin of the project may accept (403 `CONTRACT_BREAK_FORBIDDEN` otherwise). `validateOnly: true` answers the same check as a verdict and writes nothing, with every expression the steps hold printed as TypeScript (`expressions`); on it, `typescript` or `python` sends expressions written as TypeScript or Python, read back as the JSONata `fromTypeScript` or `fromPython` answers and judged in place. To change a few steps, `POST /v1/flows/{id}/steps/edit` is shorter; the current list is `GET /v1/flows/{id}`.
 
 **Path parameters**
 
@@ -36,12 +36,13 @@ Replace the flow's whole steps list, against the `version` you read. Every step 
 | `steps` | `object[]` | yes | Every step of the flow, in the order it runs. It replaces the stored list whole; to change a few steps, post edits to `POST /v1/flows/{id}/steps/edit` instead. |
 | `typescript` | `object[]` | no | Expressions given as TypeScript instead of JSONata, read with `validateOnly: true` only (a save refuses this field): each place once, and not also in the other language. Nothing saves TypeScript: save the JSONata `fromTypeScript` answers in the step. |
 | `python` | `object[]` | no | Expressions given as Python instead of JSONata, read with `validateOnly: true` only (a save refuses this field): each place once, and not also in the other language. Nothing saves Python: save the JSONata `fromPython` answers in the step. |
+| `acceptBreaks` | `object` | no | The endpoints whose callers this write may break. A step edit that changes what an endpoint answering a view takes or answers (another view, its paging inputs) is listed in `contractChanges`; one that breaks its callers is refused 409 `CONTRACT_BREAK_NOT_ACCEPTED` until this names the endpoint, and only an admin of the project may accept (403 `CONTRACT_BREAK_FORBIDDEN` otherwise). A name the project does not have is 422. |
 
 **Response `200`**
 
 One of 2 shapes:
 
-Shape 1, with `flowId`, `version`, `changes`, `touched`:
+Shape 1, with `flowId`, `version`, `changes`, `touched`, `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -50,6 +51,8 @@ Shape 1, with `flowId`, `version`, `changes`, `touched`:
 | `diagnostics` | `object[]` | yes | Warnings about the saved steps; a write with an error is refused instead. |
 | `changes` | `object[]` | yes | Each step the write added, removed, changed or moved, by key. Empty when the list saved as it stood. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
 
 Each item of `diagnostics`:
 
@@ -80,6 +83,18 @@ Each item of `touched`:
 | `id` | `string` | yes | The row's id. |
 | `version` | `integer` | yes | The row's optimistic-lock version AFTER this write. Replace the version you cached for this row with it; a PATCH sent with the old one is refused with 409. |
 
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+| `consequences` | `object[]` | no | On a table's row: what the change does to the table's stored records, each with a count. The write carries each one out. A count never refuses the write; one consequence can: a `stream-migration` on a table whose stream is already being migrated is refused with 409 `STREAM_MIGRATING`. Absent on an endpoint's row and when nothing stored is affected. |
+
 Shape 2, with `ok`, `complete`, `expressions`, `pathExpressions`, `fromTypeScript`, `fromPython`:
 
 | Field | Type | Required | Meaning |
@@ -91,6 +106,9 @@ Shape 2, with `ok`, `complete`, `expressions`, `pathExpressions`, `fromTypeScrip
 | `pathExpressions` | `object[]` | yes | Each path the steps read at a place that may hold an expression instead, with the expression that reads the same. |
 | `fromTypeScript` | `object[]` | yes | One entry per `typescript` the request sent, in its order; empty when it sent none. |
 | `fromPython` | `object[]` | yes | One entry per `python` the request sent, in its order; empty when it sent none. |
+| `contractChanges` | `object[]` | no | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `permissions` | `object` | no | What the caller's role lets the write do. |
 
 Each item of `diagnostics`:
 
@@ -139,6 +157,18 @@ Each item of `fromPython`:
 | `at` | `string` | yes | Where the expression sits, as a key path from the flow, the way a finding's `at` names it: a function's own expression (`steps[shape].with.expression`, `steps[make].with.fields.title`), an `{expr}` argument (`steps[mail].with.to`, `steps[perMember].each`, `steps[done].return.total`), or an expression test (`steps[check].if[0].test.and[1].expr`). |
 | `jsonata` | `string \| null` | yes | The JSONata the Python reads back to, or null when it was refused. Every statement the edit left unchanged keeps the step's JSONata text there byte for byte, so an unedited text answers the expression itself. |
 | `refusal` | `object \| null` | yes | Why there is no JSONata, with what to write instead; null when read back. The text does not parse; it reaches outside the expression (a request, files, the console, timers, the environment, async, a class, `try` / `except`, a callback changing an outer name); it uses a construct this function does not support or one that would run with another meaning (`==` in TypeScript, `x \|\| "default"` / `x or "default"`); it calls a function by an unknown name or with the wrong number of arguments; or its place holds no expression, or was sent twice, or in both languages. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+| `consequences` | `object[]` | no | On a table's row: what the change does to the table's stored records, each with a count. The write carries each one out. A count never refuses the write; one consequence can: a `stream-migration` on a table whose stream is already being migrated is refused with 409 `STREAM_MIGRATING`. Absent on an endpoint's row and when nothing stored is affected. |
 
 ### `POST /v1/flows/{id}/steps/{key}/evaluate`
 
@@ -247,7 +277,7 @@ Render one step's prompt on values you give and, when its function calls a model
 
 ### `POST /v1/flows/{id}/steps/edit`
 
-Apply a batch of edits to the flow's steps as one change, against the `version` you read: insert, move, set a field, remove, wrap steps in a block or unwrap one. All of them save or none. The result is checked as a whole list would be; a refusal answers 422 `VALIDATION_FAILED` with every finding in `details.diagnostics`, an edit that cannot apply naming its `editIndex`; a stale `version` answers 409, since edits are not idempotent. The `fixes` a finding carries are batches for this route. `validateOnly: true` answers the verdict and writes nothing, with the steps' expressions as TypeScript, and reads back any `typescript` or `python` sent. To replace the whole list: `PUT /v1/flows/{id}/steps`.
+Apply a batch of edits to the flow's steps as one change, against the `version` you read: insert, move, set a field, remove, wrap steps in a block or unwrap one. All of them save or none. The result is checked as a whole list would be; a refusal answers 422 `VALIDATION_FAILED` with every finding in `details.diagnostics`, an edit that cannot apply naming its `editIndex`; a stale `version` answers 409, since edits are not idempotent. Edits that change what an endpoint answering a view takes or answers are listed in `contractChanges`, and a change that breaks its callers needs `acceptBreaks` from an admin, as on `PUT …/steps`. The `fixes` a finding carries are batches for this route. `validateOnly: true` answers the verdict and writes nothing, with the steps' expressions as TypeScript, and reads back any `typescript` or `python` sent. To replace the whole list: `PUT /v1/flows/{id}/steps`.
 
 **Path parameters**
 
@@ -264,12 +294,13 @@ Apply a batch of edits to the flow's steps as one change, against the `version` 
 | `edits` | `object[]` | yes | The edits, applied in order as one batch: all of them save or none. At most 100; a bigger change is a whole-list `PUT …/steps`. A refusal names the edit by its index. |
 | `typescript` | `object[]` | no | Expressions given as TypeScript instead of JSONata, read with `validateOnly: true` only (a save refuses this field): each place once, and not also in the other language. Nothing saves TypeScript: save the JSONata `fromTypeScript` answers in the step. |
 | `python` | `object[]` | no | Expressions given as Python instead of JSONata, read with `validateOnly: true` only (a save refuses this field): each place once, and not also in the other language. Nothing saves Python: save the JSONata `fromPython` answers in the step. |
+| `acceptBreaks` | `object` | no | The endpoints whose callers this write may break. A step edit that changes what an endpoint answering a view takes or answers (another view, its paging inputs) is listed in `contractChanges`; one that breaks its callers is refused 409 `CONTRACT_BREAK_NOT_ACCEPTED` until this names the endpoint, and only an admin of the project may accept (403 `CONTRACT_BREAK_FORBIDDEN` otherwise). A name the project does not have is 422. |
 
 **Response `200`**
 
 One of 2 shapes:
 
-Shape 1, with `flowId`, `version`, `changes`, `touched`:
+Shape 1, with `flowId`, `version`, `changes`, `touched`, `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -278,6 +309,8 @@ Shape 1, with `flowId`, `version`, `changes`, `touched`:
 | `diagnostics` | `object[]` | yes | Warnings about the saved steps; a write with an error is refused instead. |
 | `changes` | `object[]` | yes | Each step the write added, removed, changed or moved, by key. Empty when the list saved as it stood. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
 
 Each item of `diagnostics`:
 
@@ -308,6 +341,18 @@ Each item of `touched`:
 | `id` | `string` | yes | The row's id. |
 | `version` | `integer` | yes | The row's optimistic-lock version AFTER this write. Replace the version you cached for this row with it; a PATCH sent with the old one is refused with 409. |
 
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+| `consequences` | `object[]` | no | On a table's row: what the change does to the table's stored records, each with a count. The write carries each one out. A count never refuses the write; one consequence can: a `stream-migration` on a table whose stream is already being migrated is refused with 409 `STREAM_MIGRATING`. Absent on an endpoint's row and when nothing stored is affected. |
+
 Shape 2, with `ok`, `complete`, `expressions`, `pathExpressions`, `fromTypeScript`, `fromPython`:
 
 | Field | Type | Required | Meaning |
@@ -319,6 +364,9 @@ Shape 2, with `ok`, `complete`, `expressions`, `pathExpressions`, `fromTypeScrip
 | `pathExpressions` | `object[]` | yes | Each path the steps read at a place that may hold an expression instead, with the expression that reads the same. |
 | `fromTypeScript` | `object[]` | yes | One entry per `typescript` the request sent, in its order; empty when it sent none. |
 | `fromPython` | `object[]` | yes | One entry per `python` the request sent, in its order; empty when it sent none. |
+| `contractChanges` | `object[]` | no | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `permissions` | `object` | no | What the caller's role lets the write do. |
 
 Each item of `diagnostics`:
 
@@ -367,6 +415,18 @@ Each item of `fromPython`:
 | `at` | `string` | yes | Where the expression sits, as a key path from the flow, the way a finding's `at` names it: a function's own expression (`steps[shape].with.expression`, `steps[make].with.fields.title`), an `{expr}` argument (`steps[mail].with.to`, `steps[perMember].each`, `steps[done].return.total`), or an expression test (`steps[check].if[0].test.and[1].expr`). |
 | `jsonata` | `string \| null` | yes | The JSONata the Python reads back to, or null when it was refused. Every statement the edit left unchanged keeps the step's JSONata text there byte for byte, so an unedited text answers the expression itself. |
 | `refusal` | `object \| null` | yes | Why there is no JSONata, with what to write instead; null when read back. The text does not parse; it reaches outside the expression (a request, files, the console, timers, the environment, async, a class, `try` / `except`, a callback changing an outer name); it uses a construct this function does not support or one that would run with another meaning (`==` in TypeScript, `x \|\| "default"` / `x or "default"`); it calls a function by an unknown name or with the wrong number of arguments; or its place holds no expression, or was sent twice, or in both languages. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+| `consequences` | `object[]` | no | On a table's row: what the change does to the table's stored records, each with a count. The write carries each one out. A count never refuses the write; one consequence can: a `stream-migration` on a table whose stream is already being migrated is refused with 409 `STREAM_MIGRATING`. Absent on an endpoint's row and when nothing stored is affected. |
 
 ### `GET /v1/flows/conditions`
 

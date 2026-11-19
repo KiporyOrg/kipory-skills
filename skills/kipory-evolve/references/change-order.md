@@ -5,18 +5,18 @@ refusal or a cascade carries is in `refusals-and-cascades.md`. `SKILL.md` gives 
 
 ## Start by classifying the change
 
-| The request                                                 | Class       | What it needs                                                                          |
-| ----------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------- |
-| add a field, a table, a flow, an endpoint                   | additive    | dependency order, nothing else                                                         |
-| add a **required** field to a table with records            | narrowing   | widen → backfill → patch fixed inputs → narrow, four moves                             |
-| change the steps of a flow that processes a table's records | re-run      | the edit saves; stored records keep what the old steps wrote until each is reprocessed |
-| rename, move or remove a step                               | steps       | rehearse; one steps write that changes the step and its readers together               |
-| rename a field or a table                                   | rename      | ADMIN; the records move with the new name, and callers of the old one break            |
-| change what is searchable                                   | reindex     | rehearse; a `reembed` bills per record                                                 |
-| remove anything                                             | subtractive | rehearse, expect a refusal naming dependents                                           |
-| retire a term records carry                                 | merge       | merge it into the term that survives, or archive it                                    |
-| change what an endpoint takes or answers                    | contract    | read `contractChanges`; an admin names each break in `acceptBreaks`                    |
-| rename a flow's input or output                             | rename      | ADMIN; `renameInputs` / `renameOutputs` move every reader in the same write            |
+| The request                                      | Class       | What it needs                                                                          |
+| ------------------------------------------------ | ----------- | -------------------------------------------------------------------------------------- |
+| add a field, a table, a flow, an endpoint        | additive    | dependency order, nothing else                                                         |
+| add a **required** field to a table with records | narrowing   | widen → backfill → patch fixed inputs → narrow, four moves                             |
+| change the steps of a table's processing flow    | re-run      | the edit saves; stored records keep what the old steps wrote until each is reprocessed |
+| rename, move or remove a step                    | steps       | rehearse; one steps write that changes the step and its readers together               |
+| rename a field or a table                        | rename      | ADMIN; the records move with the new name, and callers of the old one break            |
+| change what is searchable                        | reindex     | rehearse; a `reembed` bills per record                                                 |
+| remove anything                                  | subtractive | rehearse, expect a refusal naming dependents                                           |
+| retire a term records carry                      | merge       | merge it into the term that survives, or archive it                                    |
+| change what an endpoint takes or answers         | contract    | read `contractChanges`; an admin names each break in `acceptBreaks`                    |
+| rename a flow's input or output                  | rename      | ADMIN; `renameInputs` / `renameOutputs` move every reader in the same write            |
 
 Misclassifying is the usual failure. "Add a field" and "add a required field" look identical in a
 request and are a create and a migration respectively. "Edit a step" and "edit a step of the flow
@@ -109,7 +109,9 @@ over its `records` whose steps hold the `record.update` (`maxItems` caps the ele
 Every design write — a type, a flow, an endpoint or a table, on its own route or in a document, a
 rename, a checkpoint restore, connecting or disconnecting the end-user profile type, creating or
 deleting a config namespace (they reshape `UserInfo` and `ProjectInfo`) — is checked for each endpoint and flow-backed table it reaches: what
-their callers meet, before and after the whole write. Labels are no change (`title`, `description`,
+their callers meet, before and after the whole write. An endpoint answering a view takes its
+query, paging and items from the live view: an edit of the view, a shape, a table, type,
+relation or pairing it reads, or of its flow's steps, reaches it. Labels are no change (`title`, `description`,
 `examples`, field order, `x-record-ref`). The side decides:
 
 - **safe**: an optional input, output or field added; an input made optional or accepting more (a

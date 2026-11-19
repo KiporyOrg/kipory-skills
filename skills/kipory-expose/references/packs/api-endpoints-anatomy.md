@@ -81,11 +81,9 @@ to get them all.
 ⚠️ **The write body is the read shape minus everything the server derives.**
 
 A flow-backed target names its flow **by id only** — the save reads the flow's key, so it is not a
-field you may send. It comes back on every read, and so does `viewEndpoint` on a view endpoint
-(below), which the save derives the same way.
+field you may send. It comes back on every read.
 
-**So you cannot echo a stored target config back verbatim.** Strip `viewEndpoint` and the flow key
-first. An unknown key is refused loudly, naming the key, rather than being silently dropped — which
+**So you cannot echo a stored target config back verbatim.** Strip the flow key first. An unknown key is refused loudly, naming the key, rather than being silently dropped — which
 is the right behaviour and also means a round-trip that "should" work fails until you understand
 why.
 
@@ -147,8 +145,8 @@ parameters you stated — so an export applies back unchanged.
 
 On the row API a write is whole. A PATCH replaces both configs, so one that leaves `inputs` out
 binds by name, replacing bindings the endpoint held as written; a project document instead keeps
-the written bindings it holds. A read sent back as it came — dropping `viewEndpoint` and the flow's
-`key`, as for any endpoint — is accepted with the marker, its bindings and both
+the written bindings it holds. A read sent back as it came — dropping the flow's `key`, as for any
+endpoint — is accepted with the marker, its bindings and both
 sets of parameters, when those bindings and parameters are what binding by name works out from
 `paramsAsWritten`: change something else and the endpoint stays bound by name. Change a binding
 or a parameter beside the marker and it is refused; drop the marker to take them over.
@@ -487,9 +485,9 @@ it newest first, paged with `after` (older) and `before` (newer): the entry it s
 (`created`, `bound` or `first`, carrying that whole contract), then one `write` entry for each saved
 change that gave its callers a different contract — its verdict, each change, who made it and who
 accepted a break — an `unbound` entry, judged the same way, for the write that takes it off its
-flow, and a `release` entry for each platform release that changed it. A view endpoint re-derived
-from its view gets a `write` entry too, accepted by nobody, made by whoever's edit moved it or by
-the daily sweep (`system:endpoint-drift-sweep`). A label edit adds no entry of
+flow, and a `release` entry for each platform release that changed it. A view endpoint's history
+holds the view's side too: a view, shape, table, relation or step edit that changes what its
+callers send or read is such a `write`, with the verdict and who accepted a break. A label edit adds no entry of
 its own; like any saved change, it first gives an endpoint with no history its `first`, and records a
 `release` where the endpoint's contract had already moved since its last entry without a save that
 judged it. Read it to answer "what changed for my callers, and when"; to see what a write is about
@@ -503,7 +501,9 @@ to change, send it with `validateOnly: true`.
 
 A `GET`, synchronous `flow.invoke` whose response body (`responseBody`, or the flow's only output)
 is the value of a `record.view` step, returned unchanged, is a **view endpoint**. Declare no params and no
-bindings for it: the save derives them from the view and snapshots them as `viewEndpoint`.
+bindings for it: they come from the view as it is now. Nothing of the view is stored on the
+endpoint, so a view, shape or table edit reaches the next request with no endpoint save;
+`GET /v1/api-endpoints/{id}?expand=contract` reads what callers meet now.
 
 - **Query**: the view's params, typed and bounded as the view declares them, plus the three
   paging names — `after` to page on, `before` to page back, and `limit` (1 to the view's
@@ -523,17 +523,13 @@ NOT_FOUND` whether it does not exist or the caller may not read it. A cursor fro
   `VIEW_ENDPOINT_NOT_DERIVED`.
 - **Revalidation**: when the flow is that one `record.view` and every input comes from the request,
   and the view reads only fields and links (no term, stream or meaning clause, no vocabulary, no
-  file), and its item is typed, the answer carries an `ETag` (the snapshot says `etag: true`).
+  file), and its item is typed, the answer carries an `ETag`.
   Send it back as `If-None-Match`: while nothing the answer depends on changed — the records and
   links of every table the view reads, the caller, and every query and path value of the request,
   an input you bound by hand too — the answer is `304` with no body, no run and no charge. The
-  snapshot records the version of everything else the answer is derived from: the flow
-  (`flowVersion`, which every step edit moves), each view and shape it reads, each
-  table it reaches (`tableVersions`) and each relation its linked reads go through
-  (`relationVersions`). An edit anywhere else in the project leaves the `ETag` standing. A change
-  to one of those made through a row's own route (adding a step to the flow, say) leaves the
-  endpoint answering with no `ETag`, running the flow every time, until its snapshot is derived
-  again: by its own save, the next document apply, or the daily sweep. Every
+  `ETag` also stops matching when the endpoint's contract changes, or the flow (any step edit),
+  a view or shape it reads, a table it reaches or a relation its linked reads go through is
+  edited, or the endpoint is saved. An edit anywhere else in the project leaves it standing. Every
   view-endpoint answer carries `Vary: Authorization, Cookie, Accept`; a `200` or a `304` also carries
   `Cache-Control: private, no-cache` and the `ETag`, and a refusal carries neither.
 - **Live**: a view endpoint that answers an `ETag` also streams. Send the same `GET` with
@@ -550,7 +546,7 @@ NOT_FOUND` whether it does not exist or the caller may not read it. A cursor fro
   the `200` would. A page arrives about a tenth of a second after a run that changed it settles,
   and within about a second after any other write; a joiner may get its first page twice. A frame
   reflects the newest answer; a client that reads slowly gets the newest page, not every one in
-  between. How a stream ends: an edit that re-derives the endpoint closes it with `close` reason
+  between. How a stream ends: an edit that changes what the endpoint reads closes it with `close` reason
   `lifetime` — reconnect **with jitter**, and the stream reads the new contract; a later refusal
   (the record gone, the wallet empty) ends it with an `error` frame carrying the refusal's `code` —
   do not reconnect blindly, a reconnect is answered the same refusal as JSON; a run that fails is
@@ -559,12 +555,17 @@ NOT_FOUND` whether it does not exist or the caller may not read it. A cursor fro
   (`endpoints.streams-at-once`). A public endpoint (`auth: "none"`) does not stream: it answers the
   `200`. `GET /v1/openapi.json` publishes the stream's frames as the operation's
   `text/event-stream` answer.
-- **A view, shape or flow edit** re-derives the snapshot of every view endpoint it moves in the same
-  apply, and the plan lists each as an `update` of `surfaces.endpoints.<key>` whose `fields` name
-  what callers see move (`published.query.<param>` for a param renamed, retyped, added or
-  removed). A relation pairing added or removed, in a document or through its own route,
-  re-derives the view endpoints whose reads go through that relation. A daily sweep re-derives
-  any view endpoint whose view or shape moved by another way.
+- **An edit that changes what a view endpoint's callers meet is judged like any contract change.**
+  A view or shape edit in a document, a table or type edit that changes the rows the view answers,
+  a relation or pairing edit its linked reads go through, a step edit that points the answering
+  step at another view: each lists the endpoint in `contractChanges` (the plan's, the write's
+  answer). Adding a field or a param, or widening a bound, is `safe` and saves unasked. Removing a
+  field the item answers, narrowing `limit`, retyping a param or turning a list into `one` is
+  `breaking`: the write is refused `409 CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks` names the
+  endpoint, which only an admin of the project may send. The endpoint itself is not written and its
+  `version` does not move. Removing a pairing through its own route takes no `acceptBreaks`: when
+  that would break an endpoint it is refused, and the same removal goes through the project
+  document.
 
 ## The life of a request
 

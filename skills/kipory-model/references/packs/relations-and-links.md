@@ -598,12 +598,19 @@ processed fields are its flow's outputs as they are now. The generated field is 
 saves for an EDITOR and the row is listed in `contractChanges`. A change that would break a caller is refused, writing
 nothing: 403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN, and for an admin 409
 `CONTRACT_BREAK_NOT_ACCEPTED` until the body's `acceptBreaks: {endpoints, tables}` names each
-breaking one by key (the 409's fix sets it). `POST /v1/relations` and `PATCH /v1/relations/{id}`
+breaking one by key (the 409's fix sets it). `POST /v1/relations`, `PATCH /v1/relations/{id}` and `POST /v1/relation-pairings`
 take `acceptBreaks`; their answers carry `contractChanges` (`[]` when no contract changed), and
 their `validateOnly` dry runs answer the same report plus `permissions.mayAcceptBreaks`. A name
 in `acceptBreaks` the project does not have is a 422 (a dry-run finding at
 `acceptBreaks.endpoints[0]`); one the write does not break comes back in
 `acceptBreaksNotNeeded`.
+
+A pair decides which tables a view's linked read through the relation reaches, so adding or
+removing one can change what an endpoint answering that view answers. Adding one is judged like
+the writes above. `DELETE /v1/relation-pairings/{id}` takes no `acceptBreaks`: a removal that breaks
+such an endpoint's callers is refused 409 `CONTRACT_BREAK_NOT_ACCEPTED`; remove the pair in the
+project document instead, with `acceptBreaks` naming the endpoint
+(Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)).
 
 ### Renaming a property a relation's links carry
 
