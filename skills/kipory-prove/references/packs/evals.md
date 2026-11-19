@@ -211,7 +211,7 @@ own status and credits — so checking a flow's contract is one call. Any other 
 answers 422 naming what disqualifies it, and `validateOnly: true` with `wait: true` says the same as
 a verdict. The run has **180 seconds**: a case the deadline cuts, running or not yet started, is
 `not-run` with the reason, never errored. Each running case holds one of the project's preview
-slots, so a project at its ceiling answers 429, and a subject that outlasts the request's time
+slots, so a project at its ceiling waits up to 3 s for one, then answers 429, and a subject that outlasts the request's time
 limit answers 504. While the run queue cannot be read, a `wait` run is refused with 409 rather than
 risk overtaking a queued run of the suite: retry, or queue it. It is the same run as a queued one — one run per
 suite at a time (409), stored, fingerprinted and re-baselining the sweep — and it still settles if

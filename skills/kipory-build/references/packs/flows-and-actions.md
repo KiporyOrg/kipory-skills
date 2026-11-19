@@ -521,18 +521,19 @@ repeats and branches, and a merge is an `out`.
 
 An `if` test and a `repeat`'s `until` are conditions. Each is an object with one key:
 
-| Condition                                    | Holds when                                                                |
-| -------------------------------------------- | ------------------------------------------------------------------------- |
-| `{has: x}`                                   | `x` is a value, an empty one included                                     |
-| `{filled: x}`                                | `x` is a value other than `""`, `[]` or `{}`                              |
-| `{eq: [a, b]}`, `{in: [a, list]}`            | equal; `a` is one of the list                                             |
-| `{gt: …}`, `{lt: …}`, `{gte: …}`, `{lte: …}` | number comparisons                                                        |
-| `{before: [a, b]}`, `{after: [a, b]}`        | instant comparisons                                                       |
-| `{startsWith: [a, b]}`, `{contains: [a, b]}` | text starts with; text contains (ignoring case), or a list holds the item |
-| `{containsExactCase: [a, b]}`                | text contains, with the same upper and lower case                         |
-| `{matches: [x, "^[A-Z]{2}\\d+$"]}`           | text matches the regular expression (written as text)                     |
-| `{expr: "…"}`                                | the JSONata answer is true by `$boolean`                                  |
-| `{and: [...]}`, `{or: [...]}`, `{not: …}`    | combine                                                                   |
+| Condition                                    | Holds when                                                                                                     |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `{has: x}`                                   | `x` is a value, an empty one included                                                                          |
+| `{filled: x}`                                | `x` is a value other than `""`, `[]` or `{}`                                                                   |
+| `{eq: [a, b]}`, `{in: [a, list]}`            | equal; `a` is one of the list                                                                                  |
+| `{eqIgnoreCase: …}`, `{inIgnoreCase: …}`     | as `eq` and `in`, but two texts are equal whatever their case: a person's typed answer "Refund" meets `refund` |
+| `{gt: …}`, `{lt: …}`, `{gte: …}`, `{lte: …}` | number comparisons                                                                                             |
+| `{before: [a, b]}`, `{after: [a, b]}`        | instant comparisons                                                                                            |
+| `{startsWith: [a, b]}`, `{contains: [a, b]}` | text starts with; text contains (ignoring case), or a list holds the item                                      |
+| `{containsExactCase: [a, b]}`                | text contains, with the same upper and lower case                                                              |
+| `{matches: [x, "^[A-Z]{2}\\d+$"]}`           | text matches the regular expression (written as text)                                                          |
+| `{expr: "…"}`                                | the JSONata answer is true by `$boolean`                                                                       |
+| `{and: [...]}`, `{or: [...]}`, `{not: …}`    | combine                                                                                                        |
 
 A pair is the value tested, then the one it is compared with; a bare string is a path, so text is
 `{literal: "paid"}`: `{eq: [charge.body.status, {literal: paid}]}`. `GET /v1/flows/conditions` lists
