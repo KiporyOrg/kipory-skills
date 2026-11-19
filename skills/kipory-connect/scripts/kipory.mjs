@@ -812,9 +812,9 @@ const printMoved = (moved) => {
     const fields = Array.isArray(m.fields) ? m.fields : [];
     for (const f of fields)
       out(`  ${f.path}: ${side(f, "from")} → ${side(f, "to")}`);
-    // Empty when it was changed back, or when the change log kept too much to list it.
+    // Empty when the change log kept too much to list it, or the row was only renamed.
     if (fields.length === 0)
-      out("  (its fields cannot be listed: changed back, or too large to log)");
+      out("  (its fields cannot be listed: too large to log, or only renamed)");
   }
 };
 

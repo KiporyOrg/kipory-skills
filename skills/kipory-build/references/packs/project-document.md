@@ -317,7 +317,8 @@ changes — and every key it would create — that another person, key or sessio
 `basedOn` is listed with who, when, their note and label, and what they changed. Any here makes
 `ok` false: read the project again, make your change on what it says now, plan again. Elements
 the document does not touch never stop it, so two authors working on different flows never refuse
-each other. A read older than the history the project keeps is `409 PLAN_STALE` `read-too-old`.
+each other. Nor does an element changed and changed back: a pause switched on and off again, or a
+schedule's cron moved and restored, leaves it as you read it, and it is not listed. A read older than the history the project keeps is `409 PLAN_STALE` `read-too-old`.
 
 Your own writes after a read are not moves only when they carry your session's label: an apply
 takes `label` (the plan's by default), and a row save — a `PATCH /v1/flows/{id}`, a

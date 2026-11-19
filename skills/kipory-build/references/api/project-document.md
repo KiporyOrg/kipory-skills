@@ -180,7 +180,7 @@ Each item of `moved`:
 | `at` | `string \| null` | yes | When that change was made. |
 | `note` | `string \| null` | yes | Why, as its author wrote it; null when it carried no note. |
 | `label` | `string \| null` | yes | The session that made it, when it named itself. |
-| `fields` | `object[]` | yes | What changed in it since your read: per field, the earliest value after your read and the value now. Empty when it was changed and changed back. |
+| `fields` | `object[]` | yes | What changed in it since your read: per field, the earliest value after your read and the value now. Empty when the change was too large to list, or was only a rename; an element changed and changed back is not listed at all. |
 
 Each item of `ignoredIds`:
 
@@ -307,7 +307,7 @@ Each item of `moved`:
 | `at` | `string \| null` | yes | When that change was made. |
 | `note` | `string \| null` | yes | Why, as its author wrote it; null when it carried no note. |
 | `label` | `string \| null` | yes | The session that made it, when it named itself. |
-| `fields` | `object[]` | yes | What changed in it since your read: per field, the earliest value after your read and the value now. Empty when it was changed and changed back. |
+| `fields` | `object[]` | yes | What changed in it since your read: per field, the earliest value after your read and the value now. Empty when the change was too large to list, or was only a rename; an element changed and changed back is not listed at all. |
 
 Each item of `ignoredIds`:
 
@@ -427,7 +427,7 @@ Each item of `moved`:
 | `at` | `string \| null` | yes | When that change was made. |
 | `note` | `string \| null` | yes | Why, as its author wrote it; null when it carried no note. |
 | `label` | `string \| null` | yes | The session that made it, when it named itself. |
-| `fields` | `object[]` | yes | What changed in it since your read: per field, the earliest value after your read and the value now. Empty when it was changed and changed back. |
+| `fields` | `object[]` | yes | What changed in it since your read: per field, the earliest value after your read and the value now. Empty when the change was too large to list, or was only a rename; an element changed and changed back is not listed at all. |
 
 Each item of `ignoredIds`:
 

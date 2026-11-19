@@ -1,7 +1,9 @@
 {
-  "source": "82cf24c7ed17a1edbf665a6979c60667284bf785",
+  "source": "a716d150878374116eaa18078d5ea9739a5c5f19",
   "since": "2026-08-19",
   "history": [
+    {"sha":"a716d1508783","skills":"An element changed and changed back after a read is not moved, so a paused-and-resumed schedule refuses no plan (#3759 benchmark) (#3771)"},
+    {"sha":"57d87b244571"},
     {"sha":"82cf24c7ed17","skills":"A burst waits up to 3 s for a running slot instead of a 429, the default caps rise tenfold a minute, and a decision can match a typed answer whatever its case (#3773)"},
     {"sha":"0cf8180c1e94","skills":"A person can connect and disconnect a service in the app, from the organization or from any project's Services page, and a sign-in comes back to the page it started from (#3768)"},
     {"sha":"7076edefe55f","skills":"A record.read that says failIfEmpty: true proves its first row to the save, so the guard agents wrote after it is no longer needed, and the run holds the function to that promise (#3774)"},
@@ -999,8 +1001,6 @@
     {"sha":"ef60f05aa72e"},
     {"sha":"fb05c3080cc7"},
     {"sha":"a80f9917dd1b"},
-    {"sha":"107833b5094c"},
-    {"sha":"ac1c02f9edcb"},
-    {"sha":"9d1847063ae0"}
+    {"sha":"107833b5094c"}
   ]
 }
