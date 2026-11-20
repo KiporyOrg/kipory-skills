@@ -1,7 +1,9 @@
 {
-  "source": "1babbc0c7c864e2ecb9df50e564eedee6f767d24",
+  "source": "0d9548909555f73340207ad15ab52c9a6fb95fd0",
   "since": "2026-08-19",
   "history": [
+    {"sha":"0d9548909555","skills":"The platform's event types are code, not rows: every read of a project's types adds them, nothing seeds or repairs them, and the project document leaves them out (#3783)"},
+    {"sha":"8eb5b61aba9f"},
     {"sha":"1babbc0c7c86","skills":"A view endpoint's contract is derived where it is used: no stored copy, no drift sweep (436 slice 5) (#3780)"},
     {"sha":"bf42aec48f6a"},
     {"sha":"b3266a00d981","skills":"A flow-backed table follows its flow: no drift failures, values checked before they are stored, and each record says which shape it holds (436 slice 3a) (#3776)"},
@@ -999,8 +1001,6 @@
     {"sha":"546e1fc991d7"},
     {"sha":"a8332f4d8b3a"},
     {"sha":"0f7ba4187ed0"},
-    {"sha":"3739740f97b5"},
-    {"sha":"052e7cb219a7"},
-    {"sha":"4cbdb7bac0da"}
+    {"sha":"3739740f97b5"}
   ]
 }

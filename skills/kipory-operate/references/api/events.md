@@ -18,7 +18,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/event-types`
 
-List one project's event types (`?project=<nodeId>`, optionally only one namespace with `categoryKey`), each with the `version` its PATCH takes and whether a trigger can listen to it (`listenable`: an active, durable type that is not run-scoped). The whole registry, as authored, rides `GET /v1/bootstrap` and the `events` section of `GET /v1/projects/{nodeId}/document`. Its recorded events: `GET /v1/project-events?project=`; the triggers that select a type by `categoryKey`/`eventKey`: `GET /v1/triggers?project=`.
+List one project's event types (`?project=<nodeId>`, optionally only one namespace with `categoryKey`), each with the `version` its PATCH takes and whether a trigger can listen to it (`listenable`: an active, durable type that is not run-scoped). The platform's own types (`categoryKey: platform`) come first, the same in every project. The whole registry rides `GET /v1/bootstrap`; the `events` section of `GET /v1/projects/{nodeId}/document` holds the project's own types, not the platform's. Its recorded events: `GET /v1/project-events?project=`; the triggers that select a type by `categoryKey`/`eventKey`: `GET /v1/triggers?project=`.
 
 **Query**
 
@@ -37,7 +37,7 @@ Each item of `eventTypes`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | Unique id of the event type. |
+| `id` | `string` | yes | Id of the event type. A platform type's id is `platform.<key>`, the same in every project; only the project's own types are addressed by id at `/v1/event-types/{id}`. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `categoryKey` | `string` | yes | The namespace this event lives in: the first half of its `categoryKey/key` address, and the channel and group it is published and shown under. |
 | `key` | `string` | yes | The event type's key, unique within its namespace. |
@@ -94,7 +94,7 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | Unique id of the event type. |
+| `id` | `string` | yes | Id of the event type. A platform type's id is `platform.<key>`, the same in every project; only the project's own types are addressed by id at `/v1/event-types/{id}`. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `categoryKey` | `string` | yes | The namespace this event lives in: the first half of its `categoryKey/key` address, and the channel and group it is published and shown under. |
 | `key` | `string` | yes | The event type's key, unique within its namespace. |
@@ -115,7 +115,7 @@ Each item of `diagnostics`:
 
 ### `GET /v1/event-types/{id}`
 
-Read one event type. Every type of its project: `GET /v1/event-types?project=` (one namespace: add `categoryKey`).
+Read one of the project's own event types. The platform's types (`categoryKey: platform`) are the same in every project and have no id here: read them, and every other type of a project, with `GET /v1/event-types?project=` (one namespace: add `categoryKey`).
 
 **Path parameters**
 
@@ -127,7 +127,7 @@ Read one event type. Every type of its project: `GET /v1/event-types?project=` (
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | Unique id of the event type. |
+| `id` | `string` | yes | Id of the event type. A platform type's id is `platform.<key>`, the same in every project; only the project's own types are addressed by id at `/v1/event-types/{id}`. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `categoryKey` | `string` | yes | The namespace this event lives in: the first half of its `categoryKey/key` address, and the channel and group it is published and shown under. |
 | `key` | `string` | yes | The event type's key, unique within its namespace. |
@@ -176,7 +176,7 @@ Shape 1, with `id`, `project`, `categoryKey`, `key`, `label`, `defaultScope`, `p
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | Unique id of the event type. |
+| `id` | `string` | yes | Id of the event type. A platform type's id is `platform.<key>`, the same in every project; only the project's own types are addressed by id at `/v1/event-types/{id}`. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `categoryKey` | `string` | yes | The namespace this event lives in: the first half of its `categoryKey/key` address, and the channel and group it is published and shown under. |
 | `key` | `string` | yes | The event type's key, unique within its namespace. |

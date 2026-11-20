@@ -103,4 +103,4 @@ Vocabularies and relations report readiness under `expand=readiness`, from a fou
 
 ## Seeded rows
 
-Anything the platform installed — event types with `origin: seed`, provider types — refuses a delete with 409 and generally accepts a patch. Seeded is not read-only.
+Anything a source installed — a provider's event types (`origin: seed`), provider types — refuses a delete with 409 and generally accepts a patch. Seeded is not read-only. The platform's own event types (`platform/…`) are another matter: the same in every project, listed by `GET /v1/event-types` but never stored, so their id (`platform.<key>`) addresses nothing and no write reaches them.
