@@ -45,9 +45,11 @@ Every read also carries a computed, read-only `access`: whether a VIEWER-level c
 call, whether the method or the bound flow decided that, and which functions in the flow write. It
 is derived on each read from the same rule the write gate applies — never stored, never writable.
 It also says which credential the endpoint takes: `requiresUser` is true when the bound flow —
-sub-flows included — reads or writes records owned by a user, and `requiresUserBy` names the
-functions. A key acts as the project and has no user, so its call to such an endpoint is refused
-`403` before the flow runs. A step counts wherever it sits in the flow, in an `if` branch a key's
+sub-flows included — needs a person (it reads `userInfo`, or acts for the caller on a step that
+cannot act for nobody), and `requiresUserBy` names the functions. A read or change of a
+person-owned table that names no person does not count: a run with no person reaches every
+person's records. A key acts as the project and has no user, so its call to an endpoint that
+requires one is refused `403` before the flow runs. A step counts wherever it sits in the flow, in an `if` branch a key's
 call would not take too; a disabled step (`enabled: false`) does not. A
 subscription to a `user`-scoped channel is `requiresUser: true` as well: a key has no such channel.
 
@@ -238,7 +240,8 @@ What that changes:
 
 - **No credential is read.** A key or a cookie sent with the call is ignored, not checked — a revoked
   key and a stranger's cookie change nothing. The run has **no user**, whoever called: a step that
-  reads the calling user (`userInfo`) finds none, as on a key's run. To answer a signed-in caller differently,
+  reads the calling user (`userInfo`) finds none, as on a key's run, and a read of a person-owned
+  table answers every person's records. To answer a signed-in caller differently,
   save a second endpoint that requires a credential.
 - **The `Idempotency-Key` header is ignored.** Every public run belongs to the project, so two
   strangers sending the same key would otherwise share one write.
@@ -263,8 +266,10 @@ The flow may write: that is what a sign-up form is. `validateOnly` warns `PUBLIC
 when it does, and always warns `PUBLIC_ENDPOINT_SPENDS`, naming the model and vendor functions the flow
 reaches — the same list an endpoint read carries as `spends` inside its `access`, beside `public`.
 It also warns `PUBLIC_ENDPOINT_NAMES_PERSON` when a `record.query`, `record.count`, `record.list`
-or `record.aggregate` of a person-owned table takes its `userId` from the request: anyone could
-then read anyone's records. Read a fixed person, or keep such an endpoint behind a credential.
+or `record.aggregate` of a person-owned table takes its `userId` from the request, and
+`PUBLIC_ENDPOINT_READS_PEOPLE` when the flow reads a person-owned table naming no person: either
+way anyone can read everyone's records. Read a fixed person, return only what is public, or keep
+such an endpoint behind a credential.
 
 Going back to `auth: "required"` takes effect on the next request. Going public can take up to 30
 seconds to be served.
@@ -653,7 +658,8 @@ first: a path with no `return` is `FLOW_PATH_HAS_NO_END`, and a `return` of a re
 may be nothing is `FLOW_OUTPUT_MAY_BE_NOTHING`, each with a ready fix.
 
 ⛔ **Test under the caller's principal.** A flow fired by a **schedule** or a **trigger** resolves
-no end user, so `userInfo` is absent: a step that needs a person — a per-user table — refuses. The
+no end user, so `userInfo` is absent: a step that needs a person refuses, and a read of a
+person-owned table reaches every person's records. The
 save already refuses a required read of `userInfo` that no `if` with `{has: userInfo}` guards
 (`STEP_INPUT_MAY_BE_ABSENT`). A preview run as yourself resolves you; preview such a flow with
 `"principal": "no-end-user"` or you are testing a different run. See the preview section of

@@ -19,7 +19,7 @@ Merged terms count toward the term they point at. Use it to show what someone ha
 | --- | --- | --- | --- | --- |
 | `maxEntriesPerVocabulary` | integer, 1 to 1000 | no | `200` | Most entries per vocabulary or tree level, 1 to 1000, default 200. ⚠️ Entries sort by count, so the highest-count terms survive the cap. |
 | `shape` | `aggregate` \| `tree` | no | `"aggregate"` | `aggregate` (default) gives a flat list per vocabulary; `tree` a browse tree. ⚠️ Under `tree` the per-vocabulary cap becomes a per-level cap — categories, then a category's types, then a type's subtypes. |
-| `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; only their records count. ⚠️ This value is mandatory: an empty one fails the step rather than counting across users. |
+| `userId` | union | no | — | The person whose records to read; empty reads as the run. ⚠️ Left empty in a run with no person, the step counts every person's terms. |
 | `vocabularies` | string[] | no | — | Which vocabularies to include; empty means all the user has terms in. ⚠️ Under `shape: tree` this is not a filter but the ordered list of levels, outermost first. |
 
 ### `userId` — one of

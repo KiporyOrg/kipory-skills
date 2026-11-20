@@ -130,17 +130,16 @@ read leaves it out (`failIfEmpty` answers 404), a write finds nothing to change,
 list of shares answers 404. Nobody learns that it exists. A person it **is** shared with, but below the
 level the act needs, is refused **403**:
 
-| Code                              | Status | When                                                                                                                                                                        |
-| --------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RECORD_SHARE_LEVEL_TOO_LOW`      | 403    | updating, appending to, linking or unlinking below `write`; deleting below `delete`                                                                                         |
-| `RECORD_GRANT_NOT_ALLOWED`        | 403    | sharing, revoking or listing shares, by someone who sees the record but holds no `manage`                                                                                   |
-| `RECORD_GRANT_ABSENT`             | 404    | `record.revoke` with `ifAbsent: "refuse"`, and the record is not shared with them                                                                                           |
-| `RECORD_GRANT_NOT_SHARING`        | 422    | the record's table does not share (`record.grant`, `record.revoke`, `record.grants`, asked by its owner or the project's automation; anyone else gets the 404)              |
-| `RECORD_GRANT_PRINCIPAL_INVALID`  | 422    | whom you share with (`record.grant`'s second input) is neither a person of the project nor a team record (of a sharing table) they can see; or `member` given to a team     |
-| `RECORD_LIST_WHOSE_NOT_SHARING`   | save   | `whose` other than `all` on a table that does not share                                                                                                                     |
-| `VIEW_SCOPE_PROJECT_READS_PEOPLE` | save   | a `project`-scope view reads a sharing table — a view reads it as its caller only                                                                                           |
-| `QUERY_COUNT_REACHES_SHARED`      | 422    | a count-only link clause, or `record.link-counts`, reaches a sharing table: the count would include records the run may not read. Filter the far records of a query instead |
-| `RECORD_SHARED_NO_FILES`          | 422    | an update through a share tries to attach files                                                                                                                             |
+| Code                             | Status | When                                                                                                                                                                        |
+| -------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RECORD_SHARE_LEVEL_TOO_LOW`     | 403    | updating, appending to, linking or unlinking below `write`; deleting below `delete`                                                                                         |
+| `RECORD_GRANT_NOT_ALLOWED`       | 403    | sharing, revoking or listing shares, by someone who sees the record but holds no `manage`                                                                                   |
+| `RECORD_GRANT_ABSENT`            | 404    | `record.revoke` with `ifAbsent: "refuse"`, and the record is not shared with them                                                                                           |
+| `RECORD_GRANT_NOT_SHARING`       | 422    | the record's table does not share (`record.grant`, `record.revoke`, `record.grants`, asked by its owner or the project's automation; anyone else gets the 404)              |
+| `RECORD_GRANT_PRINCIPAL_INVALID` | 422    | whom you share with (`record.grant`'s second input) is neither a person of the project nor a team record (of a sharing table) they can see; or `member` given to a team     |
+| `RECORD_LIST_WHOSE_NOT_SHARING`  | save   | `whose` other than `all` on a table that does not share                                                                                                                     |
+| `QUERY_COUNT_REACHES_SHARED`     | 422    | a count-only link clause, or `record.link-counts`, reaches a sharing table: the count would include records the run may not read. Filter the far records of a query instead |
+| `RECORD_SHARED_NO_FILES`         | 422    | an update through a share tries to attach files                                                                                                                             |
 
 A `record.delete` of several ids, one of which the person reaches below `delete`, deletes none of them.
 A merge stays the owner's: no level lets a person merge someone else's record.

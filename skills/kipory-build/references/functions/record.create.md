@@ -11,7 +11,7 @@ With a processing flow, the record is not queued: follow with Queue for processi
 - **I/O:** `submission object` → `RecordCreate`
 - **Also found as:** save, save to table, store, add a row, insert, new record, spreadsheet
 - **Reads:** The new record's fields (`fields` one by one, or the object `data` names) and optional file ids. Fields off the type's shape fail the step, each named. _(shape hint: `submission object`)_
-- **Emits:** A `RecordCreate` — the new record's id and what it was created as. A retry under the same key reuses that id rather than minting another.
+- **Emits:** A `RecordCreate`: the new record's id, reused on a retry under the same key. With `userId` or `skip`, a `RecordCreateForPerson`, whose id may be absent.
 
 ## Config
 

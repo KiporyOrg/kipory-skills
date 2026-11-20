@@ -2,6 +2,42 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261120.141804 — 2026-11-20
+
+Synced from the Kipory monorepo at `bb9220250`.
+
+- changed: `skills/kipory-build/references/functions/flow.invoke.md`
+- changed: `skills/kipory-build/references/functions/record.aggregate.md`
+- changed: `skills/kipory-build/references/functions/record.append.md`
+- changed: `skills/kipory-build/references/functions/record.count.md`
+- changed: `skills/kipory-build/references/functions/record.create.md`
+- changed: `skills/kipory-build/references/functions/record.list.md`
+- changed: `skills/kipory-build/references/functions/record.query.md`
+- changed: `skills/kipory-build/references/functions/record.read.md`
+- changed: `skills/kipory-build/references/functions/vocabulary.aggregate.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-build/references/views.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/api/projects.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/sharing-records.md`
+- changed: `skills/kipory-diagnose/references/api/runs.md`
+- changed: `skills/kipory-evolve/references/refusals-and-cascades.md`
+- changed: `skills/kipory-expose/references/api/api-endpoints.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-model/SKILL.md`
+- changed: `skills/kipory-model/references/api/tables.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+- changed: `skills/kipory-operate/references/pitfalls.md`
+
 ## 1.20261120.61852 — 2026-11-20
 
 Synced from the Kipory monorepo at `e1ee94237`.

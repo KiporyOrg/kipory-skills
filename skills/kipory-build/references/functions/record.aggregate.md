@@ -17,14 +17,14 @@ One exact answer over every matching record, grouped by a field, a date, a term 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `clauses` | union[], 0 to 16 items | no | `[]` | Which records to total, as `record.query` asks; none totals them all. ⚠️ A `semantic` clause is refused: a meaning search ranks a few, it does not total. |
+| `clauses` | union[], at most 16 items | no | `[]` | Which records to total, as `record.query` asks; none totals them all. ⚠️ A `semantic` clause is refused: a meaning search ranks a few, it does not total. |
 | `groupBy` | union[], at most 2 items | no | `[]` | Up to two keys: a field, a date period, terms or status. ⚠️ A record with two terms counts in both groups; give a hyphenated vocabulary key an `as`. |
 | `limit` | integer, 1 to 1000 | no | `100` | How many groups come back at most: 1 to 1000. ⚠️ More groups than this answer the first ones in order, with `complete: false`. |
 | `measures` | object | yes | — | Named totals: count, countDistinct, sum, avg, min or max of a field. |
 | `order` | object | no | — | Order groups by a key or a measure; group keys by default. |
 | `tableKey` | string | yes | — | The table whose records to total. |
 | `timeZone` | string | no | `"UTC"` | The time zone days, weeks and months are cut in. |
-| `userId` | union | no | — | The person whose records to total; empty means the signed-in user. ⚠️ An empty value, or no signed-in user, fails the step on user-owned tables. |
+| `userId` | union | no | — | The person whose records to total; empty means the signed-in user. ⚠️ An empty value fails the step; left out in a run with no person, it reads every person's records. |
 
 ### `clauses` — each item is one of
 

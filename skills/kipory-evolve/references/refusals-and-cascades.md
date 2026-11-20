@@ -1,5 +1,7 @@
 # Refusals and cascades
 
+<!-- field-ok: ownerId — a row's owner, not a request field -->
+
 Read this when a change to a live project is refused, or before one that may take other rows along: what refuses, what cascades instead, and what each carries.
 
 ## What refuses, and what cascades instead
@@ -7,7 +9,15 @@ Read this when a change to a live project is refused, or before one that may tak
 Some destructive changes are refused outright:
 
 - deleting a table that holds records, or re-pointing its type or owner scope
-  (`TABLE_PINNED_BY_RECORDS`), or removing a field from its type that records hold;
+  (`TABLE_PINNED_BY_RECORDS`), or removing a field from its type that records hold.
+  One exception: a project table whose records name their owner in a text field becomes
+  person-owned with `ownerScope: "user"` plus `ownerField: "<field>"`. Every record becomes the
+  person its field names, the field leaves the type, and a key stays unique across the project.
+  Send `validateOnly: true` first. It is refused, with nothing changed, when a record names nobody
+  active (`TABLE_OWNER_FIELD_UNUSABLE`, with the count and record ids) or when the type is shared,
+  records hold files, or something still reads the field (`TABLE_OWNER_CONVERSION_BLOCKED`). In a
+  document, state the type without the field and move its readers to `ownerId` in the same plan.
+  An undo or rewind cannot hand those records back (`RESTORE_CROSSES_OWNER_CONVERSION`);
 - deleting a flow something still references, or removing a step whose value a later step still reads (unless the same batch changes those readers);
 - deleting a term that is assigned, is a parent, or is the canonical of aliases;
 - deleting a vocabulary while another vocabulary nests under it, or without an `assignedTerms`

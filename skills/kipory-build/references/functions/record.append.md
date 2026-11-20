@@ -11,7 +11,7 @@ Writes time-stamped events to a record's stream field, not its data. A retry nev
 - **I/O:** `record id + event(s)` → `string`
 - **Also found as:** log event, history, timeline, add event
 - **Reads:** The record id from `recordId`, and one event object or a list of them from `event`; optionally your own event ids from `eventId`. _(shape hint: `record id + event(s)`)_
-- **Emits:** A bare string — `appended` when at least one event row was written, `unchanged` when every event already existed and the retry converged.
+- **Emits:** A bare string: `appended` when an event row was written, `unchanged` when every event already existed, `person-gone` when `userId`'s person left and nothing was written.
 
 ## Config
 

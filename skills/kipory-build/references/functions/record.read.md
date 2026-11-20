@@ -26,7 +26,7 @@ Returns records in the order of the ids given; on user-owned types, only the use
 | `redirect` | `follow` \| `report` | no | `"follow"` | A merged id: `follow` reads its survivor; `report` fails the read. ⚠️ With `follow`, two ids merged into one record read as that record once. |
 | `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
 | `tableKey` | string | yes | — | The table to read. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
-| `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; others' ids are dropped. ⚠️ On a user-owned type, an empty value fails the step; dropped ids are silent. |
+| `userId` | union | no | — | The person whose records to read; empty reads as the run. ⚠️ Left empty in a run with no person, it reads every person's records; dropped ids are silent. |
 
 ### `dataNullChecks` — each item
 

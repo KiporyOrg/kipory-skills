@@ -15,8 +15,13 @@ The fire is attributed to the **project**, not to a person, and billed to the pr
 
 <!-- field-ok: userInfo — a run-ambient value seeded by the engine, not a wire field a caller sends -->
 
-**A fire has no end user.** `userInfo` is nothing in the run, so a per-user table refuses there, a
-project-wide one reads normally, and a `user`-scoped emit is dropped. `userInfo` is optional
+<!-- field-ok: ownerId — a member of a person-owned table's row in a flow (437-person-owned-tables), not a wire field -->
+
+**A fire has no end user.** `userInfo` is nothing in the run, so it acts for nobody: it reads and
+changes every person's records of a person-owned table (each row names its person as `ownerId`;
+a clause on `ownerId` narrows to one), reads a project-wide table normally, and drops a
+`user`-scoped emit. A create on a person-owned table still names its person (`userId`).
+`record.query` with `clauses: []` pages through every record the fire reaches. `userInfo` is optional
 everywhere: a required read of it is refused at save (`STEP_INPUT_MAY_BE_ABSENT`) until it sits under
 `if` + `{has: userInfo}` or reads `{path: userInfo.userId, optional: true}`. Carry the person you mean as an input, and preview the flow
 with `"principal": "no-end-user"`, which is the run a fire makes. There is no "run this schedule
@@ -441,10 +446,10 @@ Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) sa
 - **There is no owner to name.** A schedule belongs to the project. The creator is recorded as
   provenance only, read by nothing at fire time, and is empty for a token-authenticated caller.
   This is deliberate: a departed creator's account can never stop or misattribute a run.
-- **A flow that works from an endpoint can do nothing on a schedule.** The endpoint run had a
-  signed-in user and the fire has none (above): a per-user table refuses and a `user`-scoped
-  emit drops. A preview run as yourself resolves you and reports the flow healthy, so preview with
-  `"principal": "no-end-user"`.
+- **A flow that works from an endpoint reaches more on a schedule.** The endpoint run had a
+  signed-in user and saw only that person's records; the fire has none (above) and sees every
+  person's, and a `user`-scoped emit drops. A preview run as yourself sees only yours, so preview
+  with `"principal": "no-end-user"`.
 - **A schedule stored before a change keeps firing.** The fire asks only presence, so a value a
   later change made the wrong type still reaches the flow. The change's own rehearsal or plan
   named it (`SCHEDULE_INPUT_MISTYPED`); patch the schedule's `inputs` when it does.

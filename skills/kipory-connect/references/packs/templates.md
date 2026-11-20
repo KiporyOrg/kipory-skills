@@ -45,7 +45,9 @@ gives you needs a key or a session until you decide otherwise. An endpoint there
 `POST /v1/api-endpoints`, `responseType` and a `from: "patch"` input included: read `responseType`
 to know an endpoint answers CSV or other text rather than JSON. A template file may leave out a
 parameter's `type` and `required`, a path parameter's entry and an endpoint's `inputs`, as any
-project document may; the project it creates stores them whole.
+project document may; the project it creates stores them whole. A template's people tables (`ownerScope:
+user`) are read as any document's are: a run that acts for nobody reaches every person's records,
+a key may be `{ kind: key, scope: project }`, and a `flow.invoke` may say `as: project`.
 
 ## Create a project from one
 

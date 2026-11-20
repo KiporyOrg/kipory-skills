@@ -30,8 +30,7 @@ list, and every error it finds arrives with a ready fix you can post as it is.
   a flow is refused at plan.
 - **A schedule has no user.** `userInfo` is absent on a scheduled run. In a flow that does not
   state `caller: user`, a required read of it that you write is a save error until you guard it
-  with `if` and `has`; a per-user table read that leaves its user to the run is not seen at save
-  and fails at run (403 at an endpoint).
+  with `if` and `has`. A per-user table read that names no person reads every person's records.
 
 ## What a flow is
 
@@ -265,13 +264,14 @@ a guard (`if` + `has`, a `fail` first, `optional`) like any other unproved read.
 - An `if` with no `else`, or a branch that does not give a name, makes that name possibly nothing
   after the block. Give every branch the same `out` names when a later step needs them.
 
+<!-- field-ok: ownerId — a member of a person-owned table's row in a flow (437-person-owned-tables), not a wire field -->
+
 ⚠️ **`userInfo` and `tableInfo` are optional values.** `userInfo` is the signed-in person; a
 schedule, a key's call and most triggers have none, and it is then absent, not empty. `tableInfo`
 is there only when a table's record processing runs the flow. A required read of either that you
 write (`userId: userInfo.userId`) is `STEP_INPUT_MAY_BE_ABSENT`. A read of a per-user table that
-leaves `userId` out acts for the run's person by default, and the save does not see that read: on a
-run with no person the step fails `end-user-required`, which an endpoint answers 403 `FORBIDDEN` (a
-key's call to such an endpoint is refused before the flow runs). Guard either kind:
+leaves `userId` out acts for the run's person, and on a run with no person it reaches every
+person's records (each row names its person as `ownerId`). Guard a required read of either:
 
 ```yaml
 - key: forPerson
@@ -980,9 +980,9 @@ which counts every fetch function's calls, cache hits and refusals.
 - With `input.kind: "record"`, `record-owner` runs as the record's own user (needs EDITOR on the
   record's project; refused for a record with no owner).
 
-A preview from an API key or as you owns none of your end users' records, so a read of a per-user
-table answers `[]` — a value, not an error — and every step after it works on an empty list. Judge
-such a flow as the person it serves.
+A preview as you owns none of your end users' records, so a read of a per-user table answers
+`[]` — a value, not an error — and every step after it works on an empty list. A `no-end-user`
+preview reads every person's records. Judge such a flow as the person it serves.
 
 **Read the body, not the status.** A flow that breaks still answers 200. The answer carries:
 
@@ -1124,8 +1124,8 @@ apply. A step's run settings travel with it.
 - **A step after a block cannot see inside it.** Only `out` leaves a block.
 - **Preview writes by default.** `apply: false`.
 - **A version is per flow.** Every saved write answers the next `version`; send it back.
-- **A per-user read in a scheduled flow** runs with no `userInfo`. Guard it, and preview it with
-  `principal: "no-end-user"`.
+- **A per-user read in a scheduled flow** runs with no `userInfo` and reads every person's
+  records. Guard a `userInfo` read, and preview it with `principal: "no-end-user"`.
 - **Renaming a key moves its reads** only within the flow. A flow key is permanent; a step key
   renamed with `set` is safe, and callers of the flow name it by its flow key, not its step keys.
 

@@ -171,8 +171,9 @@ What no schema says:
 - **Who it reads as is the view's `scope`.** `"caller"`, the default, reads a person-owned table as
   the signed-in person — the identity is never wired. A flow that can start with no person (a
   schedule, a trigger, a project table's processing) and reaches such a view is refused at plan,
-  `VIEW_CALLER_WITHOUT_PERSON`; `"project"` reads as the project and may reach no person-owned
-  table.
+  `VIEW_CALLER_WITHOUT_PERSON`; `"project"` reads as the project: every person's records of a
+  person-owned table (the plan warns `PROJECT_VIEW_READS_PEOPLE` when a signed-in endpoint
+  serves it).
 - **A shape is the answer's type.** A shaped row carries `id` and exactly the named properties; a
   linked one-record property is absent when nothing is linked. The step's value, the endpoint's
   answer and the OpenAPI component (`BookCard`) are derived from it, so they cannot disagree.

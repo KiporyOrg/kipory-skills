@@ -38,7 +38,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | `sortField` | string | no | — | Order by one of the table's queryable fields instead of `sort`. ⚠️ The field must be a date; rows without a value are left out. |
 | `statuses` | string[] of `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` \| `DELETING` \| `MERGED`, at least 1 item | no | — | Keep only rows with these statuses; omit it for every status. |
 | `tableKey` | string | yes | — | The table to list. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
-| `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; only user-owned types use it. ⚠️ On a user-owned type, an empty value fails the step. |
+| `userId` | union | no | — | The person whose records to read; empty reads as the run. ⚠️ Left empty in a run with no person, the step reads every person's records. |
 | `vocabularyFilter` | object[], at least 1 item | no | — | Keep only rows tagged with all of these vocabulary terms. ⚠️ A nested term slug matches under every parent unless `parentSlug` is set. |
 | `whose` | `all` \| `own` \| `shared` | no | `"all"` | Sharing tables: `all` (default), `own`, or `shared` (newest share first). |
 

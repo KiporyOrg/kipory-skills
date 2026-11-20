@@ -226,8 +226,12 @@ Declared on the table as `ownerScope` — `user` or `project`, spelled as a reco
 `ownerScope` — and every generic reader, writer and processor branches on it. The stored
 spelling (`USER`, `PROJECT`) is refused on the wire.
 
-- **User-scoped**: records belong to one end user. Creation requires the run's
-  authenticated user, and reads are pinned to them.
+- **User-scoped** (person-owned): records belong to one person. A person's run reads and
+  writes only that person's records (and what is shared with them), so a flow writes no owner
+  field and no owner check. A run that acts for nobody — a schedule, a trigger, a public
+  endpoint — reads and changes every person's records; each row names its person as `ownerId`,
+  and a query clause on `ownerId` narrows to one person. A create names its person: the run's
+  user, or `userId`.
 - **Project-scoped**: the table is the project's **shared pool** — ingested once, read by everyone.
   Rows carry no user, creation needs no user (so a schedule can write), and the idempotent id
   substitutes the project for the user, so repeated ingests of one payload converge on **one**
@@ -272,7 +276,7 @@ only when the run succeeds. What does work on a pool table:
 A pool processing run carries no user at all, so `userInfo` is absent from it. `userInfo` is an
 optional value: a required read of it is refused at save (`STEP_INPUT_MAY_BE_ABSENT`) — guard it
 with an `if` testing `{ "has": "userInfo" }`, or read it with `optional` or `default` — and a per-user
-read refuses. Read configuration through the project attribute instead.
+read reaches every person's records. Read configuration through the project attribute instead.
 Billing lands on the project's payer.
 
 ## One statement of what each field is for: `uses`
@@ -411,10 +415,10 @@ Three consequences that catch people out, and only the last two are _silent_:
   name (`title`), never a stored key. (The records list answers a condition beside a
   meaning-based search the same way: the **record store** narrows first, and the ranking runs
   over what it kept.)
-- ⚠️ **A search reads one owner's records, and no clause states which.** A query over a
-  user-scoped table reads as the run's signed-in user (or the user a step's `userId` names); a
-  pool table reads the project's records. A run with no end user behind it — a preview from an API
-  key — finds none of a user-scoped table's records and answers an empty list, not an error.
+- ⚠️ **Whose records a search reads is the run's.** A query over a user-scoped table reads as the
+  run's signed-in person (or the person a step's `userId` names); a pool table reads the project's
+  records. A run with no end user behind it — a schedule, a trigger, a public endpoint, a preview
+  from an API key — reads every person's records; a clause on `ownerId` narrows to one.
 - **Turning searchable off does not delete the points immediately.** A background pass notices and
   removes them later.
 

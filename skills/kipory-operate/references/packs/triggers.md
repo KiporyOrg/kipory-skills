@@ -20,8 +20,12 @@ skipped, blocked — is written down in its runs, and any decision can be replay
 
 <!-- field-ok: userInfo — a run-ambient value seeded by the engine, not a wire field a caller sends -->
 
-**A fire has no end user.** `userInfo` is nothing in the run, so a per-user table refuses there, a
-project-wide one reads normally, and a `user`-scoped emit is dropped. `userInfo` is optional
+<!-- field-ok: ownerId — a member of a person-owned table's row in a flow (437-person-owned-tables), not a wire field -->
+
+**A fire has no end user.** `userInfo` is nothing in the run, so it acts for nobody: it reads and
+changes every person's records of a person-owned table (each row names its person as `ownerId`),
+reads a project-wide table normally, and drops a `user`-scoped emit. A create on a person-owned
+table still names its person (`userId`). `userInfo` is optional
 everywhere: a required read of it is refused at save (`STEP_INPUT_MAY_BE_ABSENT`) until it sits under
 `if` + `{has: userInfo}` or reads `{path: userInfo.userId, optional: true}`. Carry the person you mean as data in the event's payload,
 and preview the flow with `"principal": "no-end-user"`, which is the run a fire makes.
