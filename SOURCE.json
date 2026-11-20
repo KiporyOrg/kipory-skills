@@ -1,7 +1,8 @@
 {
-  "source": "0d9548909555f73340207ad15ab52c9a6fb95fd0",
+  "source": "e1ee9423711e1e69af1a59064ec3b6cc5aa39c57",
   "since": "2026-08-19",
   "history": [
+    {"sha":"e1ee9423711e","skills":"A table keeps no copy of its flow: Table.signature is dropped with the app stopped, and the last stored-copy pieces go (436 release 3b) (#3784)"},
     {"sha":"0d9548909555","skills":"The platform's event types are code, not rows: every read of a project's types adds them, nothing seeds or repairs them, and the project document leaves them out (#3783)"},
     {"sha":"8eb5b61aba9f"},
     {"sha":"1babbc0c7c86","skills":"A view endpoint's contract is derived where it is used: no stored copy, no drift sweep (436 slice 5) (#3780)"},
@@ -1000,7 +1001,6 @@
     {"sha":"6348713a5b13"},
     {"sha":"546e1fc991d7"},
     {"sha":"a8332f4d8b3a"},
-    {"sha":"0f7ba4187ed0"},
-    {"sha":"3739740f97b5"}
+    {"sha":"0f7ba4187ed0"}
   ]
 }

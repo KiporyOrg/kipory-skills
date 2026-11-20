@@ -469,8 +469,7 @@ flow: a table's processed fields are its flow's outputs as the flow is now. Read
 you accept: every caller of an accepted endpoint meets the change at once. ⛔ **Do not decompose a
 change into unbind → change → rebind** to get round the check: the unbind is judged itself — a
 table loses every processed field, an endpoint every flow input and output — so it needs the same
-acceptance, and a live `/v1` route sits unbound in the middle. A re-take that cannot complete refuses the write
-(`TYPE_ADOPT_INCOMPLETE`).
+acceptance, and a live `/v1` route sits unbound in the middle.
 
 **A setting that names what the write removes is a validation error, never a break.** When a flow
 or type edit leaves an endpoint's own settings naming something gone — a binding whose input was
