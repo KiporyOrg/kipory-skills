@@ -2,7 +2,7 @@
   "$note": "Generated: one content hash per item the reference pages were built from, and the page that documents it. The deployment serves the same hashes live; scripts/sync.mjs in this skill compares them and names the items that differ. Regenerated on every publish, so an edit here is overwritten.",
   "packs": {
     "api-endpoints-anatomy": {
-      "hash": "1105a39942f7",
+      "hash": "4975d0f8656e",
       "page": "kipory-expose/references/packs/api-endpoints-anatomy.md"
     },
     "authoring-order": {
@@ -30,7 +30,7 @@
       "page": "kipory-build/references/packs/flow-checkpoints.md"
     },
     "flows-and-actions": {
-      "hash": "c806315112bf",
+      "hash": "85220cea9f10",
       "page": "kipory-build/references/packs/flows-and-actions.md"
     },
     "limits": {
@@ -46,7 +46,7 @@
       "page": "kipory-operate/references/packs/project-config.md"
     },
     "project-document": {
-      "hash": "15adbdb06986",
+      "hash": "3719b24b8efa",
       "page": "kipory-build/references/packs/project-document.md"
     },
     "project-provisioning": {
@@ -74,7 +74,7 @@
       "page": "kipory-channels/references/packs/sources.md"
     },
     "tables-and-types": {
-      "hash": "7ac2d04ad46f",
+      "hash": "2aeb4dc06abf",
       "page": "kipory-model/references/packs/tables-and-types.md"
     },
     "templates": {
@@ -666,7 +666,7 @@
       "page": "kipory-build/references/api/functions-and-models.md"
     },
     "DELETE /v1/project-config/{id}": {
-      "hash": "efdf3d71d576",
+      "hash": "3a4dcdf752c6",
       "page": "kipory-operate/references/api/project-config.md"
     },
     "DELETE /v1/projects/{nodeId}": {
@@ -678,7 +678,7 @@
       "page": "kipory-expose/references/api/end-users.md"
     },
     "DELETE /v1/projects/{nodeId}/profile-schema": {
-      "hash": "08d4f07c789f",
+      "hash": "b58bd8180f53",
       "page": "kipory-expose/references/api/end-users.md"
     },
     "DELETE /v1/records/{id}": {
@@ -690,11 +690,11 @@
       "page": "kipory-data/references/api/records.md"
     },
     "DELETE /v1/relation-pairings/{id}": {
-      "hash": "fd0adb2af8e6",
+      "hash": "626ecf3d296f",
       "page": "kipory-model/references/api/relations.md"
     },
     "DELETE /v1/relations/{id}": {
-      "hash": "595d2589a4ad",
+      "hash": "f801e460897b",
       "page": "kipory-model/references/api/relations.md"
     },
     "DELETE /v1/schedules/{id}": {
@@ -710,7 +710,7 @@
       "page": "kipory-channels/references/api/sources.md"
     },
     "DELETE /v1/tables/{id}": {
-      "hash": "332b8dc57dfc",
+      "hash": "8181bcb1bf90",
       "page": "kipory-model/references/api/tables.md"
     },
     "DELETE /v1/terms/{id}": {
@@ -762,7 +762,7 @@
       "page": "kipory-expose/references/api/api-endpoints.md"
     },
     "GET /v1/api-endpoints/{id}/contract-history": {
-      "hash": "7eebc541aa98",
+      "hash": "f9116fb63906",
       "page": "kipory-expose/references/api/api-endpoints.md"
     },
     "GET /v1/auth/callback/google": {
@@ -775,7 +775,7 @@
       "hash": "cc578abb9285"
     },
     "GET /v1/bootstrap/": {
-      "hash": "e25962bbf0b0",
+      "hash": "45fca0f9eb97",
       "page": "kipory-connect/references/api/bootstrap.md"
     },
     "GET /v1/bootstrap/stream": {
@@ -909,7 +909,7 @@
       "page": "kipory-build/references/api/steps.md"
     },
     "GET /v1/flows/{id}": {
-      "hash": "59dd07c712ab",
+      "hash": "318adec633f9",
       "page": "kipory-build/references/api/flows.md"
     },
     "GET /v1/flows/{id}/coverage": {
@@ -1003,7 +1003,7 @@
       "hash": "ecae597ba0c2"
     },
     "GET /v1/metadata/": {
-      "hash": "660e569f13ec",
+      "hash": "3b6fd24c3b62",
       "page": "kipory-connect/references/api/projects.md"
     },
     "GET /v1/nodes/{nodeId}": {
@@ -1128,7 +1128,7 @@
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/projects/{nodeId}/document/plans/{planId}": {
-      "hash": "a26cb1aff4c0",
+      "hash": "bb837fa5c5b2",
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/projects/{nodeId}/document/summary": {
@@ -1190,6 +1190,10 @@
     "GET /v1/pushes/": {
       "hash": "d1b2ac9bacc8",
       "page": "kipory-diagnose/references/api/pushes.md"
+    },
+    "GET /v1/record-reprocesses/{id}": {
+      "hash": "fe6fbcaea271",
+      "page": "kipory-data/references/api/records.md"
     },
     "GET /v1/records/": {
       "hash": "17e3f8440964",
@@ -1312,11 +1316,11 @@
       "page": "kipory-channels/references/api/sources.md"
     },
     "GET /v1/tables/": {
-      "hash": "86e03383d91b",
+      "hash": "6c9a9906d4f6",
       "page": "kipory-model/references/api/tables.md"
     },
     "GET /v1/tables/{id}": {
-      "hash": "7c62005a2f6f",
+      "hash": "34a32117bcd3",
       "page": "kipory-model/references/api/tables.md"
     },
     "GET /v1/templates/": {
@@ -1380,7 +1384,7 @@
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "PATCH /v1/api-endpoints/{id}": {
-      "hash": "da5b064488eb",
+      "hash": "c369a78567be",
       "page": "kipory-expose/references/api/api-endpoints.md"
     },
     "PATCH /v1/embedding-profiles/{id}": {
@@ -1404,7 +1408,7 @@
       "page": "kipory-build/references/api/flow-checkpoints.md"
     },
     "PATCH /v1/flows/{id}": {
-      "hash": "58364088cbad",
+      "hash": "974c61143bce",
       "page": "kipory-build/references/api/flows.md"
     },
     "PATCH /v1/flows/{id}/value-recording": {
@@ -1453,12 +1457,16 @@
       "hash": "b38528b07c19",
       "page": "kipory-connect/references/api/projects.md"
     },
+    "PATCH /v1/record-reprocesses/{id}": {
+      "hash": "483d7ebc35ad",
+      "page": "kipory-data/references/api/records.md"
+    },
     "PATCH /v1/records/{id}": {
       "hash": "885def7faa93",
       "page": "kipory-data/references/api/records.md"
     },
     "PATCH /v1/relations/{id}": {
-      "hash": "3f1375fe723d",
+      "hash": "7fc17be0cf8d",
       "page": "kipory-model/references/api/relations.md"
     },
     "PATCH /v1/schedules/{id}": {
@@ -1474,7 +1482,7 @@
       "page": "kipory-channels/references/api/sources.md"
     },
     "PATCH /v1/tables/{id}": {
-      "hash": "74181ece7878",
+      "hash": "35475706bcb7",
       "page": "kipory-model/references/api/tables.md"
     },
     "PATCH /v1/terms/{id}": {
@@ -1486,7 +1494,7 @@
       "page": "kipory-operate/references/api/triggers.md"
     },
     "PATCH /v1/types/{id}": {
-      "hash": "69eb879b0ce3",
+      "hash": "f0e80e2e9faa",
       "page": "kipory-model/references/api/types.md"
     },
     "PATCH /v1/users/{userId}/profile": {
@@ -1494,11 +1502,11 @@
       "page": "kipory-expose/references/api/end-users.md"
     },
     "PATCH /v1/vocabularies/{id}": {
-      "hash": "7f25af4479c6",
+      "hash": "d1b1c7739c2d",
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "POST /v1/api-endpoints/": {
-      "hash": "de4d2b33df4b",
+      "hash": "01bc3103df2f",
       "page": "kipory-expose/references/api/api-endpoints.md"
     },
     "POST /v1/auth/handoff/exchange": {
@@ -1566,11 +1574,11 @@
       "page": "kipory-build/references/api/flow-checkpoints.md"
     },
     "POST /v1/flow-checkpoints/{id}/restore": {
-      "hash": "88dc10df4b43",
+      "hash": "21c72b3a094b",
       "page": "kipory-build/references/api/flow-checkpoints.md"
     },
     "POST /v1/flows/": {
-      "hash": "015d1d2a97a0",
+      "hash": "61050a14e61d",
       "page": "kipory-build/references/api/flows.md"
     },
     "POST /v1/flows/{id}/preview": {
@@ -1586,7 +1594,7 @@
       "page": "kipory-build/references/api/flows.md"
     },
     "POST /v1/flows/{id}/steps/edit": {
-      "hash": "b6fc858c0759",
+      "hash": "8e9aa569a9cc",
       "page": "kipory-build/references/api/steps.md"
     },
     "POST /v1/flows/{id}/steps/{key}/evaluate": {
@@ -1612,7 +1620,7 @@
       "hash": "6bf7311fa051"
     },
     "POST /v1/metadata/": {
-      "hash": "91f5138748f2",
+      "hash": "2234dee10036",
       "page": "kipory-connect/references/api/projects.md"
     },
     "POST /v1/nodes/{nodeId}/connections": {
@@ -1646,7 +1654,7 @@
       "page": "kipory-operate/references/api/failures.md"
     },
     "POST /v1/project-config/": {
-      "hash": "217fd8333a37",
+      "hash": "249250a8e179",
       "page": "kipory-operate/references/api/project-config.md"
     },
     "POST /v1/projects/": {
@@ -1658,11 +1666,11 @@
       "page": "kipory-expose/references/api/end-users.md"
     },
     "POST /v1/projects/{nodeId}/document": {
-      "hash": "7d8bace69344",
+      "hash": "a55541b184f5",
       "page": "kipory-build/references/api/project-document.md"
     },
     "POST /v1/projects/{nodeId}/document/plan": {
-      "hash": "96c4e8e403cf",
+      "hash": "910f9756ec00",
       "page": "kipory-build/references/api/project-document.md"
     },
     "POST /v1/projects/{nodeId}/ingest/cache/bust": {
@@ -1677,7 +1685,7 @@
       "page": "kipory-expose/references/api/end-users.md"
     },
     "POST /v1/projects/{nodeId}/profile-schema/starter": {
-      "hash": "776247fcfb17",
+      "hash": "6bef36cfff35",
       "page": "kipory-expose/references/api/end-users.md"
     },
     "POST /v1/projects/{nodeId}/purge": {
@@ -1691,6 +1699,10 @@
     "POST /v1/projects/{nodeId}/rewind": {
       "hash": "afaefcb8eae8",
       "page": "kipory-connect/references/api/projects.md"
+    },
+    "POST /v1/record-reprocesses/": {
+      "hash": "1dbb0d0bb0e5",
+      "page": "kipory-data/references/api/records.md"
     },
     "POST /v1/records/": {
       "hash": "9d2d87992fa2",
@@ -1717,15 +1729,15 @@
       "page": "kipory-data/references/api/records.md"
     },
     "POST /v1/records/{id}/reprocess": {
-      "hash": "e43a753d9039",
+      "hash": "162a6e0d22b8",
       "page": "kipory-data/references/api/records.md"
     },
     "POST /v1/relation-pairings/": {
-      "hash": "636405cddc35",
+      "hash": "5bb38ad5d3d5",
       "page": "kipory-model/references/api/relations.md"
     },
     "POST /v1/relations/": {
-      "hash": "ac355dc3f569",
+      "hash": "20f8d58753ec",
       "page": "kipory-model/references/api/relations.md"
     },
     "POST /v1/reports/": {
@@ -1761,7 +1773,7 @@
       "page": "kipory-channels/references/api/sources.md"
     },
     "POST /v1/tables/": {
-      "hash": "bf78b137a485",
+      "hash": "00f473f8452b",
       "page": "kipory-model/references/api/tables.md"
     },
     "POST /v1/terms/{id}/merge": {
@@ -1789,11 +1801,11 @@
       "page": "kipory-operate/references/api/triggers.md"
     },
     "POST /v1/types/": {
-      "hash": "ca8858ce8cc2",
+      "hash": "6fdb051bde6a",
       "page": "kipory-model/references/api/types.md"
     },
     "POST /v1/types/seed": {
-      "hash": "bd409aa729ca",
+      "hash": "0be79240ac63",
       "page": "kipory-model/references/api/types.md"
     },
     "POST /v1/views/{key}/preview": {
@@ -1809,7 +1821,7 @@
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "PUT /v1/flows/{id}/steps": {
-      "hash": "11b229e49aef",
+      "hash": "62dcd41ff478",
       "page": "kipory-build/references/api/steps.md"
     },
     "PUT /v1/nodes/{nodeId}/routing/{modelId}": {
@@ -1836,7 +1848,7 @@
       "hash": "210768978c32"
     },
     "PUT /v1/projects/{nodeId}/profile-schema": {
-      "hash": "2ee252539f7d",
+      "hash": "af1a6a305f48",
       "page": "kipory-expose/references/api/end-users.md"
     },
     "PUT /v1/records/{id}/vocabularies/{vocabularyKey}": {
@@ -1850,7 +1862,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "9955a981bb2f",
+      "hash": "daeb038448fe",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

@@ -339,7 +339,8 @@ carries `introduced: false`. Only an introduced error makes `ok` false and refus
 document at a time. That holds inside a flow the document writes too: only the steps it changes
 are judged by the write, so a step it leaves as stored is never refused for an error it already
 had (a rule a release added included); a step it does change is refused for one, said once at
-that step as already stored.
+that step as already stored. A step whose `description` alone changes is not changed: words are
+free, and its stored error stays counted as already there.
 
 Send a PARTIAL document freely: a section you leave out is untouched, and so is every row you do
 not name. A ROW is stated whole — it is that row's create body, so its required fields are
@@ -516,7 +517,8 @@ The answer holds the `version` the plan was computed against, its `planId` and `
   use added, removed or moved reports `restamp` — every record's filter columns are rewritten — and
   on a searchable table it also queues a `reindex` that embeds nothing. ⚠️ A change to a flow-backed
   table's processed fields is not in this list: its `shape-behind` (the records not on the new
-  shape, each brought to it by `POST /v1/records/{id}/reprocess`) and `field-values-hidden` (the
+  shape, brought to it together by `POST /v1/record-reprocesses` or one by
+  `POST /v1/records/{id}/reprocess`) and `field-values-hidden` (the
   records holding a value a read no longer answers: every value of a removed field, and for a
   retyped field the values of a kind the new type does not allow) are on that
   table's row in `contractChanges`, in its own `consequences`.

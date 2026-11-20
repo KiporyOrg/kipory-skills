@@ -2,7 +2,7 @@
 
 # Records and relations
 
-The project's own data: listing and searching records, writing and correcting one by hand, re-running or ending it, stating how it is filed, reading and stating a record's links one hop at a time, watching a record's processing as it happens, and previewing a view as one member reads it.
+The project's own data: listing and searching records, writing and correcting one by hand, re-running or ending it, re-running a table's records together, stating how it is filed, reading and stating a record's links one hop at a time, watching a record's processing as it happens, and previewing a view as one member reads it.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -11,6 +11,9 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | Method | Path | Notes |
 | --- | --- | --- |
 | `GET` | [`/v1/links`](#get-v1-links) |  |
+| `POST` | [`/v1/record-reprocesses`](#post-v1-record-reprocesses) |  |
+| `GET` | [`/v1/record-reprocesses/{id}`](#get-v1-record-reprocesses-id) |  |
+| `PATCH` | [`/v1/record-reprocesses/{id}`](#patch-v1-record-reprocesses-id) |  |
 | `GET` | [`/v1/records`](#get-v1-records) |  |
 | `POST` | [`/v1/records`](#post-v1-records) |  |
 | `GET` | [`/v1/records/{id}`](#get-v1-records-id) |  |
@@ -103,6 +106,109 @@ Each item of `relations`:
 | `producer` | `"field" \| "join-record" \| "curated"` | yes | How this relation's links come to exist — spelled as `/v1/relations` spells it. ⚠️ `join-record` means this sweep holds NONE of them, and the matching `elsewhere` entry says where they are instead. |
 | `direction` | `"directed" \| "symmetric"` | yes | `symmetric` means the relation has no direction at all, so every row of this relation answers `anchorDirection: null` and `direction` does not filter it. |
 | `propertiesDataTypeId` | `string \| null` | yes | The type every link of this relation validates against, or null when it declares no properties. |
+
+### `POST /v1/record-reprocesses`
+
+Reprocess a flow-backed table's records together: `scope: "all"`, or `"not-current"` for the processed records not on the table's current processed shape (what `GET /v1/tables/{id}?expand=shape` counts as `older` and `unstamped`). Each record is re-run as `POST /v1/records/{id}/reprocess` re-runs it, from a clean slate and charged as that route charges it, a few at a time; a record that route would refuse is skipped and counted. Answers 202 with the reprocess to read at `GET /v1/record-reprocesses/{id}`; stop it with `PATCH`. `validateOnly: true` answers how many records it would run and an estimate of what that would charge, starting and charging nothing (VIEWER may ask). One per table at a time (409 `RECORD_REPROCESS_RUNNING`). ADMIN. For one record, use `POST /v1/records/{id}/reprocess`.
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project, by its node id. |
+| `tableKey` | `string` | yes | The flow-backed table whose records to reprocess. |
+| `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
+| `validateOnly` | `boolean` | no | `true` answers how many records it would run and what that is expected to cost, starting and charging nothing. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `wouldStart` | `boolean` | yes | Whether the same request without `validateOnly` would start: `false` while another bulk reprocess of the table is under way. |
+| `refusal` | `object \| null` | yes | Why it would not start; `null` when it would. |
+| `tableKey` | `string` | yes | The table it would reprocess. |
+| `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
+| `shape` | `string` | yes | The table's processed-shape identifier now. |
+| `records` | `integer` | yes | The records it would run, as counted now. |
+| `estimate` | `object` | yes | An estimate, not a price: each record is charged what its run spends, as `POST /v1/records/{id}/reprocess` charges it. |
+
+**Response `202`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The bulk reprocess's id. |
+| `tableKey` | `string` | yes | The table whose records it reprocesses. |
+| `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
+| `status` | `"running" \| "stopping" \| "finished" \| "stopped"` | yes | `running` while it queues records; `stopping` once asked to stop, until the runs it queued end; `finished` when no record was left; `stopped` when it was stopped, ended because its table lost its flow or was deleted, or had not moved for 10 minutes when the next start for its table took over. |
+| `version` | `integer` | yes | The lock `PATCH` sends back to stop it. Progress does not move it. |
+| `shape` | `object` | yes | The table's processed shape over the run. |
+| `records` | `object` | yes | Its progress, counted as each record's run ends. |
+| `skips` | `object` | yes | Skipped records by reason: `running` (a run was under way), `queued` (one was already coming), `queue-unreadable`, `deleting`, `owner-gone`, `moved` (its state changed under the claim), `gone`, `merged`, `not-processable` (the table lost its flow under the run). |
+| `estimate` | `object` | yes | An estimate, not a price: each record is charged what its run spends, as `POST /v1/records/{id}/reprocess` charges it. |
+| `askedBy` | `string` | yes | Who started it: `user:<id>`, `key:<id>`, or `system:<name>` for the platform. |
+| `createdAt` | `string` | yes | When it started. |
+| `finishedAt` | `string \| null` | yes | When it finished or stopped; `null` while it runs. |
+
+### `GET /v1/record-reprocesses/{id}`
+
+One bulk reprocess: its status, how many records it reprocessed, failed, skipped (and why) and has left, how many runs are in flight, and whether the table's processed shape moved while it ran. Start one with `POST /v1/record-reprocesses`; one record's processing is `GET /v1/records/{id}`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The bulk reprocess's id. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The bulk reprocess's id. |
+| `tableKey` | `string` | yes | The table whose records it reprocesses. |
+| `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
+| `status` | `"running" \| "stopping" \| "finished" \| "stopped"` | yes | `running` while it queues records; `stopping` once asked to stop, until the runs it queued end; `finished` when no record was left; `stopped` when it was stopped, ended because its table lost its flow or was deleted, or had not moved for 10 minutes when the next start for its table took over. |
+| `version` | `integer` | yes | The lock `PATCH` sends back to stop it. Progress does not move it. |
+| `shape` | `object` | yes | The table's processed shape over the run. |
+| `records` | `object` | yes | Its progress, counted as each record's run ends. |
+| `skips` | `object` | yes | Skipped records by reason: `running` (a run was under way), `queued` (one was already coming), `queue-unreadable`, `deleting`, `owner-gone`, `moved` (its state changed under the claim), `gone`, `merged`, `not-processable` (the table lost its flow under the run). |
+| `estimate` | `object` | yes | An estimate, not a price: each record is charged what its run spends, as `POST /v1/records/{id}/reprocess` charges it. |
+| `askedBy` | `string` | yes | Who started it: `user:<id>`, `key:<id>`, or `system:<name>` for the platform. |
+| `createdAt` | `string` | yes | When it started. |
+| `finishedAt` | `string \| null` | yes | When it finished or stopped; `null` while it runs. |
+
+### `PATCH /v1/record-reprocesses/{id}`
+
+Stop a bulk reprocess (`stopped: true`, with its `version`): no further record is queued, the runs already queued end as they would, and it reads `stopped` once they have; the records it finished stay as they are. A reprocess already stopping or ended answers as it is. To reprocess the rest later, start a new one with `scope: "not-current"`. ADMIN.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The bulk reprocess's id. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `version` | `integer` | yes | The reprocess's `version`, as read. |
+| `stopped` | `true` | yes | `true` stops it: no further record is queued, the runs it already queued end as they would, and the records it finished stay as they are. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The bulk reprocess's id. |
+| `tableKey` | `string` | yes | The table whose records it reprocesses. |
+| `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
+| `status` | `"running" \| "stopping" \| "finished" \| "stopped"` | yes | `running` while it queues records; `stopping` once asked to stop, until the runs it queued end; `finished` when no record was left; `stopped` when it was stopped, ended because its table lost its flow or was deleted, or had not moved for 10 minutes when the next start for its table took over. |
+| `version` | `integer` | yes | The lock `PATCH` sends back to stop it. Progress does not move it. |
+| `shape` | `object` | yes | The table's processed shape over the run. |
+| `records` | `object` | yes | Its progress, counted as each record's run ends. |
+| `skips` | `object` | yes | Skipped records by reason: `running` (a run was under way), `queued` (one was already coming), `queue-unreadable`, `deleting`, `owner-gone`, `moved` (its state changed under the claim), `gone`, `merged`, `not-processable` (the table lost its flow under the run). |
+| `estimate` | `object` | yes | An estimate, not a price: each record is charged what its run spends, as `POST /v1/records/{id}/reprocess` charges it. |
+| `askedBy` | `string` | yes | Who started it: `user:<id>`, `key:<id>`, or `system:<name>` for the platform. |
+| `createdAt` | `string` | yes | When it started. |
+| `finishedAt` | `string \| null` | yes | When it finished or stopped; `null` while it runs. |
 
 ### `GET /v1/records`
 
@@ -512,7 +618,7 @@ Shape 4, with `type`, `reason`:
 
 ### `POST /v1/records/{id}/reprocess`
 
-Re-run the record's processing flow from a clean slate: its derived output, generated files, vocabularies and vector points are produced again. It removes the record's term assignments before the run, and a failed run does not bring them back. Its processed fields and generated files are replaced only when the run succeeds, and the record is indexed again then; a failed run keeps them. A successful run removes each generated file the record held before it that the run did not attach again and its processed fields do not name, even when it made no new one. Answers 202 once a worker has been asked; the record reads `pending` until it runs. The run is charged like the record's first processing, with nothing reused from the cache, and so is every run it queues. An edit (`PATCH`) never re-runs the flow — this is the gesture that does.
+Re-run the record's processing flow from a clean slate: its derived output, generated files, vocabularies and vector points are produced again. It removes the record's term assignments before the run, and a failed run does not bring them back. Its processed fields and generated files are replaced only when the run succeeds, and the record is indexed again then; a failed run keeps them. A successful run removes each generated file the record held before it that the run did not attach again and its processed fields do not name, even when it made no new one. Answers 202 once a worker has been asked; the record reads `pending` until it runs. The run is charged like the record's first processing, with nothing reused from the cache, and so is every run it queues. An edit (`PATCH`) never re-runs the flow — this is the gesture that does. To re-run many records of a table together, `POST /v1/record-reprocesses`.
 
 **Path parameters**
 

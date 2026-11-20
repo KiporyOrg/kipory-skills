@@ -164,8 +164,8 @@ edit does not do is touch a stored record:
 - **To bring one forward, reprocess it**: `POST /v1/records/{id}/reprocess`. It clears what the
   earlier run derived and runs the flow as it is now. It is charged like the record's first
   processing — nothing is answered from a cache and every model call is billed again — so reprocess
-  one record, read its result and its spend, then decide how many of the rest are worth it.
-  `kipory-data` owns the route, its modes and what it sweeps.
+  one record, read its result and its spend, then decide how many more are worth it (they go
+  together with `POST /v1/record-reprocesses`). See `kipory-data`.
 - **A retry after the edit is not refused.** Every re-run of a record runs all of the flow's steps
   again, on the flow as it is now; nothing is carried over from the attempt before the edit.
 

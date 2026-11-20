@@ -862,8 +862,8 @@ is not a healthier flow. `ok: true` is a snapshot, not a promise: another write 
   refuses a read of it in a step, a test, an `out`, a `repeat`'s first vars, its `next` and its
   `until`, and in a `default` whether or not it is ever used. It does not read: a switched-off
   step; a step written after a `return` or a `fail` ended its list; the `out` of a list that always
-  ends in one; the `next` of a `repeat` whose steps always end in one; and, in a `parallel` with a
-  child that always ends in one, the children written after that child and the block's `out`. Each
+  ends in one; the `next` of a `repeat` whose steps always end in one; and the `out` of a `parallel`
+  with a child that always ends in one (its other children are judged: a run starts them all). Each
   entry is `{stepKey, baseKey, adds, parts}`,
   and lists only what the step adds: its names are its `baseKey` step's names (the nearest step above
   it in its list that has an entry, or the block it sits in; `null` when `adds` holds every name, as

@@ -1,7 +1,10 @@
 {
-  "source": "bb92202506608709f39bc5ec98acb52711eac82f",
+  "source": "f06f7d8dbd282797d8d732e3b2b67bef69c08418",
   "since": "2026-08-19",
   "history": [
+    {"sha":"f06f7d8dbd28","skills":"A table's records reprocess together, a restart whose outputs changed stops before it runs, ability-type moves are judged like a release, and /v1/board-groups is gone (436 slice 4) (#3789)"},
+    {"sha":"a85a2af335d1"},
+    {"sha":"942163a767c6"},
     {"sha":"bb9220250660","skills":"Person-owned tables the project itself can use: jobs and public calls reach every person's records, rows carry ownerId, a key can be unique across the project, a job skips a person who left, a sub-flow can act as the project, and a project table can be converted (437) (#3787)"},
     {"sha":"13195c1deb9e"},
     {"sha":"ee2f48e816e5"},
@@ -998,9 +1001,6 @@
     {"sha":"30d27858964d"},
     {"sha":"0118c4cef6db"},
     {"sha":"018a6da01142"},
-    {"sha":"65513a97906f"},
-    {"sha":"340f93ca4dba"},
-    {"sha":"eae245955987"},
-    {"sha":"6348713a5b13"}
+    {"sha":"65513a97906f"}
   ]
 }

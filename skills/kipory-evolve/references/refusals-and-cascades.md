@@ -132,8 +132,11 @@ After it saves:
   processed values and no stamp: processed before stamps existed, put back by an undo or a rewind
   to such values, or patched by a flow's `record.update` while not on the current shape (the patch
   clears the stamp; an undo restores the stamp of the values it restores).
-- **Only a reprocess brings a record to the current shape**: `POST /v1/records/{id}/reprocess`,
-  one record a call, charged like a first processing (`kipory-data`).
+- **Only a reprocess brings a record to the current shape**: `POST /v1/record-reprocesses`
+  (`scope: "not-current"`) runs every such record of a table, a few at a time; ask it with
+  `validateOnly: true` first for the count and an estimate of the cost, read its progress at
+  `GET /v1/record-reprocesses/{id}`, stop it with `PATCH`. One record: `POST /v1/records/{id}/reprocess`.
+  Each record is charged like a first processing (`kipory-data`).
 - **A run checks what it stores.** A processed value that does not fit its field's declared type
   fails that record, stores nothing of that run, and the error names the field
   (`PROCESSED_VALUE_MISMATCH`; the flow's `return` usually fails first, `OUTPUT_TYPE_MISMATCH`).

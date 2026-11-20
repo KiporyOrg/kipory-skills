@@ -489,7 +489,9 @@ it newest first, paged with `after` (older) and `before` (newer): the entry it s
 (`created`, `bound` or `first`, carrying that whole contract), then one `write` entry for each saved
 change that gave its callers a different contract — its verdict, each change, who made it and who
 accepted a break — an `unbound` entry, judged the same way, for the write that takes it off its
-flow, and a `release` entry for each platform release that changed it. A view endpoint's history
+flow, a `release` entry for each platform release that changed it, and an `ability` entry for each
+change the platform made to a platform function whose type the contract holds (judged as a release
+is: a break nobody ruled is never made). A view endpoint's history
 holds the view's side too: a view, shape, table, relation or step edit that changes what its
 callers send or read is such a `write`, with the verdict and who accepted a break. A label edit adds no entry of
 its own; like any saved change, it first gives an endpoint with no history its `first`, and records a

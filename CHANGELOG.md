@@ -2,6 +2,35 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261120.222740 — 2026-11-20
+
+Synced from the Kipory monorepo at `f06f7d8db`.
+
+Routes added: `GET /v1/record-reprocesses/{id}`, `PATCH /v1/record-reprocesses/{id}`, `POST /v1/record-reprocesses/`.
+
+- changed: `skills/kipory-build/references/api/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/api/flows.md`
+- changed: `skills/kipory-build/references/api/project-document.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-connect/references/api/projects.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/SKILL.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- added: `skills/kipory-data/references/bulk-reprocess.md`
+- changed: `skills/kipory-data/references/pitfalls.md`
+- changed: `skills/kipory-evolve/references/change-order.md`
+- changed: `skills/kipory-evolve/references/refusals-and-cascades.md`
+- changed: `skills/kipory-expose/references/api/api-endpoints.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-model/references/api/relations.md`
+- changed: `skills/kipory-model/references/api/tables.md`
+- changed: `skills/kipory-model/references/api/types.md`
+- changed: `skills/kipory-model/references/api/vocabularies-and-terms.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+
 ## 1.20261120.141804 — 2026-11-20
 
 Synced from the Kipory monorepo at `bb9220250`.

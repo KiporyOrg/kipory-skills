@@ -131,7 +131,7 @@ Each item of `versions`:
 
 ### `GET /v1/metadata`
 
-Read a project's element metadata (`?project=<nodeId>`): the free key-values set on its elements — the project, flows, steps, tables, endpoints, schedules, triggers, vocabularies and event types — each with the `version` a later write takes, plus the `limits` a write is held to. Pass `element=<kind>:<id>` for one element's keys, or `flowId=<id>` for the keys of one flow and of every step of it. Answered whole, not paged. Send `If-None-Match` with the last `ETag` to get 304 when nothing changed. Metadata is not configuration and nothing a flow reads: for tunables a flow reads, use `/v1/project-config`. Elements are named as `GET /v1/descriptions` names them (`elementRef`), which is also where the platform's generated description of each element is. The flow board's groups are not here: they are the platform's own key, served by `/v1/board-groups`.
+Read a project's element metadata (`?project=<nodeId>`): the free key-values set on its elements — the project, flows, steps, tables, endpoints, schedules, triggers, vocabularies and event types — each with the `version` a later write takes, plus the `limits` a write is held to. Pass `element=<kind>:<id>` for one element's keys, or `flowId=<id>` for the keys of one flow and of every step of it. Answered whole, not paged. Send `If-None-Match` with the last `ETag` to get 304 when nothing changed. Metadata is not configuration and nothing a flow reads: for tunables a flow reads, use `/v1/project-config`. Elements are named as `GET /v1/descriptions` names them (`elementRef`), which is also where the platform's generated description of each element is.
 
 **Query**
 
@@ -162,7 +162,7 @@ Each item of `entries`:
 
 ### `POST /v1/metadata`
 
-Set one metadata key on one element — an upsert by `(project, element, key)`. Leave `version` out to create the key; to replace its value send the `version` you read (a stale or missing one is 409 `VERSION_CONFLICT`, whose `details.current` is the entry as stored). The value is any JSON. Keys starting `kipory.` are the platform's and are refused. Setting metadata is not a configuration change: it moves no structure version and no flow reads it. With `validateOnly: true` it answers whether the write would be refused, writing nothing. Read the keys and the limits with `GET /v1/metadata`; remove one with `DELETE /v1/metadata/{id}`. The flow board's groups go through `/v1/board-groups`, not here.
+Set one metadata key on one element — an upsert by `(project, element, key)`. Leave `version` out to create the key; to replace its value send the `version` you read (a stale or missing one is 409 `VERSION_CONFLICT`, whose `details.current` is the entry as stored). The value is any JSON. Keys starting `kipory.` are the platform's and are refused. Setting metadata is not a configuration change: it moves no structure version and no flow reads it. With `validateOnly: true` it answers whether the write would be refused, writing nothing. Read the keys and the limits with `GET /v1/metadata`; remove one with `DELETE /v1/metadata/{id}`.
 
 **Request body**
 

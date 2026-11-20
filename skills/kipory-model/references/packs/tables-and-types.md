@@ -1142,8 +1142,11 @@ What the stored records do after such a write:
   the record is next processed, and are answered again if the output is restored before then.
 - **A retyped field's old values** of a kind the field no longer declares are hidden the same way.
 - **A record keeps the shape it was stored under until it is processed again.** `expand=shape`
-  counts them: the `older` count and the `unstamped` count. `POST /v1/records/{id}/reprocess` brings one record to the
-  current shape, and is charged like a first processing.
+  counts them: the `older` count and the `unstamped` count. `POST /v1/record-reprocesses` with
+  `scope: "not-current"` brings them all to the current shape, a few at a time; `validateOnly: true`
+  first answers `records` (how many it would run), an `estimate` of the cost and what it rests on,
+  and `wouldStart` (false, with the `refusal`, while another runs for the table). `POST /v1/records/{id}/reprocess`
+  brings one. Each record is charged like a first processing.
 
 What a run checks before it stores anything:
 
