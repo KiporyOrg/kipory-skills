@@ -89,7 +89,7 @@ refused with the same code.
 One change set of up to 500 records a call:
 
 ```
-GET  /v1/records?project=<node>&tableKey=<type>&limit=100   ids and versions — every row carries `version`
+GET  /v1/records?project=<node>&table=<type>&limit=100   ids and versions — every row carries `version`
 POST /v1/records/bulk   { project, items: [ { id, version, merge: { <the new field>: … } }, … ] }
 ```
 
@@ -109,9 +109,9 @@ over its `records` whose steps hold the `record.update` (`maxItems` caps the ele
 Every design write — a type, a flow, an endpoint or a table, on its own route or in a document, a
 rename, a checkpoint restore, connecting or disconnecting the end-user profile type, creating or
 deleting a config namespace (they reshape `UserInfo` and `ProjectInfo`) — is checked for each endpoint and flow-backed table it reaches: what
-their callers meet, before and after the whole write. An endpoint answering a view takes its
-query, paging and items from the live view: an edit of the view, a shape, a table, type,
-relation or pairing it reads, or of its flow's steps, reaches it. Labels are no change (`title`, `description`,
+their callers meet, before and after the whole write. An endpoint answering a named query takes its
+query string, paging and items from the live query: an edit of the query, a selection, a table, type
+or relation it reads, or of its flow's steps, reaches it. Labels are no change (`title`, `description`,
 `examples`, field order, `x-record-ref`). The side decides:
 
 - **safe**: an optional input, output or field added; an input made optional or accepting more (a
@@ -152,7 +152,7 @@ admin. Every caller of an accepted endpoint meets the change at once.
 ### Editing the processing flow of a table that holds records
 
 A step added, removed or re-configured in a table's processing flow saves like any steps write —
-unless it changes the flow's `inputs` or `outputs`, which is the contract class above and can
+unless it changes the flow's `inputs` or `outputs` (the contract class above), which can
 hide stored values (`refusals-and-cascades.md`). What the
 edit does not do is touch a stored record:
 
@@ -242,7 +242,7 @@ place that names it:
   `repeat`), and for an output the keys of its `return` steps;
 - every flow that calls it: the key under the call's `inputs`, and each read of `<call>.<output>`;
 - the endpoints bound to it: input bindings, `serialize.key`, `responseBody`, `statusOutput`,
-  `headers`, `redirect.location`, `deltaOutput` and the retry settings;
+  `headers`, `redirect.location`, `delta` and the retry settings;
 - its schedules' and triggers' stored `inputs`, its eval cases (`inputs`, `expected`, assertions),
   and the checkpoints of the flow and of its callers, so one taken before the rename still restores.
 
@@ -266,7 +266,7 @@ the versions after every move. Know these first:
   `path` lists it: a step the same document gives a new key keeps the key the plan listed. Rehearse
   with `validateOnly` to read them.
 - **An input the platform fills by its name** has nothing for the rename to move, and is refused
-  `RENAME_NAME_TAKEN`: a `record.view` step's view parameter or paging input, a trigger's `event`
+  `RENAME_NAME_TAKEN`: a `record.query` step's query param or paging input, a trigger's `event`
   and `trigger`, the inputs of a flow that scores an eval suite. So is a new name a step or a block
   of the flow already gives a value under (a step's key, an `each`'s `as`, a `repeat` variable).
 - **A flow a table processes its records with** is refused `RENAME_FLOW_PROCESSES_TABLE`: the table
@@ -317,7 +317,7 @@ rehearsal of its own. What to know before writing one:
   delete by adding `delete: true` is refused `DOCUMENT_DELETE_WITH_FIELDS` on that row, and the
   plan stops at that finding with nothing else judged — replace the whole row.
 - **A cascade is reported whether or not your document names the row.** Delete a table
-  inside a full export that still states the relation pairing it, and that relation is in
+  inside a full export that still states a relation naming it, and that relation is in
   `changes` on its own path as a `delete` with `because: "cascade"`, not as `unchanged`.
 - **A plan's `changes` are not the apply's write order**, and the ids a plan shows for creates are
   from its rolled-back attempt; the apply mints its own.

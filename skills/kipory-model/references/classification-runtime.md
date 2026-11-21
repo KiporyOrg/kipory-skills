@@ -16,7 +16,7 @@ processing flow, and the vocabulary's resolver flow that `vocabulary.resolve` in
 processing flow:  vocabulary.resolve → term.upsert
                   (a proposal per vocabulary, each dispatched to the resolver; then save)
 resolver flow:    term.search          → candidate terms, best first, each with a score
-                                         (vocabulary: "vocabularyKey", text: "proposalSlug")
+                                         (vocabulary: { path: vocabulary }, text: "proposalSlug")
                   term.threshold-gate  → { kind: "resolved", resolution } · { kind: "tiebreak" }
                   if gate.kind is tiebreak:
                     text.decide        → the tiebreak, on that branch only
@@ -109,7 +109,7 @@ needs no record reads, and is already scoped correctly.
 - **A `one` vocabulary still refuses two terms in one run, and a term of another vocabulary.** The
   step that saves the terms fails; when the run's writes are saved together at the end, the run
   fails with nothing written and `GET /v1/runs/{runId}/change-set` reads `rejected`,
-  `rejection.cause.kind: "one-term-vocabulary"`, naming `vocabularyKey` and the `terms`.
+  `rejection.cause.kind: "one-term-vocabulary"`, naming `vocabulary` and the `terms`.
 - **The gate does not check that the vocabulary exists.** It stamps the vocabulary onto its
   decision; whether that vocabulary is real is checked when the terms are saved. A typo surfaces one
   step later than you would expect.

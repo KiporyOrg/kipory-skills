@@ -10,7 +10,7 @@ Read this to find what a run, a call or the project spent: the spend routes, bil
 GET /v1/runs/{runId}/spend                        every charge one run made, by step, model calls included — api host
 GET /v1/eval-runs/{id}/spend                      the same for an eval run: subject and scorer steps alike
 GET /v1/nodes/{nodeId}/model-prices               what each model costs, in credits, at the project's id
-GET /v1/projects/{nodeId}/settings                the two spend ceilings, and `designSpend` consumed in the current window
+GET /v1/projects/{nodeId}/settings                the two spend ceilings, `designSpend` consumed in the current window, and `embeddings`
 GET /v1/projects/{nodeId}/usage?window=7d          credits and events over a window, by kind; `by=step` by step
 GET /v1/projects/{nodeId}/usage?window=7d&flows=1  the same per flow, with what failed runs spent (`failedRuns`, `failedCredits`)
 GET /v1/ai-calls?project={nodeId}                 every model call, filterable; GET /v1/ai-calls/rollup?project= by hour or day; GET /v1/ai-calls/{id}?payload=prompt for one

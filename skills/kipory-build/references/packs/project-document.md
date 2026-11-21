@@ -5,15 +5,21 @@
 > **Source of truth for facts:** the document's JSON Schema → live `GET /v1/project-document/schema`;
 > endpoint paths & request shapes → live `GET /v1/openapi.json`. This pack carries judgment: what the
 > document is for, how a whole project is read as one, and what travels in it and what does not.
+>
+> **Format 12 names:** a table says `owner` (it was `ownerScope`), a vocabulary `parent` (it was `parentVocabularyKey`), a flow value `type` and `list` (they were `typeName` and `isList`), and a query's clauses name `vocabulary` and `likeTable` (they were vocabularyKey and likeTableKey).
 
 ## What it is
 
-A project's whole configuration — its types, tables, relations, vocabularies, views and shapes,
-events, flows, entry points and eval suites — as ONE nested document addressed by key. Nesting expresses
-ownership: a flow's steps sit under the flow, a vocabulary's terms under the vocabulary, a suite's
-cases under the suite. Ids are optional; the platform fills
-them in on export and matches by them on apply. The document you write is the document the
-platform hands back.
+A project's whole configuration — its settings, types, tables (with their queries and
+selections), relations, vocabularies, events, flows, entry points and eval suites — as ONE nested
+document addressed by key. Nesting expresses ownership: a flow's steps sit under the flow, a
+table's queries under the table, a vocabulary's terms under the vocabulary, a suite's cases under
+the suite. Ids are optional; the platform fills them in on export and matches by them on apply.
+The document you write is the document the platform hands back.
+
+The sections, in order: `kipory: 12` (first, required), `basedOn` (the bound form only),
+`project`, `requires`, `types`, `tables`, `relations`, `vocabularies`, `events`, `flows`,
+`endpoints`, `triggers`, `schedules`, `evals`.
 
 Read it before authoring anything larger than one row. The row-by-row API has an order — a
 table needs its type first, a relation its tables, a trigger its flow — and the
@@ -33,7 +39,7 @@ unchanged project answers `304`.
   bootstrap read's parameter is `sections`, and each read refuses the other's spelling with a
   `422`). A partial read carries no `ETag` — a validator claims you hold the whole thing.
 - `Accept: application/yaml` answers the document ALONE as YAML — the file form, first line
-  `kipory: 11`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
+  `kipory: 12`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
   states any other format version, `kipory: 1` included, is refused with
   `DOCUMENT_VERSION_UNSUPPORTED` — export again to get the current form). The wire is JSON,
   and JSON answers the `{ version, document }` envelope. The YAML form carries the read as
@@ -48,6 +54,20 @@ unchanged project answers `304`.
   that document refuses the value, so change it (to what the warning's message allows) before
   you apply.
 - The floor is VIEWER, like the bootstrap read.
+
+**One document, layers on request.** The default read is the **bound** form: `basedOn` and an `id`
+on every row. `?form=plain` drops both — the portable file, for another project or a template.
+`&fingerprints=show` turns each `requires.connections.<slug>.operations` list into a map of
+operation to its contract hash. `&defaults=show` writes the fixed defaults as values, and inherited
+values as YAML comments (beside a JSON document, as `inherited: [{ path, value, from }]`).
+
+⭐ **Every form is sparse** unless defaults are asked for: a field equal to its fixed default, an
+unset inherited value, an empty section and an empty owned collection are left out. A
+kept-when-omitted field is always shown when it holds a value. `off` and `false` are the same value
+wherever a switch is written, and an export writes `off`; `google:` and `google: {}` are the same,
+and an export writes the bare key. Apply accepts every form: ids are matched when present,
+fingerprints compared when present (a mismatch is a warning naming the operation), and a stated
+default is no change.
 
 **What a project holds, in a few KB:** `GET /v1/projects/{nodeId}/document/summary` answers the
 same read as `{ version, lines }`, one line per element in document order. A type lists its
@@ -67,177 +87,274 @@ The schema is COMPOSED from the design surfaces' own create bodies, never restat
 the surface's create body minus the addressing the document supplies by position (`project` and
 the element's `key`), the request-only `validateOnly` flag, and every field that holds an id of
 another row. So a field a surface grows appears in the document the same day, spelled the same way —
-an endpoint's `contractConfig.responseBody` (one flow output sent as the whole body), `responseType`
-(that output sent as CSV, TSV, plain or Markdown text), `redirect`, `statusOutput` and `headers`, and an
-input bound `from: "header.<name>"`, `"rawBody"` or `"patch"`, are written
+an endpoint's `responseBody` (one flow output sent as the whole body), `status`, `auth` and
+`publicRpm`, and an input bound `from: "header.<name>"`, `"rawBody"` or `"patch"`, are written
 here as on `POST /v1/api-endpoints`, a
-table's `ownerScope` is `user` or `project` here as on `POST /v1/tables` and on a
+table's `owner` is `user` or `project` here as on `POST /v1/tables` and on a
 record (the stored `USER` / `PROJECT` is refused, in a document as on the row) — with
 `sharing: true` beside it on a `user` table whose records are shared by grants — and a
 relation's `producer` / `cardinality` are `join-record`, `many-to-one`, … as on
-`POST /v1/relations` (the camelCase `joinRecord` / `manyToOne` is refused; `producer` is
-required on every relation row, as on the create), and an eval
+`POST /v1/relations` (the camelCase `joinRecord` / `manyToOne` is refused), and an eval
 suite's `coverageMode` is `strict` or `report-only` as on `POST /v1/eval-suites`, its `scoreRules`
 the same list under the same bounds, with `direction` in kebab (`higher-is-better`). A suite's
-`applyWrites` rides along too: an export always states it, and `false` means the suite's runs
-discard what the flow writes (eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`)).
+`applyWrites` rides along too: `off` means the suite's runs discard what the flow writes
+(eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`)). One row reads differently: a type row in the document IS
+its JSON Schema (`Pounds: { type: number, minimum: 0 }`, its note the schema's own
+`description`), where the types row API wraps the same schema in `definition`.
 
-## Views and shapes
+## The `project` section and `requires`
 
-**A read is a view; a flow only when it computes.** `views` holds the project's named reads: a
-view states one read — its table (or a base view it `extends`), its conditions under `where`, its
-`params`, its `order` and `pageSize`, and the `shape` its rows take — and a flow reads it by key
-with one `record.view` step. A `GET` endpoint over that flow declares only its path: its typed
-query, paging and `ETag` come from the view (anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)).
-Write an inline `record.list` or `record.query` only when a value comes from an earlier step.
+`project` holds the project's own settings:
+
+```yaml
+project:
+  name: Club # required on create; kept when omitted
+  description: Members and meets
+  builtInRoutes: { docs: off } # only what is off; a group not named is on
+  identity:
+    providers: { google } # declared = on; `apple: off` switches one off
+    appDomain: https://club.example.com
+  ai:
+    models: { summarization: { model: <model id>, effort: low } }
+    defaultEmbedding: default # omitted = the embedding keyed `default`
+    embeddings:
+      default: { model: <model id>, matchExactWords: true, chunking: whole }
+  credits:
+    userLimit: { credits: 200, per: day }
+    publicEndpointsLimit: off # off (the default) = public endpoints are unlimited
+  mail:
+    senders: { support: support@club.example.com }
+  config: … # namespaced runtime tunables
+```
+
+- ⛔ **In `identity` and `credits` a setting left out is KEPT**, not reset: only an explicit value
+  such as `off` clears it, and the plan lists each setting the project holds that the document
+  does not state as `kept`. Changing either needs ADMIN. `ai.defaultEmbedding` is kept the same
+  way: `ai` stated without it keeps the pointer, and `defaultEmbedding: default` moves it back.
+  Everywhere else a left-out field is its default.
+- `builtInRoutes`, `ai.models`, `mail.senders` and `config` are owned collections: omitted,
+  untouched; stated, whole. `ai.embeddings` is a map of rows, with `delete: true` and `prune: true`.
+  `ai.models` refuses `embedding` and `rerank`: an embedding is chosen under `ai.embeddings`, a
+  rerank by the step's own `model`.
+- A table that declares `search` and names no embedding uses the default one. `default` is a
+  reserved key that always resolves: naming it, or naming none, on a project without it creates
+  `default` from the inherited embedding model, with `matchExactWords: true` and `chunking: whole`;
+  it is pinned from then on. The export prints the `default` row, and a table's `embedding` line,
+  only once they differ from what the platform would create now; stating them as that default
+  changes nothing in a plan, and `prune` never deletes the hidden row.
+- **Mail goes out from the project's default address** (`<project>@<its domain>`) unless a step
+  names a sender: `sender: support` names a key of `mail.senders`, bound to an address the
+  project's node or an ancestor owns.
+- Not in the document: the project's address (subdomain, custom domain), trace rates, the design
+  spend cap, test-user settings, the wallet, billing, the payer, secret values, members and keys.
+
+`requires` states what the project needs from outside it. The export derives it; a plan checks it;
+an apply ignores it.
+
+```yaml kipory:request=project-document
+kipory: 12
+requires:
+  connections:
+    crm:
+      {
+        source: openapi,
+        url: https://crm.example.com/openapi.json,
+        operations: [list-contacts],
+      }
+  secrets: [http_credential/crm]
+  emailAddresses: [support@club.example.com]
+```
+
+`connections` come from steps whose function is `<slug>.<operation>`, `secrets` from steps that name
+a stored vault purpose, `emailAddresses` from the addresses bound in `project.mail.senders` to the
+senders steps name (a sender no step names adds nothing; the default address is never listed).
+A plan answers one error per connection the organization lacks, naming the call that creates it,
+and one per listed operation a connection lacks. A missing secret is a warning naming what to
+store; a listed address the project may not send as (not owned and switched on by it or an
+organization above) is `REQUIRES_EMAIL_ADDRESS_MISSING`, naming the call that makes it. A
+hand-written entry nothing uses — a connection, an operation, a secret, or an address no step's
+sender is bound to — is `REQUIRES_UNUSED`; an export writes only what the steps use. What the platform supplies itself — Telegram,
+functions on a platform key, sign-in keys — is never listed.
+
+## Queries and selections
+
+**A read is a query; a flow only when it computes.** A table's `queries` hold its named reads: a
+query states one read — its conditions under `where` (or a base query it `extends`), its `params`,
+its `order` and `pageSize`, and the selection its rows take under `select` — and a flow reads it with
+one `record.query` step, `with: { query: book.myShelf }`. A step is outside every table, so it always
+names the query as `<table>.<key>`. A `GET` endpoint over that flow declares only its path: its typed
+query, paging and `ETag` come from the query (anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)).
+Write the clauses in place in a `record.list` or `record.query` step only when a value comes from an
+earlier step. A table's `selections` hold its named answer shapes.
 
 <!-- field-ok: authorId — one project's example field name, not a platform field -->
 <!-- field-ok: genre — one project's example field name, not a platform field -->
 <!-- field-ok: publishedOn — one project's example field name, not a platform field -->
-<!-- field-ok: visibleBooks — one project's example view key, not a platform field -->
+<!-- field-ok: visibleBooks — one project's example query key, not a platform field -->
 
-```json
-"shapes": {
-  "authorChip": { "table": "author", "properties": { "name": "name" } },
-  "bookCard": {
-    "table": "book",
-    "properties": { "title": "title", "publishedOn": "publishedOn", "genre": "genre" },
-    "linked": { "author": { "relation": "written-by", "shape": "authorChip" } }
-  }
-},
-"views": {
-  "followedAuthors": { "table": "follow", "fields": ["authorId"] },
-  "hiddenAuthors": { "table": "hide", "fields": ["authorId"] },
-  "visibleBooks": {
-    "table": "book",
-    "where": [{ "kind": "field", "field": "authorId", "op": "not-in", "set": { "view": "hiddenAuthors", "field": "authorId" } }]
-  },
-  "myShelf": {
-    "extends": "visibleBooks",
-    "params": { "genre": { "type": "string", "optional": true } },
-    "where": [
-      { "kind": "field", "field": "authorId", "op": "in", "set": { "view": "followedAuthors", "field": "authorId" } },
-      { "kind": "field", "field": "genre", "op": "eq", "param": "genre" }
-    ],
-    "order": { "by": "field", "field": "publishedOn", "direction": "desc" },
-    "pageSize": { "default": 20, "max": 50 },
-    "shape": "bookCard"
-  },
-  "poetryShelf": {
-    "extends": "visibleBooks",
-    "where": [{ "kind": "field", "field": "genre", "op": "eq", "value": { "literal": "poetry" } }]
-  }
-}
+```yaml
+tables:
+  author:
+    type: Author
+    selections:
+      chip: { properties: { name: name } }
+  follow:
+    type: Follow
+    queries:
+      followedAuthors: { fields: [authorId] }
+  hide:
+    type: Hide
+    queries:
+      hiddenAuthors: { fields: [authorId] }
+  book:
+    type: Book
+    selections:
+      card:
+        properties: { title: title, publishedOn: publishedOn, genre: genre }
+        linked: { author: { relation: written-by, select: author.chip } }
+    queries:
+      visibleBooks:
+        where:
+          - {
+              kind: field,
+              field: authorId,
+              op: not-in,
+              set: { query: hide.hiddenAuthors, field: authorId },
+            }
+      myShelf:
+        extends: visibleBooks
+        params: { genre: { type: string, optional: true } }
+        where:
+          - {
+              kind: field,
+              field: authorId,
+              op: in,
+              set: { query: follow.followedAuthors, field: authorId },
+            }
+          - { kind: field, field: genre, op: eq, param: genre }
+        order: { by: field, field: publishedOn, direction: desc }
+        pageSize: { default: 20, max: 50 }
+        select: card
+      poetryShelf:
+        extends: visibleBooks
+        where:
+          [{ kind: field, field: genre, op: eq, value: { literal: poetry } }]
 ```
 
 What no schema says:
 
-- **`where` is `record.query`'s clause grammar written as values** — a view reads no step's value. A
-  `field` clause takes exactly one operand: a fixed `value`; a `param`, one of the view's params; or a `set` (the
-  values of a field across another view's rows, `id` by default, under `in` or `not-in`).
-- ⛔ **A view's fixed text is `{ "literal": … }`.** Write `"value": { "literal": "poetry" }`, a list
-  for `in` / `not-in` as `{ "literal": ["novel", "poetry"] }`; a bare number or `true`/`false` stays
-  as it is. A bare text is refused (in a step a bare string is a path read, and a view reads no
-  step's value), and so is an `{ "expr": … }`; a value the reader gives is a `param`.
-  The same holds at every operand of a view's clause: a `term`'s `slug`, a `semantic` `text` or
+- **A query has no `table:`** — its table is the row it sits under. Inside its own table another
+  query or selection is named by its bare key (`select: card`, `extends: visibleBooks`); another
+  table's is `<table>.<key>` (author.chip, `hide.hiddenAuthors`).
+- **`select` names a selection or writes one in place**: `select: { properties: {…}, linked: {…} }`.
+  The plain `fields: [...]` projection stays for "these fields", never beside `select`.
+- **`where` is `record.query`'s clause grammar written as values** — a query reads no step's value. A
+  `field` clause takes exactly one operand: a fixed `value`; a `param`, one of the query's params; or a `set` (the
+  values of a field across another query's rows, `id` by default, under `in` or `not-in`).
+- ⛔ **A query's fixed text is `{ literal: … }`.** Write `value: { literal: poetry }`, a list
+  for `in` / `not-in` as `{ literal: [novel, poetry] }`; a bare number or `true`/`false` stays
+  as it is. A bare text is refused (in a step a bare string is a path read, and a query reads no
+  step's value), and so is an `{ expr: … }`; a value the reader gives is a `param`.
+  The same holds at every operand of a query's clause: a `term`'s `slug`, a `semantic` `text` or
   `likeRecordId`, a `link` or `stream` `where` entry's `value`, a stream `window`'s `from` / `to`,
   and a `peer` field clause's `value`.
-- **A set is a sub-read, not a list.** It runs in the same statement as the view, as the same
+- **A set is a sub-read, not a list.** It runs in the same statement as the query, as the same
   caller, with no member cap; an empty set matches nothing under `in` and everything under
-  `not-in`, and `not-in` keeps a record with no value at all. A set view holds only `field` clauses
-  and sets, two levels deep at most, and no view with a `semantic` clause uses one.
-- **`contains` yes, `any` no.** A view's field clause takes `contains` (text anywhere, ignoring
+  `not-in`, and `not-in` keeps a record with no value at all. A set query holds only `field` clauses
+  and sets, two levels deep at most, and no query with a `semantic` clause uses one.
+- **`contains` yes, `any` no.** A query's field clause takes `contains` (text anywhere, ignoring
   case, at least 3 characters with a word in them, not signs alone — a param that does not hold
-  that is refused when the view is read, and a param of another type at save). A view
-  holding an `any` clause is refused at save, `VIEW_ANY_UNSUPPORTED`: OR one field's values with
-  `in`, or ask the OR in a `record.query` step. A view's `order` may be
-  `{ "by": "created", "direction": "asc" }` for oldest created first (newest first is the
+  that is refused when the query is read, and a param of another type at save). A query
+  holding an `any` clause is refused at save, `QUERY_ANY_UNSUPPORTED`: OR one field's values with
+  `in`, or ask the OR in a `record.query` step written in place. A query's `order` may be
+  `{ by: created, direction: asc }` for oldest created first (newest first is the
   default), or name a number, true/false or text field with a `filter` use; a text field needs
   the type's `maxLength` of at most 500
   (`QUERY_ORDER_TEXT_UNBOUNDED`).
-- **The exclusion runs before the page is cut**, so a base view that drops what the caller hid
-  (`visibleBooks`) gives every view that extends it full pages. `extends` takes the base's table,
-  scope and `where` and adds its own clauses; its `order`, `pageSize`, `shape` replace the base's.
+- **The exclusion runs before the page is cut**, so a base query that drops what the caller hid
+  (`visibleBooks`) gives every query that extends it full pages. `extends` takes the base's table,
+  scope and `where` and adds its own clauses; its `order`, `pageSize`, `select` replace the base's.
   One level.
 - **An absent param never widens the read.** It takes its `default`; with `optional: true` only the
-  clauses naming it are left out; with neither the read fails `VIEW_PARAM_MISSING` before reading.
-  A bad value fails `VIEW_PARAM_INVALID`. A param of a set or a base needs a `default`: nothing
+  clauses naming it are left out; with neither the read fails `QUERY_PARAM_MISSING` before reading.
+  A bad value fails `QUERY_PARAM_INVALID`. A param of a set or a base needs a `default`: nothing
   passes it one. This is how an optional filter is written — one step, not a branch per case.
-- **A linked read the reader asks for.** A view's linked read (either level) takes `when`: `true`,
-  `false`, or `{ "param": "withAuthor" }` naming a boolean param of the view. It is read only when
+- **A linked read the reader asks for.** A query's linked read (either level) takes `when`: `true`,
+  `false`, or `{ param: withAuthor }` naming a boolean param of the query. It is read only when
   that is `true`; `false`, or an optional param left out, leaves it out (each row's `linked` then
-  lacks its name). Its far table, when the relation reaches several, is `peerTable`. A view's
-  `when` reads no step's value, so it is never `{ "expr": … }` or a bare text.
-- **Who it reads as is the view's `scope`.** `"caller"`, the default, reads a person-owned table as
+  lacks its name). Its far table, when the relation reaches several, is `peerTable`. A query's
+  `when` reads no step's value, so it is never `{ expr: … }` or a bare text.
+- **Who it reads as is the query's `scope`.** `caller`, the default, reads a person-owned table as
   the signed-in person — the identity is never wired. A flow that can start with no person (a
-  schedule, a trigger, a project table's processing) and reaches such a view is refused at plan,
-  `VIEW_CALLER_WITHOUT_PERSON`; `"project"` reads as the project: every person's records of a
-  person-owned table (the plan warns `PROJECT_VIEW_READS_PEOPLE` when a signed-in endpoint
+  schedule, a trigger, a project table's processing) and reaches such a query is refused at plan,
+  `QUERY_CALLER_WITHOUT_PERSON`; `project` reads as the project: every person's records of a
+  person-owned table (the plan warns `PROJECT_QUERY_READS_PEOPLE` when a signed-in endpoint
   serves it).
-- **A shape is the answer's type.** A shaped row carries `id` and exactly the named properties; a
+- **A selection is the answer's type.** A selected row carries `id` and exactly the named properties; a
   linked one-record property is absent when nothing is linked. The step's value, the endpoint's
   answer and the OpenAPI component (`BookCard`) are derived from it, so they cannot disagree.
-- **What a view cannot say yet** — OR across clauses, an order by a linked record's value, a set
-  over `link` or `term` clauses, a computed property — stays a flow step after `record.view`.
+- **What a query cannot say yet** — OR across clauses, an order by a linked record's value, a set
+  over `link` or `term` clauses, a computed property — stays a flow step after the `record.query`.
 
-Both sections are maps keyed by the view's or shape's key, with `delete: true` and `prune: true` as
-every other section. A view names only keys, so its rows carry no id but their own. A view is
-judged when it is planned, against the section as the document leaves it: a view may be listed
-before the set or base it names. A view or a shape is removed before the tables it reads, so a
-document may remove both together.
+`queries` and `selections` are maps of rows under their table, with `delete: true` and
+`prune: true` like every other map of rows. A query names only keys, so its rows carry no id but
+their own. A query is judged when it is planned, against the document as it leaves it: a query may
+be listed before the set or base it names. Deleting a table deletes its queries and selections; it
+is refused while another table's query or selection, a step or an endpoint still names one of them.
 
-To see what an applied view answers before a flow uses it, preview it:
-`POST /v1/views/{key}/preview?project=<id>` with `asUserId` (the member to read as; none for a view
-that reads no person's records), the `params`, a cursor (`after` to page on, `before` to page back)
-and `limit`. It answers the page as
+To see what an applied query answers before a flow uses it, preview it:
+`POST /v1/tables/{id}/queries/{key}/preview?project=<id>` with `asUserId` (the member to read as;
+none for a query that reads no person's records), the `params`, a cursor (`after` to page on,
+`before` to page back) and `limit`. It answers the page as
 `items`, `nextCursor`, `prevCursor` and `paging: null`, beside `itemSchema` (one row's JSON Schema),
 `tables` (every table the read reaches) and `clauses` (what it ran, params and base merged in). It
-needs the viewer role, and writes, charges and runs nothing. A plan steers reads to views: an
-inline `record.list` or `record.query` equal to a declared view warns `READ_REPEATS_VIEW`, and a
-`GET` endpoint whose flow is only one such read warns `ENDPOINT_IS_A_VIEW`; neither refuses.
+needs the viewer role, and writes, charges and runs nothing. `GET /v1/tables/{id}/queries` and
+`GET /v1/tables/{id}/selections` list a table's rows. A plan steers reads to queries: clauses
+written in place in a `record.list` or `record.query` step equal to a declared query warn
+`READ_REPEATS_QUERY`, and a `GET` endpoint whose flow is only one such read warns
+`ENDPOINT_IS_A_QUERY`; neither refuses.
 
 ## Three reference forms
 
 Every element is addressed by its `key` — the one the platform already enforces as unique within
-a project, and the key each section's map is keyed by. An event type is `<categoryKey>/<key>` —
-the prefix is its namespace, and nothing has to exist before it — a source `<provider>/<key>`. A
-type in a source provider's namespace (`telegram/…`) is written by that provider's source: a plan
-reports it as `derived` and never writes or prunes it, so an export from a project with a source
-applies cleanly to one without, whose own source then seeds it. A row's display text, where it has one, is `label`. A few references
-are ids on the row API and keys in the document — flows, types, sources, and a search profile:
+a project, and the key each section's map is keyed by. An event type is `<category>/<key>` —
+the prefix is its namespace, and nothing has to exist before it. A query or a selection is
+`<table>.<key>`, or its bare key inside its own table; a relation's source field is
+`<table>.<field>`. A type in a provider's namespace (`telegram/…`) is written by the platform when
+a trigger first watches that provider: a plan reports it as `derived` and never writes or prunes
+it, so an export from a project that watches a channel applies cleanly to one that does not yet.
+A row's display text, where it has one, is `label`. A few references are ids on the row API and
+keys in the document — flows, types, and an embedding:
 
-| The row API spells      | The document spells   | Meaning                                                   |
-| ----------------------- | --------------------- | --------------------------------------------------------- |
-| `dataTypeId`            | `type`                | a table's type, by key                                    |
-| `payloadDataTypeId`     | `payload`             | an event type's payload, by type key                      |
-| `propertiesDataTypeId`  | `properties`          | a relation's link properties, by type key                 |
-| `dataTypeId`            | `type`                | a config namespace's type, by key                         |
-| `flowId`                | `flow`                | a table's, trigger's, schedule's or eval suite's flow     |
-| `sourceId`              | `source`              | a trigger's source, as `<provider>/<key>`                 |
-| `targetConfig.flow.id`  | `targetConfig.flow`   | an endpoint target's flow, by key                         |
-| `resolverFlowId`        | `resolver`            | a vocabulary's resolving flow, by key                     |
-| `scorerFlowIds`         | `scorers`             | an eval suite's scorer flows, by key                      |
-| `uses.search.profileId` | `uses.search.profile` | a table's embedding profile, by key — its live generation |
+| The row API spells      | The document spells     | Meaning                                               |
+| ----------------------- | ----------------------- | ----------------------------------------------------- |
+| `dataTypeId`            | `type`                  | a table's type, by key                                |
+| `payloadDataTypeId`     | `payload`               | an event type's payload, by type key                  |
+| `propertiesDataTypeId`  | `properties`            | a relation's link properties, by type key             |
+| `dataTypeId`            | `type`                  | a config namespace's type, by key                     |
+| `flowId`                | `flow`                  | a table's, trigger's, schedule's or eval suite's flow |
+| `resolverFlowId`        | `resolver`              | a vocabulary's resolving flow, by key                 |
+| `scorerFlowIds`         | `scorers`               | an eval suite's scorer flows, by key                  |
+| `uses.search.profileId` | `uses.search.embedding` | a table's embedding, by key — its live generation     |
 
 A flow's steps hold no id to re-spell: they are written the same way in the document and in
 `PUT /v1/flows/{id}/steps`, and a `flow.invoke` step names the flow it calls by key, as `flow` in its `with`.
 
 An endpoint states only what cannot be worked out, here as on the row API: a parameter is
 `{ in: path }` or `{ in: query }` (its `type` is `string`; its `required` follows the path and the
-flow's inputs), a `{part}` of the path needs no entry at all, and `targetConfig.inputs` left out binds every input of the flow by its name. Such
+flow's inputs), a `{part}` of the path needs no entry at all, and `inputs` left out binds every input of the flow by its name. Such
 an endpoint stays bound by name: the export states it with `inputsByName: true`, no `inputs` and
 only the parameters you stated, and each apply binds it again against the flow's inputs as they are.
 A plan says each value it worked out as an `info` finding, `DOCUMENT_FORM_READ`. An endpoint whose
 `inputs` were written is exported whole and keeps them when the document leaves them out
 (anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)).
 
-An endpoint's `contractConfig` is the row API's, whole: who may call it is stated there too.
-`auth: "none"` makes the endpoint public — callable with no key and no session — and `publicRpm`
-sets its requests per minute; see api-endpoints-anatomy (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`). The project's
-public spend cap is a project **setting**, not part of the document, and a public endpoint needs it
-first: an apply that makes an endpoint public in a project with no cap is refused
-(`PUBLIC_SPEND_CAP_REQUIRED`). Set `publicSpendCapCredits` with
-`PATCH /v1/projects/{nodeId}/settings`, then apply.
+An endpoint states who may call it beside its method and path. `auth: none` makes the endpoint
+public — callable with no key and no session — and `publicRpm` sets its requests per minute; see
+api-endpoints-anatomy (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`). A public endpoint is unlimited by default: the
+project's cap on what its public endpoints may spend is `project.credits.publicEndpointsLimit`
+(`{ credits, per: day }`, or `off` for none), and like every `credits` setting it is kept when the
+document leaves it out.
 
 Not every nested reference is re-spelled: a table's `uses.join` names its relation as
 `relationKey`, exactly as the table API does, because the document passes that object to the same
@@ -259,13 +376,17 @@ when the table's row states `uses`, its search and link declarations are judged 
 and the new type together, so removing a field along with the uses that name it plans clean. With
 `uses` left out, the stored declarations are judged against the new type, and a field they still
 name cannot be removed. Every other table of the same type is judged on its stored
-declarations either way. A table's `uses` names each field's use as the table API does — `filter`,
-`key`, `search`, `link`, `stream`. A field reference's `family` is `submission`, `processed` or `system`, and
-`uses.search` carries no `stages`: a `search` use is `{ "kind": "search" }`, reads exactly one field
-the record stores and takes no `role` — a table's `search` fields are indexed in the order the
-document marks them, at most the profile's `searchFieldsPerTable` of them. A profile under
-`vectors` states its `modelId`, `keywords` (whether exact words are indexed too) and
-`defaultChunking`, and nothing else about the index: no slot name, no collection.
+declarations either way. A table's `uses` is grouped by use: `key: <field>` (one field), `filter:
+[…]` (its order carries no meaning), `search: [<field>, …]` or `{ fields, embedding?, chunking?,
+indexWhen? }`, `stream: { <field>: { at, filters?, retainDays? } }`, `vocabularies: […]` and `join`.
+A field the record does not take from its submission is `{ field, family: processed }` (or
+`computed`). There is no `link` use: a link is stated once, on the relation, as
+`from: <table>.<field>` and `to: <table>`, and the table's link is derived from it. A table's
+`search` fields are indexed in the order the document lists them, at most the embedding's
+`searchFieldsPerTable` of them. An embedding under `project.ai.embeddings` states its `model`,
+`matchExactWords` (whether exact words are indexed too) and `chunking`, and nothing else about the
+index: no slot name, no collection. `chunking` has one spelling everywhere, on an embedding and on a
+table's `uses.search` alike: `whole` or `{ tokens, overlap }`.
 
 A table may also state `computed`: fields Kipory keeps from related records (a `rollup` over a
 relation, such as `{ "relation": "review-of", "count": true }`). They are judged once the whole
@@ -351,16 +472,18 @@ required here too (one row asks for more than its create: an `evals` suite must 
 trigger — is the whole element: an own optional field you leave out goes back to its default, as
 it would on a create (`description` left out clears it). The plan shows each reset as a field going to its default, with a
 `FIELD_RESET_TO_DEFAULT` warning naming the value held now, so nothing resets unseen. State a field
-to keep it; the export states every field, so the simplest edit is still the exported element with
-one field changed. Four kinds of field are not reset by leaving them out:
+to keep it; the export leaves out only what equals its default, so the simplest edit is still the
+exported element with one field changed. Four kinds of field are not reset by leaving them out:
 
-- **owned collections** — a flow's `steps`, a suite's `cases`, a vocabulary's `terms`, a
-  relation's `pairings`, the project's `config` and `routes`, a table's `uses`: left out,
-  untouched; stated, whole (a member you leave out of a stated one IS removed);
+- **owned collections** — a flow's `steps`, a suite's `cases`, a vocabulary's `terms`, a table's
+  `uses`, `computed` and `reprocessOn`, and the project's `config`, `builtInRoutes`, `ai.models`
+  and `mail.senders`: left out, untouched; stated, whole (a member you leave out of a stated one
+  IS removed). A table's `queries` and `selections` are maps of rows, not owned collections;
 - **what the platform chooses** — a vocabulary's `resolver` and `resolutionParams` keep the
   binding the project chose;
-- **what only a create sets** — a trigger's `source` and a vocabulary's `parentVocabularyKey`
-  (stated with another value, each is refused as permanent);
+- **what is kept when omitted** — a table's `sharing`, a vocabulary's `parent` (stated with
+  another value, refused as permanent), and every setting under `project.identity` and
+  `project.credits`;
 - **the project's own `name`** (its `description` resets to `""`).
 
 A flow's `steps` is a list in written order, and the list you state is the flow's list: each step
@@ -373,12 +496,11 @@ A field's value is whole too: a stated `with` replaces the stored one, it is not
 key by key.
 The simplest edit is the
 exported row with one field changed.
-A field the row's own PATCH does not take — a vocabulary's `cardinality`, a profile's `modelId`, a
-trigger's `source` — is set when the row is created and permanent afterwards: stated unchanged
-it is fine (an export states everything), stated CHANGED it is refused on its own path, never
+A field the row's own PATCH does not take — a vocabulary's `cardinality`, an embedding's `model` —
+is set when the row is created and permanent afterwards: stated unchanged
+it is fine, stated CHANGED it is refused on its own path, never
 dropped. To change one, state the row under a new key without the `id` and remove the old one.
-The exception is the owned collections (a flow's `steps`, a suite's `cases`, a relation's
-`pairings` — each `{ fromTableKey, toTableKey }`, as the relation's create takes them — a
+The exception is the owned collections (a flow's `steps`, a suite's `cases`, a
 vocabulary's `terms`): each is stated whole, so when present it replaces the owner's collection —
 and a member the project holds that the collection no longer names is REMOVED, which makes that
 document one that removes something, with the ADMIN floor an apply that removes has.
@@ -396,7 +518,7 @@ a name that is no row is `VALIDATION_FAILED` on its path; a name the document do
 listed in `acceptBreaksNotNeeded`. Like `delete`, it is a statement about this apply — never
 stored, never exported.
 
-A type's row may carry `renameFields` (`{"<old path>": "<new name>"}`) beside its definition as it
+A type's row may carry `renameFields` (`{"<old path>": "<new name>"}`) beside its schema as it
 reads after the rename, `keepExpressions`, the steps whose expressions or templates keep the
 old name as written, and `rewriteExpressions`, the steps whose expressions or templates take the
 text the plan proposes. All three are statements about this apply, like `acceptBreaks`: never
@@ -426,7 +548,7 @@ in an expression, a template or a path of that flow is a candidate: change it in
 name its step in the flow row's `keepExpressions` or (an expression or a template)
 `rewriteExpressions`. Refused: a flow a table processes its records with
 (`RENAME_FLOW_PROCESSES_TABLE`), a flow the document creates, and an input the platform fills by
-its name, such as a view's parameter or a trigger's `event` (`RENAME_NAME_TAKEN`). Needs ADMIN;
+its name, such as a query's parameter or a trigger's `event` (`RENAME_NAME_TAKEN`). Needs ADMIN;
 never stored, never exported.
 
 A table's row may carry `renameComputed` (`{"<old>": "<new>"}`) beside a `computed` that declares
@@ -435,12 +557,12 @@ computed field reading it reads the new name, without a recompute. Like `renameF
 statement about this apply — never stored, never exported. Plans list a `recompute` consequence
 when a table's stored records get computed values.
 
-A schedule, a trigger and a source carry `enabled`, which their create bodies do not: the row API
+A schedule and a trigger carry `enabled`, which their create bodies do not: the row API
 switches it with a `PATCH` (`{enabled, version}`), and the document writes it through that same
-patch after the row. Export always states it, so a disabled schedule, trigger or source re-created
-from its export comes back disabled. Omitted, it is `true`, like any field a stated element leaves
-out: a new row is created enabled, and an existing disabled one is switched back ON, with a
-`FIELD_RESET_TO_DEFAULT` warning on its path. State `enabled: false` to keep a row off.
+patch after the row. An export states it when it is off (`enabled: off`), so a disabled schedule or
+trigger re-created from its export comes back disabled. Omitted, it is on, like any field a stated
+element leaves out: a new row is created enabled, and an existing disabled one is switched back ON,
+with a `FIELD_RESET_TO_DEFAULT` warning on its path. State `enabled: off` to keep a row off.
 
 A schedule and a trigger also carry `failurePolicy` (`pause` or `keep-running`), an ordinary
 field, and — on export only — `paused: { at, reason }` when the platform has paused the row
@@ -550,16 +672,16 @@ applying it; it is the true list, not only yours. A table delete also carries it
 its own path, whether or not the delete goes through: a `DOCUMENT_DELETE_CASCADED` warning names
 the relations and the joins it would take along, so a delete the plan refuses (a table its
 records pin) still says what it would have removed. A row your document still STATES is reported
-the same way: an edited full export that deletes a table and still names the relation
-pairing it has that relation's change on `relations.<kind>` as the cascade, not as `unchanged` — the
+the same way: an edited full export that deletes a table and still names the relation's
+end on it has that relation's change on `relations.<kind>` as the cascade, not as `unchanged` — the
 document says keep it, the delete takes it anyway, and the warning says which won.
 
 Rows are matched by `id` when the project holds a row of that kind with that id. For a type, a
-table, a relation, a vocabulary, a view, a shape, an eval suite and an eval case, keeping the `id` under a new key is a
+table, a relation, a vocabulary, a query, a selection, an eval suite and an eval case, keeping the `id` under a new key is a
 RENAME — one update of the same row, and everything that named it follows; the row API renames
-the same kinds, bar views and shapes, which only a document writes. A view renamed this way is
-renamed in every view that extends it or reads it as a set and in every `record.view` naming it;
-a shape, in every view and shape answering in it. A table renamed this way takes its records with it, a relation its
+the same kinds, bar queries and selections, which only a document writes. A query renamed this way is
+renamed in every query that extends it or reads it as a set and in every `record.query` step naming it;
+a selection, in every query and selection answering in it. A table renamed this way takes its records with it, a relation its
 links and a vocabulary its terms; like a type's `renameFields`, each needs ADMIN
 (`permissions.mayRename`) and answers `renames[]`. Every
 other key is permanent (a flow, an endpoint: other rows or stored data are linked to
@@ -609,8 +731,8 @@ history carrying your note and label. Seeding and relabelling a vocabulary's ter
 commit as writes of their own (below), each moving the version again under the same note and
 label, so `appliedVersion` can be several above the plan's `version`. A refusal has written nothing, and like every error it is
 JSON whatever `Accept` asks. A plan that changes nothing answers `applied: true` and leaves the
-version where it was. What the platform fills in on a write is not a change: the `x-record-ref` a `link` use stamps on
-a field. Planning the same document again, or its export, changes nothing, and a step it leaves
+version where it was. What the platform fills in on a write is not a change: the `x-record-ref` a relation's source field
+has stamped on it. Planning the same document again, or its export, changes nothing, and a step it leaves
 alone keeps the results cached under it.
 
 The answer is the plan plus `applied`, `appliedVersion` and `basedOn` — no document; read it with
@@ -629,7 +751,7 @@ when the caller holds less. The plan says so first: a caller below EDITOR gets
 removes something, so `ok` is false. A plan for a caller below EDITOR lists what the document would
 change and is not rehearsed: it carries no `health`, no `consequences` and no findings about the
 change itself. Every removal still goes through that row's own delete, so whatever
-protects the row there (a flow a schedule still binds, a source something still listens to)
+protects the row there (a flow a schedule still binds)
 protects it here, and surfaces as a finding on the row's path.
 
 A term in `terms` may carry `labels` (by language) and `attributes` (the values the vocabulary's
@@ -674,7 +796,8 @@ any row, the answer is `422` with `details.reason: "DOCUMENT_APPLY_FAILED"` and 
 `plan` beside it, every finding with its path in the document, and no project exists afterwards:
 no node, and the address is still free. The body's `name` wins over the name the
 document's `project` section states, and its `description` is dropped with it — the create body
-has none; the rest of that section (routes, config) applies. `template` and `document` together
+has none; the rest of that section (`builtInRoutes`, `identity`, `ai`, `credits`, `mail`,
+`config`) applies. `template` and `document` together
 are refused before anything is made. Another project's export is a fine document to start from —
 its ids are ignored and its keys are the content.
 
@@ -693,11 +816,10 @@ the type it took its fields from.
 
 Absence never deletes, so applying another project's export to this one adds and updates what it
 names and leaves every other row standing. To make the project EQUAL the document, state
-`prune: true` on every map of rows: the four top-level maps (`types`, `tables`, `relations`,
-`vocabularies`), the one under `events` (types), the one under `vectors` (profiles), the
-`flows` map, the four under `surfaces` (endpoints, sources, triggers, schedules) and `evals` —
-twelve in all, including the maps the document does not carry, since an absent section then
-means "none of these". Plan it first: the plan lists every delete, and an apply that removes
+`prune: true` on every map of rows: `types`, `tables`, `relations`, `vocabularies`, `events`,
+`project.ai.embeddings`, `flows`, `endpoints`, `triggers`, `schedules` and `evals`, and each
+table's `queries` and `selections` — including the maps the document does not carry, since an
+absent section then means "none of these". Plan it first: the plan lists every delete, and an apply that removes
 anything needs ADMIN.
 
 ## What does not travel
@@ -706,15 +828,16 @@ No secret value — a secret is always a reference by purpose. No `version`, no 
 count, no health, no run, no record, no member, no credential. The event types of the `platform`
 category are every project's and are shown on export as they are; a document neither creates nor
 prunes them. Where a table's search index
-is held is the platform's own bookkeeping: `vectors` carries profiles and nothing else, an export
-names no collection and no slot. A term that is an alias or archived is not configuration and is not exported.
+is held is the platform's own bookkeeping: `project.ai.embeddings` carries the embeddings and
+nothing else, an export names no collection and no slot. A watched source is not a row of the
+document: the trigger that watches it holds it. A term that is an alias or archived is not configuration and is not exported.
 Tenancy — who may open the project — is not in the document by decision. An eval suite's
 `runAsUserId` is a person, not configuration: an export leaves it out, a document that states it is
 refused, and it is set on the suite after the apply (`PATCH /v1/eval-suites/{id}`).
 
 ## A document in another format
 
-`kipory: 11` is the only format a plan reads. A document stating any other version is refused,
+`kipory: 12` is the only format a plan reads. A document stating any other version is refused,
 `DOCUMENT_VERSION_UNSUPPORTED`, and nothing converts it: export the project again and make the
 change there. A flow with no steps yet is not started (`FLOW_NOT_AUTHORED`).
 

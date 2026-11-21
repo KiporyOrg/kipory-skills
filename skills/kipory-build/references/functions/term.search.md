@@ -23,8 +23,7 @@ Results come best first, each with a similarity score. Use it to check for a ter
 | `status` | `active` \| `archived` \| `candidate` \| `any` | no | — | Which terms to read by status; `any` reads every status. |
 | `text` | union | yes | — | The phrase to search; empty finds nothing. |
 | `topK` | integer, 1 to 200 | no | `5` | How many terms come back, 1 to 200; default 5. |
-| `vocabulary` | union | no | — | The vocabulary's key, read from the run, in place of `vocabularyKey`. |
-| `vocabularyKey` | string | no | — | Which vocabulary to search; give this or `vocabulary`, not both. |
+| `vocabulary` | union | yes | — | Which vocabulary to search: a run path, or `{ literal: <key> }`. |
 
 ### `parentTermId` — one of
 
@@ -94,7 +93,9 @@ Step settings (`with`):
 
 ```json
 {
-  "vocabularyKey": "category",
+  "vocabulary": {
+    "literal": "category"
+  },
   "text": "text",
   "topK": 3
 }
@@ -128,7 +129,9 @@ Step settings (`with`):
 
 ```json
 {
-  "vocabularyKey": "category",
+  "vocabulary": {
+    "literal": "category"
+  },
   "text": "text",
   "minScore": 0.6
 }

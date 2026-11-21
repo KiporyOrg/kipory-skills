@@ -21,7 +21,7 @@ Writes time-stamped events to a record's stream field, not its data. A retry nev
 | `eventId` | union | no | — | Your own event id, or a list; empty means one is derived. ⚠️ The same id under another time counts as a second event, not a retry. |
 | `field` | string | yes | — | The stream field of that type that receives the events. |
 | `recordId` | union | yes | — | The id of the record to append to. ⚠️ The record must be the user's own or the project's, of this type. |
-| `tableKey` | string | yes | — | The table whose stream field receives the events. |
+| `table` | string | yes | — | The table whose stream field receives the events. |
 | `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ### `event` — one of
@@ -110,7 +110,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "thread",
+  "table": "thread",
   "field": "activity",
   "recordId": "events.recordId",
   "event": "events.events"
@@ -145,7 +145,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "thread",
+  "table": "thread",
   "field": "activity",
   "recordId": "events.recordId",
   "event": "events.events"

@@ -58,7 +58,7 @@ A step of any kind also takes `description`: a note for people reading the flow,
       "key": "due",
       "function": "record.list",
       "with": {
-        "tableKey": "member",
+        "table": "member",
         "limit": 100,
         "pages": { "max": 10, "onMore": "fail" },
         "fieldFilters": [{ "field": "renewsOn", "op": "eq", "value": "day" }]
@@ -142,7 +142,7 @@ Read it top down: `due` lists the members renewing on the input `day`; `perMembe
 - **Working around a problem in silence.** When something on Kipory stops you — an unexpected error, a doc that said something untrue, a missing capability — file a report: `kipory-connect`, "When something stops you".
 - **Written order is run order.** A step that reads what a later step gives is `STEP_READS_LATER`; its fix moves the giver up. Steps run together only in `parallel` (whose children cannot read each other) or across an `each`'s values.
 - **A value made inside a block stays there.** Read after the block through its `out`, as `<block>.<name>`; an `each`'s as `<each>[].<name>`, a list with one entry per value. `BLOCK_VALUE_ESCAPES` otherwise.
-- **A bare string is a path.** `subject: Renewal` reads a value named `Renewal`; text is `{literal: "Renewal"}`. A setting that names a thing — `tableKey`, `address`, a template — is a plain value.
+- **A bare string is a path.** `subject: Renewal` reads a value named `Renewal`; text is `{literal: "Renewal"}`. A setting that names a thing — `table`, `sender`, a template — is a plain value.
 - **A run with no signed-in person has no `userInfo`** — a key's call, a schedule, a trigger. A required read of `userInfo.userId` you write is refused at save until you guard it with `if` + `{has: userInfo}` or read it `optional`. A per-user table read that leaves `userId` to the run is not seen at save: with no person it fails at run, 403 at an endpoint. Preview a scheduled flow with `input.principal: "no-end-user"`.
 - **Nothing is skipped at run time.** A step whose required input is missing fails the run with a typed error; a step given `[]` runs with `[]`. To go on past a failure, wrap the steps in `try` and say in `catch` what happens; inside `catch`, `error` is `{code, message, step}`.
 - **An endpoint's error is a `fail` step** (a limit on an input goes on the input's type instead, and needs no step): `{key: refuse, fail: {code: BOX_PACKED, message: "A packed box cannot change.", status: 422}}` ends the flow and answers that status (any 4xx except 405, 408 and 426; 422 when left out): `code` `VALIDATION_FAILED`, your message, `details.reason` `BOX_PACKED`. A status with no word of its own, such as 400, 402 or 418, answers `code` `REQUEST_REFUSED`.

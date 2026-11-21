@@ -22,8 +22,7 @@ High scores reuse the matching term, low ones coin a new term, and the rest go t
 | `proposalLabel` | union | no | — | The proposed label; empty uses the slug. |
 | `proposalSlug` | union | no | — | The slug for a newly created term. |
 | `thresholds` | union | no | — | This vocabulary's `highThreshold` and `lowThreshold`. |
-| `vocabulary` | union | no | — | Optional vocabulary key, read from the run, stamped onto the decisive `TermResolution.vocabularyKey`. |
-| `vocabularyKey` | string | no | — | Which vocabulary this gate resolves; ignored when `vocabulary` is set. ⚠️ Whether the vocabulary exists is checked when the terms are saved, not here. |
+| `vocabulary` | union | no | — | The vocabulary to resolve: a run path, or `{ literal: <key> }`. ⚠️ Whether the vocabulary exists is checked when the terms are saved, not here. |
 
 ### `candidates` — one of
 
@@ -147,7 +146,9 @@ Step settings (`with`):
 
 ```json
 {
-  "vocabularyKey": "type",
+  "vocabulary": {
+    "literal": "type"
+  },
   "candidates": "candidates.candidates",
   "thresholds": "candidates.thresholds"
 }
@@ -165,7 +166,7 @@ Input:
 Output:
 
 ```
-{ "kind": "resolved", "resolution": { "outcome": "match", "vocabularyKey": "type", "termId": "term-evt" } }
+{ "kind": "resolved", "resolution": { "outcome": "match", "vocabulary": "type", "termId": "term-evt" } }
 ```
 
 #### Too close
@@ -178,7 +179,9 @@ Step settings (`with`):
 
 ```json
 {
-  "vocabularyKey": "type",
+  "vocabulary": {
+    "literal": "type"
+  },
   "candidates": "candidates.candidates",
   "thresholds": "candidates.thresholds"
 }

@@ -1,6 +1,6 @@
 # Build a backend as one document
 
-A bigger worked project than the primer's (`kipory-connect`): an invented fruit-box club — people sign in and keep their own membership and boxes, order and list them over HTTP, a total is kept for them, a model writes a packing slip, a daily job reminds members once by email — as one `kipory: 11` **project document**. Copy its shapes. Open another page only for something this one does not show (the last section says which).
+A bigger worked project than the primer's (`kipory-connect`): an invented fruit-box club — people sign in and keep their own membership and boxes, order and list them over HTTP, a total is kept for them, a model writes a packing slip, a daily job reminds members once by email — as one `kipory: 12` **project document**. Copy its shapes. Open another page only for something this one does not show (the last section says which).
 
 ## The loop
 
@@ -16,97 +16,83 @@ Underneath, on the api host with your key: `GET /v1/projects/{nodeId}/document?s
 
 - **A plan you mean to apply needs `basedOn`**, your read: what someone else changed after it is listed as `moved` and refuses the plan. The command keeps each file's read.
 - **Gate on `ok` and on each diagnostic's `severity`.** Only `error` refuses; `warning` and `info` block nothing. A finding about steps carries `at` and ready `fixes` (step edits to make in your file) or the `decision` you must make. Fix every error of one plan in one edit, then plan again.
-- **The format is 11** (`kipory: 11`), sent as YAML (`content-type: application/yaml`) or JSON. Plan the document alone, never an export's envelope `{ "version", "document" }`.
+- **The format is 12** (`kipory: 12`), sent as YAML (`content-type: application/yaml`) or JSON. Plan the document alone, never an export's envelope `{ "version", "document" }`.
 - **A document is partial and every element you state is whole.** Send the sections you change; state each row whole. An omitted row is untouched; a flow's `steps` are its whole list, so a step you leave out is removed.
-- **Sending mail needs an address first**: `POST /v1/managed-email-addresses { "node": "<nodeId>", "localPart": "renewals", "domain": "<a domain you send from>", "grade": "relay", "displayName": "Orchard Club" }`. The plan warns `EMAIL_SEND_ADDRESS_UNAVAILABLE` until it exists.
+- **Mail sends from the project's own address** (its name at the environment's mail domain) when a step names none, as `mail` does. Another address is claimed with `POST /v1/managed-email-addresses { "node": "<nodeId>", "localPart": "renewals", "domain": "<a domain you send from>", "grade": "relay", "displayName": "Orchard Club" }`, bound under `project.mail.senders` (`renewals: renewals@<that domain>`) and named on the step as `sender: renewals`. The plan warns `EMAIL_SEND_ADDRESS_UNAVAILABLE` when a step's address cannot send.
 
 ## The example
 
 ```yaml
-kipory: 11
+kipory: 12
+project:
+  name: Orchard Club
 types:
-  Pounds: { definition: { type: number, minimum: 0, maximum: 20 } }
+  Pounds: { type: number, minimum: 0, maximum: 20 }
   Member:
-    definition:
-      type: object
-      required: [name, renewsOn]
-      properties:
-        name: { type: string, minLength: 1, maxLength: 200 }
-        email: { type: string, maxLength: 320 }
-        renewsOn: { type: string, maxLength: 10 }
+    type: object
+    required: [name, renewsOn]
+    properties:
+      name: { type: string, minLength: 1, maxLength: 200 }
+      email: { type: string, maxLength: 320 }
+      renewsOn: { type: string, maxLength: 10 }
   Box:
-    definition:
-      type: object
-      required: [memberId, week, fruit, state]
-      properties:
-        memberId: { type: string, maxLength: 64 }
-        week: { type: string, maxLength: 10 }
-        fruit: { type: string, enum: [apples, pears, plums] }
-        pounds: { type: number, minimum: 0 }
-        state: { type: string, enum: [planned, packed] }
-        slip: { type: string }
+    type: object
+    required: [memberId, week, fruit, state]
+    properties:
+      memberId: { type: string, maxLength: 64 }
+      week: { type: string, maxLength: 10 }
+      fruit: { type: string, enum: [apples, pears, plums] }
+      pounds: { type: number, minimum: 0 }
+      state: { type: string, enum: [planned, packed] }
+      slip: { type: string }
   RenewalNote:
-    definition:
-      type: object
-      required: [noteKey]
-      properties:
-        noteKey: { type: string, maxLength: 100 }
+    type: object
+    required: [noteKey]
+    properties:
+      noteKey: { type: string, maxLength: 100 }
 tables:
   member:
-    ownerScope: user
+    owner: user
     type: Member
     uses:
-      fields:
-        - source: { family: submission, field: renewsOn }
-          uses: [filter]
+      filter: [renewsOn]
     computed:
       poundsOrdered:
         rollup: { relation: of-member, sum: pounds }
   box:
-    ownerScope: user
+    owner: user
     type: Box
     uses:
-      fields:
-        - source: { family: submission, field: memberId }
-          uses: [{ kind: link, relation: of-member }, filter]
-        - source: { family: submission, field: pounds }
-          uses: [filter]
-        - source: { family: submission, field: week }
-          uses: [filter]
+      filter: [memberId, pounds, week]
+    queries:
+      mine:
+        description: The signed-in member's boxes.
+        pageSize: { default: 50, max: 50 }
   renewalNote:
-    ownerScope: user
+    owner: user
     type: RenewalNote
     uses:
-      fields:
-        - source: { family: submission, field: noteKey }
-          uses: [key]
+      key: noteKey
 relations:
   of-member:
     label: Of member
     description: A box belongs to one member
-    direction: directed
-    producer: field
+    from: box.memberId # the field that makes the link
+    to: member
     cardinality: many-to-one
-    pairings: [{ fromTableKey: box, toTableKey: member }]
-views:
-  myBoxes:
-    description: The signed-in member's boxes.
-    table: box
-    pageSize: { default: 50, max: 50 }
 flows:
   join-club:
     label: Join the club
     inputs:
-      name: { typeName: string }
-      email: { typeName: string, optional: true }
-      renewsOn: { typeName: string, description: "YYYY-MM-DD" }
-    outputs:
-      memberId: { typeName: string }
+      name: string
+      email: string?
+      renewsOn: { type: string, description: "YYYY-MM-DD" }
+    outputs: { memberId: string }
     steps:
       - key: join
         function: record.create
         with:
-          tableKey: member
+          table: member
           fields:
             name: name
             email: { path: email, optional: true }
@@ -116,24 +102,19 @@ flows:
           memberId: join.recordId
   order-box:
     label: Order a box
-    inputs:
-      memberId: { typeName: string }
-      week: { typeName: string }
-      fruit: { typeName: string }
-      pounds: { typeName: Pounds, optional: true }
-    outputs:
-      boxId: { typeName: string }
+    inputs: { memberId: string, week: string, fruit: string, pounds: Pounds? }
+    outputs: { boxId: string }
     steps:
       - key: owner
         function: record.read
         with:
-          tableKey: member
+          table: member
           ids: { expr: "[memberId]" }
           failIfEmpty: true
       - key: save
         function: record.create
         with:
-          tableKey: box
+          table: box
           fields:
             memberId: memberId
             week: week
@@ -145,30 +126,24 @@ flows:
           boxId: save.recordId
   list-boxes:
     label: List my boxes
-    inputs:
-      boxesAfter: { typeName: string, optional: true }
-      boxesBefore: { typeName: string, optional: true }
-      boxesLimit: { typeName: number, optional: true }
-    outputs:
-      page: { typeName: object }
+    inputs: { boxesAfter: string?, boxesBefore: string?, boxesLimit: number? }
+    outputs: { page: object }
     steps:
       - key: boxes
-        function: record.view
-        with: { view: myBoxes }
+        function: record.query
+        with: { query: box.mine }
       - key: done
         return:
           page: boxes
   pack-box:
     label: Pack a box
-    inputs:
-      boxId: { typeName: string }
-    outputs:
-      slip: { typeName: string }
+    inputs: { boxId: string }
+    outputs: { slip: string }
     steps:
       - key: found
         function: record.read
         with:
-          tableKey: box
+          table: box
           ids: { expr: "[boxId]" }
           failIfEmpty: true
       - key: write
@@ -213,7 +188,7 @@ flows:
       - key: due
         function: record.list
         with:
-          tableKey: member
+          table: member
           limit: 100
           pages: { max: 10, onMore: fail }
           fieldFilters:
@@ -233,7 +208,7 @@ flows:
                   - key: note
                     function: record.create
                     with:
-                      tableKey: renewalNote
+                      table: renewalNote
                       onKeyTaken: skip
                       fields:
                         noteKey: { expr: "member.id & '@' & member.renewsOn" }
@@ -242,62 +217,32 @@ flows:
                       - test: { not: { eq: [note.keyTaken, true] } }
                         steps:
                           - key: mail
-                            function: email.send
+                            function: email.send # no sender: the project's own address
                             with:
-                              address: renewals@example.test
                               to: member.email
                               subject:
                                 literal: Your Orchard Club membership renews tomorrow
                               text:
                                 expr: "'Dear ' & member.name & ', your membership renews on ' & member.renewsOn & '.'"
-surfaces:
-  endpoints:
-    join-club:
-      contractConfig:
-        method: POST
-        path: /v1/club/members
-        successStatus: 201
-      targetConfig:
-        kind: flow.invoke
-        execution: sync
-        flow: join-club # no inputs: each binds by its name, from the body
-    order-box:
-      contractConfig:
-        method: POST
-        path: /v1/club/boxes
-        successStatus: 201
-      targetConfig:
-        kind: flow.invoke
-        execution: sync
-        flow: order-box
-    list-boxes:
-      contractConfig:
-        method: GET
-        path: /v1/club/boxes
-      targetConfig:
-        kind: flow.invoke
-        execution: sync
-        flow: list-boxes
-    pack-box:
-      contractConfig:
-        method: POST
-        path: /v1/club/boxes/{id}/pack
-      targetConfig:
-        kind: flow.invoke
-        execution: sync
-        syncTimeoutMs: 120000
-        flow: pack-box
-        inputs: { boxId: { from: path.id } }
-  schedules:
-    daily-renewals:
-      label: Daily renewal reminders
-      flow: remind-everyone
-      cronPattern: "0 7 * * *"
-      tz: UTC
-      overlapPolicy: skip
-      failurePolicy: pause
-      enabled: true
-      inputs: {}
+endpoints:
+  join-club: { POST: /v1/club/members, status: 201, flow: join-club } # no inputs: each binds by its name, from the body
+  order-box: { POST: /v1/club/boxes, status: 201, flow: order-box }
+  list-boxes: { GET: /v1/club/boxes, flow: list-boxes }
+  pack-box:
+    POST: /v1/club/boxes/{id}/pack
+    flow: pack-box
+    timeoutMs: 120000
+    inputs: { boxId: { from: path.id } }
+schedules:
+  daily-renewals:
+    label: Daily renewal reminders
+    flow: remind-everyone
+    cron: "0 7 * * *"
+    tz: UTC
+    overlapPolicy: skip
+    failurePolicy: pause
+    enabled: true
+    inputs: {}
 ```
 
 ## What each part is doing
@@ -308,12 +253,12 @@ surfaces:
 <!-- field-ok: poundsOrdered — the example project's own computed field -->
 
 - **A flow is its steps, in the order they run.** `order-box` reads the member, saves the box, returns its id — top to bottom. A step's key names its value: `save.recordId` is the id `save` created. A flow gives its outputs only through a `return` step.
-- **A setting reads a value by its path**: `memberId: memberId`, `to: member.email`. Text is `{ literal: "…" }` — a bare string is always a path. An expression is `{ expr: "[boxId]" }`. A setting that names a thing — `tableKey`, `address`, a prompt — is a plain value. `action-fields.md` has every form.
+- **A setting reads a value by its path**: `memberId: memberId`, `to: member.email`. Text is `{ literal: "…" }` — a bare string is always a path. An expression is `{ expr: "[boxId]" }`. A setting that names a thing — `table`, `sender`, a prompt — is a plain value. `action-fields.md` has every form.
 - **An optional input is read with its tolerance.** `email` may be left out, so `join-club` reads it `{ path: email, optional: true }` (the field is then not written), and `order-box` reads `pounds` with `default: 10`. A text default is a literal: `default: { literal: apples }`. A plain `email` would be refused at plan: the save proves every required read is there on every path (`STEP_INPUT_MAY_BE_ABSENT`).
 - **A required output must be proved too** (`FLOW_OUTPUT_MAY_BE_NOTHING`), like any required read: a value that may be nothing, such as `userInfo.userId`, is returned only after a step that fails the run when it is missing. `record.create`'s receipt always holds `recordId`, so `save.recordId` is returned as it is, with no guard. `fail` with `status` is how an endpoint answers an error of your own.
 - **An input's limits go on its type.** `pounds` is a `Pounds`, so no step checks the weight: the endpoint refuses over 20 lb before any step runs (422, `details.reason` `FLOW_INPUT_INVALID`). A flow another flow, a schedule or a trigger starts is checked only for a non-empty rule (`minLength: 1`).
-- **Ownership is a table setting, not a filter.** `ownerScope: user` makes every row the signed-in person's: their reads see only their rows, and `record.read` of another person's id finds nothing — with `failIfEmpty: true` that fails the call (`order-box` › `owner`), so a later step may read `owner[0]` with no test before it (unless the read says `onOversize: cut`). Write no owner field and no owner filter.
-- **A total that must stay right is `computed`, not a read-time sum.** `member.poundsOrdered` is a `rollup` over the relation `of-member`; the platform recomputes it a few seconds after any box is created, changed or deleted. It needs the relation and a `link` use on the parent's id field (`box.memberId`). `rollup` also takes `count`, `avg`, `min`, `max`, `latest`.
+- **Ownership is a table setting, not a filter.** `owner: user` makes every row the signed-in person's: their reads see only their rows, and `record.read` of another person's id finds nothing — with `failIfEmpty: true` that fails the call (`order-box` › `owner`), so a later step may read `owner[0]` with no test before it (unless the read says `onOversize: cut`). Write no owner field and no owner filter.
+- **A total that must stay right is `computed`, not a read-time sum.** `member.poundsOrdered` is a `rollup` over the relation `of-member`; the platform recomputes it a few seconds after any box is created, changed or deleted. It needs the relation, which names the field that makes the link (`from: box.memberId`). `rollup` also takes `count`, `avg`, `min`, `max`, `latest`.
 - **A model step is `text.generate` with its `prompt`.** A placeholder is `{{name}}`, `{{name.field}}` or `{{name[0]}}`; one item's field (`{{found[0].fruit}}`) is not one, so `line` reads the whole `found`. A placeholder naming a whole object or list is refused at save (`INTERPOLATE_BARE_STRUCTURED_SLOT`): name a field, write `{{name | json}}`, or loop with a section. With no `outputSchema` it answers text.
 - **`try` is the only way past a failure.** If the model call fails, `write`'s `catch` gives a fixed slip instead; both lists give `slip` through `out`, read after the block as `write.slip`. A value made inside a block is read outside only through its `out`.
 - **`each` runs its steps once per value.** `perMember` runs per member due; inside, `member` is the value. Its steps change records and send mail, so it runs them one member at a time — `maxParallel: 1` says so.
@@ -321,7 +266,7 @@ surfaces:
 - **Never twice, by the platform**: `renewalNote.noteKey` has the `key` use, and `record.create` with `onKeyTaken: skip` answers `keyTaken` instead of a second row. `fresh` mails only when it is not set, so a re-run of the job, overlapping or not, sends nothing twice.
 - **A daily job for each person**: the schedule starts `remind-everyone`, whose `flow.start-per-person` runs `remind-renewal` once per member of the project, as that person — so its reads see that person's rows. `with.flow` names the flow it starts by key.
 - **Read every page, loudly.** `record.list` reads one page unless `pages` says more; `onMore: fail` fails the run when rows remain instead of dropping them (the plan warns `RECORD_LIST_CURSOR_UNREAD` otherwise).
-- **A list over HTTP is a view.** `list-boxes` reads one with `record.view`, so its endpoint pages, publishes the item's schema and answers 304 with no run; a `record.list` there is warned `ENDPOINT_IS_A_VIEW`. Its default `scope: caller` reads only the member's boxes. Paging inputs are the step's key plus `After`, `Before`, `Limit`; walk with `?after=<nextCursor>`. An endpoint declaring `after`, `before` or `limit` is no view endpoint (`VIEW_ENDPOINT_NOT_DERIVED`): `view-endpoints.md`.
+- **A list over HTTP is a named query.** `box.mine` sits under the table it reads; `list-boxes` reads it with `record.query` and `query: box.mine`, so its endpoint pages, publishes the item's schema and answers 304 with no run; a `record.list` there is warned `ENDPOINT_IS_A_QUERY`. Its default `scope: caller` reads only the member's boxes. Paging inputs are the step's key plus `After`, `Before`, `Limit`; walk with `?after=<nextCursor>`. An endpoint declaring `after`, `before` or `limit` is no query endpoint (`QUERY_ENDPOINT_NOT_DERIVED`): `query-endpoints.md`.
 - **YAML**: quote a path that holds `[` inside `{ … }` (`"perMember[].written"`), and a text with `: ` or `{{` in it.
 
 ## Names and fields that refuse a plan
@@ -329,9 +274,9 @@ surfaces:
 - **Reserved field names**: `id`, `status`, `statusError`, `createdAt`, `updatedAt`, `processing` — every record already has them. Call yours `state` or `phase`.
 - **Keys**: **step keys are camelCase** — a table key, a step key and a flow's input or output name are letters and digits, starting with a lower-case letter (`renewalNote`, `perMember`). Type keys are written like `Member`. Flow and relation keys are lowercase words joined by `-` (`order-box`). Endpoint, schedule and trigger keys are letters, digits, `.`, `-` and `_`. Two steps of one flow never share a key, at any depth.
 - **Endpoint paths start with `/v1/`**, and a path whose first word a platform route uses is refused (`ENDPOINT_PATH_RESERVED_WORD`, `ENDPOINT_PATH_CONFLICT`) — `/v1/boxes` is one; `/v1/club/boxes` is not. `GET /v1/coded-routes` lists them.
-- **A flow states `label`, `inputs` and `outputs`** (`{}` for none). A list value is `isList: true`, never `object`; the endpoint publishes the type you declare.
+- **A flow states `label`, `inputs` and `outputs`** (`{}` for none). A list value is `Type[]` (`string[]`), never `object`; the endpoint publishes the type you declare.
 - **An expression names record fields exactly as the type has them**; a field the record lacks is refused `JSONATA_FIELD_UNKNOWN`. Inside a filter `[…]` a bare name is the item's field.
-- **A document in another format** is refused whole with `DOCUMENT_VERSION_UNSUPPORTED`, and nothing converts it: state `"kipory": 11`.
+- **A document in another format** is refused whole with `DOCUMENT_VERSION_UNSUPPORTED`, and nothing converts it: state `"kipory": 12`.
 
 ## Try it as a person, then change it
 

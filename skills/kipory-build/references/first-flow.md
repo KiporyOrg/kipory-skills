@@ -35,8 +35,8 @@ POST /v1/flows
   "project": "<nodeId>",
   "key": "write-slip",
   "label": "Write a packing slip",
-  "inputs": { "fruit": { "typeName": "string" } },
-  "outputs": { "slip": { "typeName": "string" } }
+  "inputs": { "fruit": { "type": "string" } },
+  "outputs": { "slip": { "type": "string" } }
 }
 ```
 
@@ -51,8 +51,8 @@ POST /v1/flows
 }
 ```
 
-- **`inputs` and `outputs` are maps by name**, both required (`{}` declares none). Each value is `{typeName, isList?, optional?, description?}`; `typeName` is a registered type's key, and `string`, `number`, `boolean`, `object` resolve without being declared. Read back, each carries the resolved `type`.
-- **A value is required unless it says `optional: true`.** An optional input may be left out by a caller; an optional output may be left out by the flow. A list is `isList: true`.
+- **`inputs` and `outputs` are maps by name**, both required (`{}` declares none). Each value is `{type, list?, optional?, description?}`; `type` is a registered type's key, and `string`, `number`, `boolean`, `object` resolve without being declared. Read back, each carries the type's resolved id beside its key.
+- **A value is required unless it says `optional: true`.** An optional input may be left out by a caller; an optional output may be left out by the flow. A list is `list: true`. In a document the short forms `string?` and `string[]` say the same (section 8).
 - **`key` is permanent and kebab-case**; `label` is display text you can change any time.
 - **A flow with no steps does not start**: a call answers `FLOW_NOT_AUTHORED`. Step 2 gives it steps.
 
@@ -181,25 +181,18 @@ POST /v1/api-endpoints
 {
   "project": "<nodeId>",
   "key": "write-slip",
-  "contractConfig": {
-    "method": "POST",
-    "path": "/v1/club/slips",
-    "params": {}
-  },
-  "targetConfig": {
-    "kind": "flow.invoke",
-    "flow": { "id": "<flowId>" },
-    "inputs": { "fruit": { "from": "body" } },
-    "execution": "sync",
-    "syncTimeoutMs": 120000
-  }
+  "POST": "/v1/club/slips",
+  "params": {},
+  "flow": "<flowId>",
+  "inputs": { "fruit": { "from": "body" } },
+  "timeoutMs": 120000
 }
 ```
 
 `201` with the endpoint. Keep `invokeUrl` and read `access`.
 
-- `params` is required even when empty. `inputs.fruit.from: "body"` is the request-body field named `fruit`; every required input must be bound. `execution` has no default.
-- A sync call past `syncTimeoutMs` (30 seconds by default) answers `504`; a model step waits its turn on the platform's worker, so give it room or make the endpoint `async`.
+- One method key holds the path. `inputs.fruit.from: "body"` is the request-body field named `fruit`; every required input must be bound. `flow` runs the flow and answers its outputs; `async: true` beside it answers at once and runs it later.
+- A call past `timeoutMs` (30 seconds by default) answers `504`; a model step waits its turn on the platform's worker, so give it room or make the endpoint `async: true`.
 - `access` is derived, never set. Call the endpoint at `invokeUrl` as answered.
 
 ## 7. Call it from the product
@@ -220,14 +213,14 @@ curl -sS -X POST "$INVOKE_URL" \
 State sections 1, 2 and 6 as one document. Inside a document everything is addressed by **key**: the flow is keyed under `flows`, and the endpoint's `flow` is the flow's key.
 
 ```yaml
-kipory: 11
+kipory: 12
 flows:
   write-slip:
     label: Write a packing slip
     inputs:
-      fruit: { typeName: string }
+      fruit: string
     outputs:
-      slip: { typeName: string }
+      slip: string
     steps:
       - key: line
         function: text.generate
@@ -236,17 +229,12 @@ flows:
       - key: done
         return:
           slip: line
-surfaces:
-  endpoints:
-    write-slip:
-      contractConfig:
-        { method: POST, path: /v1/club/slips, params: {}, successStatus: 200 }
-      targetConfig:
-        kind: flow.invoke
-        flow: write-slip
-        inputs: { fruit: { from: body } }
-        execution: sync
-        syncTimeoutMs: 120000
+endpoints:
+  write-slip:
+    POST: /v1/club/slips
+    flow: write-slip
+    inputs: { fruit: { from: body } }
+    timeoutMs: 120000
 ```
 
 **Plan it** — the body is the document itself, sent as `content-type: application/yaml` or as JSON; it writes nothing:
@@ -270,7 +258,7 @@ POST /v1/projects/{nodeId}/document
 }
 ```
 
-`200` with `applied: true`, `appliedVersion` and `basedOn` — the read to plan your next change from. Read the project again (`GET /v1/projects/{nodeId}/document?section=flows,surfaces`) for the ids: `flows.write-slip.id` for preview, `surfaces.endpoints.write-slip.id` to read `invokeUrl` with `GET /v1/api-endpoints/{id}`. `document.md` has the rest.
+`200` with `applied: true`, `appliedVersion` and `basedOn` — the read to plan your next change from. Read the project again (`GET /v1/projects/{nodeId}/document?section=flows,endpoints`) for the ids: `flows.write-slip.id` for preview, `endpoints.write-slip.id` to read `invokeUrl` with `GET /v1/api-endpoints/{id}`. `document.md` has the rest.
 
 ## What this page does not fix
 

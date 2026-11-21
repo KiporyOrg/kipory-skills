@@ -72,13 +72,12 @@ run, not a rehearsal. `kipory-build` covers it.
 
 ## Change many things at once: the document
 
-**Check the format first.** A document states its format in its `kipory:` key (`kipory: 11`), and the
+**Check the format first.** A document states its format in its `kipory:` key (`kipory: 12`), and the
 deployment reads exactly one, with no overlap: `documentFormat.version` on
 `GET /v1/platform-status`, beside a line saying what it is. A document in any other format is
 refused whole with `DOCUMENT_VERSION_UNSUPPORTED` before anything is planned, and nothing converts
-it: export the project again and make the change there. The `kipory-connect` skill's sync script
-compares the format these skills write with the deployment's, and its `document` line says plainly
-when they differ: update these skills when the deployment's is newer.
+it: export the project again and make the change there. `kipory-connect`'s sync script says when
+these skills' format and the deployment's differ: update the skills when the deployment's is newer.
 
 Export the project (`GET /v1/projects/{nodeId}/document` — the file carries `basedOn`, your read),
 edit the file, plan it (the body is the document itself; it binds to that read), read the plan,
@@ -111,6 +110,7 @@ row-by-row change would meet, in one read, and three things a row write never te
   delete list before applying; it is the true list, not only yours. A table delete also names
   its reach on its own path — the relations and joins it would take — even when the plan
   refuses the delete.
+- An `identity` or `credits` setting left out is `kept`.
 - **Nothing partial.** A refused apply answers `422 VALIDATION_FAILED` with the plan under `details.plan` and has written nothing — not
   the rows before the refused one either. A document that changes nothing answers `applied: true`
   and moves no version.

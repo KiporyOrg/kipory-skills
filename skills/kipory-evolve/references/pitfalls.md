@@ -64,13 +64,13 @@ Read this before a change to a project that already holds records or serves call
   retries it writes twice unless the write is idempotent — give the table a natural key, or send an
   `Idempotency-Key` (`kipory-expose`'s `references/consumer.md` says what it guarantees).
 - **An `record.create` pointed at the wrong table is caught only when a declared field misfits.**
-  Switching its `tableKey` saves. Health and a document plan warn `RECORD_CREATE_DATA_MISMATCH`,
+  Switching its `table` saves. Health and a document plan warn `RECORD_CREATE_DATA_MISMATCH`,
   and the run fails the step naming each field — the check `POST /v1/records` makes — when the
   value it writes lacks a field the table requires or carries one under a different type. Fields the
   table's type does not declare are not a misfit unless the type sets
   `"additionalProperties": false`: the warning stays silent, the step does not fail, and the run
   writes a record in the wrong table. Close the type if that matters, and preview with
-  `apply: false` after such an edit, reading the `tableKey` it reports.
+  `apply: false` after such an edit, reading the table it reports.
 - **A schedule PATCH's dry run does not check `version`.** `validateOnly: true` answers `ok: true`
   on a stale one, and the same body sent for real answers `409 VERSION_CONFLICT`. Re-read the
   schedule's `version` after a document apply or any other write that touched it.

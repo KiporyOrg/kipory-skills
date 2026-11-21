@@ -2,14 +2,14 @@
 
 Read this before a list or query read that names fields, filters by a field or term, brings linked records, or reads a stream: what each part of "Look at what is there" in `SKILL.md` takes and refuses.
 
-A row's `fields` holds only the table's queryable columns, not its `data`. To read some fields of many records, name them with `fields=`, repeated once per field (`fields=title&fields=state`; a comma list is one unknown name), up to 32, `tableKey` required, on the page you already read, or beside `id=` for records you hold ids of — one request a page, never one `GET /v1/records/{id}` a record. A name is a top-level field the table declares, submitted or produced by its flow; a value comes whole, and a field the record has no value for is left out of `values`; an unknown or dotted name, or a stream field, is 422 `RECORD_PROJECTION_UNKNOWN_FIELD` listing the table's fields.
+A row's `fields` holds only the table's queryable columns, not its `data`. To read some fields of many records, name them with `fields=`, repeated once per field (`fields=title&fields=state`; a comma list is one unknown name), up to 32, `table` required, on the page you already read, or beside `id=` for records you hold ids of — one request a page, never one `GET /v1/records/{id}` a record. A name is a top-level field the table declares, submitted or produced by its flow; a value comes whole, and a field the record has no value for is left out of `values`; an unknown or dotted name, or a stream field, is 422 `RECORD_PROJECTION_UNKNOWN_FIELD` listing the table's fields.
 
 Narrow the list with repeated `field=name:operator:value` and `term=vocabulary:key` (up to 32 of each, AND-composed), `owner`, `status`, `createdAfter`, `createdBefore`. Page with `after` / `before` cursors; `limit` is at most 100. A `term=` condition matches **active** terms only: a record filed under a candidate term is not found by it until the term is admitted (`kipory-model`).
 
 The query body asks what the address cannot spell — a link to another record, a stream window, `in` — and it is the one route that brings each record's **linked records** with it. Leave `clauses` out and it lists the table's records, newest first, paged by `after` like the list; add `linked` and every row carries `linked.<name>`:
 
 ```
-POST /v1/records/query  { "project": "<node>", "tableKey": "book",
+POST /v1/records/query  { "project": "<node>", "table": "book",
                           "linked": { "author": { "relation": "written-by", "fields": ["name"] },
                                       "reviews": { "relation": "about", "direction": "incoming", "limit": 20 } } }
 ```

@@ -125,6 +125,9 @@ How the project's end users sign in: which providers are on, the redirect allowl
 | `malformed` | `boolean` | yes | True when a config was stored but could not be parsed, so `effective` is the platform fallback rather than what you intended. ⚠️ TREAT THIS AS URGENT: the fallback ENABLES Google sign-in, so a project that deliberately turned Google OFF has it back on while this is true. Nothing else reports it. |
 | `version` | `string` | yes | The stored document's version. Send it back as `version` on `PUT` on this path; a save made since you read answers 409 `VERSION_CONFLICT` — re-read and apply your change again. Opaque: compare it, never parse it. |
 | `providerStatus` | `object[]` | yes | Every sign-in provider this platform supports, with how its own credential resolves for this project and what a sign-in through it does under `effective`. One entry per provider, whether or not it is enabled. |
+| `platformDefault` | `object` | yes | Kipory's default sign-in settings: what applies to a project that stores none, and what each setting goes back to when it is no longer set here. |
+| `source` | `"set-here" \| "platform-default"` | yes | Where the sign-in settings in force come from: `set-here` when this project stored a config (`stored`), `platform-default` when it has none and `effective` is the platform's. |
+| `profile` | `object \| null` | yes | The type that shapes each user's profile (`project.identity.profile`), or null when none is connected. Connect one with `PUT /v1/projects/{nodeId}/profile-schema`. |
 
 Each item of `providerStatus`:
 
@@ -157,7 +160,7 @@ Replace the project's end-user auth configuration; `null` clears it to the platf
 
 One of 2 shapes:
 
-Shape 1, with `stored`, `effective`, `malformed`, `version`, `providerStatus`:
+Shape 1, with `stored`, `effective`, `malformed`, `version`, `providerStatus`, `platformDefault`, `source`, `profile`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -166,6 +169,9 @@ Shape 1, with `stored`, `effective`, `malformed`, `version`, `providerStatus`:
 | `malformed` | `boolean` | yes | True when a config was stored but could not be parsed, so `effective` is the platform fallback rather than what you intended. ⚠️ TREAT THIS AS URGENT: the fallback ENABLES Google sign-in, so a project that deliberately turned Google OFF has it back on while this is true. Nothing else reports it. |
 | `version` | `string` | yes | The stored document's version. Send it back as `version` on `PUT` on this path; a save made since you read answers 409 `VERSION_CONFLICT` — re-read and apply your change again. Opaque: compare it, never parse it. |
 | `providerStatus` | `object[]` | yes | Every sign-in provider this platform supports, with how its own credential resolves for this project and what a sign-in through it does under `effective`. One entry per provider, whether or not it is enabled. |
+| `platformDefault` | `object` | yes | Kipory's default sign-in settings: what applies to a project that stores none, and what each setting goes back to when it is no longer set here. |
+| `source` | `"set-here" \| "platform-default"` | yes | Where the sign-in settings in force come from: `set-here` when this project stored a config (`stored`), `platform-default` when it has none and `effective` is the platform's. |
+| `profile` | `object \| null` | yes | The type that shapes each user's profile (`project.identity.profile`), or null when none is connected. Connect one with `PUT /v1/projects/{nodeId}/profile-schema`. |
 
 Each item of `providerStatus`:
 

@@ -51,7 +51,7 @@ Each item of `types`:
 | `declaredBy` | `string \| null` | yes | For a library type, the function that declares it — e.g. `audio.metadata`. Null on every other tier: nothing else here is declared by a function. |
 | `profileEligible` | `boolean` | yes | Whether this type can be used as the project's end-user profile. Decided by the server — do not re-derive it. Always false for tiers you did not author. |
 | `tableEligible` | `boolean` | yes | Whether this type can be used as a table's data shape. Decided by the server — do not re-derive it. Always false for tiers you did not author. |
-| `vocabularyExtractable` | `boolean` | yes | Whether a `$vocabularyKey` marker on one of this type's fields would be read: true when a `text.generate` step in this project answers with exactly this type, so its markers become that step's vocabulary extraction. False when no such step does — a marker there saves and extracts nothing — and always false for tiers you did not author. Decided by the server; do not re-derive it. |
+| `vocabularyExtractable` | `boolean` | yes | Whether a `$vocabulary` marker on one of this type's fields would be read: true when a `text.generate` step in this project answers with exactly this type, so its markers become that step's vocabulary extraction. False when no such step does — a marker there saves and extracts nothing — and always false for tiers you did not author. Decided by the server; do not re-derive it. |
 | `usedAsProfile` | `boolean` | yes | Whether this project uses this type as its end-user profile. |
 | `usedByTables` | `string[]` | yes | Tables whose data shape is this type. |
 | `usedByEventTypes` | `string[]` | yes | Event types whose payload is this type, RETIRED ones included — deletion blocks on those too. |
@@ -74,7 +74,7 @@ Create a type — a JSON Schema document other rows (tables, event types, config
 | `project` | `string` | yes | Node id of the project that will own the type. |
 | `key` | `string` | yes | The type's key. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
 | `definition` | `object` | yes | The type, as a JSON Schema document with an object at the top. Checked against the project's other types when you save, so a reference to something that does not exist is refused. |
-| `description` | `string \| null` | no | An optional note about what this type is for. |
+| `description` | `string \| null` | no | An optional note about what this type is for, up to 4,000 characters. A type has one description: a top-level `description` inside `definition` is lifted here, and one stated here wins over it. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
@@ -138,7 +138,7 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "query" \| "selection" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
 | `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
 | `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
@@ -158,10 +158,22 @@ Each item of `renames`:
 | `key` | `string` | yes | The type's key, as you see it in the editor. Editable — references resolve by id, so renaming breaks nothing. |
 | `provenance` | `"operator"` | yes | Always `operator` here: this route only writes types you authored. The read endpoint returns platform-supplied tiers too. |
 | `definition` | `unknown` | no | The type itself, as a JSON Schema document with an object at the top. |
-| `description` | `string \| null` | yes | Your note about what this type is for. Null when unset. |
+| `description` | `string \| null` | yes | Your note about what this type is for. Null when unset. Never repeated inside `definition`. |
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `warnings` | `object[]` | no | Present when the write went through with something to check: a removal a use the platform only guessed may still read (`REMOVED_MAY_BE_USED`), or a `description` inside `definition` replaced by the row's own (`TYPE_DESCRIPTION_DROPPED`). |
+
+Each item of `warnings`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
+| `outlinePath` | `string` | no | Where the step this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on step; see `GET /v1/flows/{id}/outline`. |
+| `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 ### `GET /v1/types/{id}`
 
@@ -182,7 +194,7 @@ Read one of a project's own types by id. What references it, whether it can be a
 | `key` | `string` | yes | The type's key, as you see it in the editor. Editable — references resolve by id, so renaming breaks nothing. |
 | `provenance` | `"operator"` | yes | Always `operator` here: this route only writes types you authored. The read endpoint returns platform-supplied tiers too. |
 | `definition` | `unknown` | no | The type itself, as a JSON Schema document with an object at the top. |
-| `description` | `string \| null` | yes | Your note about what this type is for. Null when unset. |
+| `description` | `string \| null` | yes | Your note about what this type is for. Null when unset. Never repeated inside `definition`. |
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -203,7 +215,7 @@ Update one type's key, description or definition, or with `declare` one keyword 
 | --- | --- | --- | --- |
 | `key` | `string` | no | The type's new key. References resolve by id, so nothing breaks. The same charset rule as on a create applies. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
 | `definition` | `object` | no | REPLACES the definition wholesale rather than merging into it. |
-| `description` | `string \| null` | no | Change the note, or pass null to clear it. |
+| `description` | `string \| null` | no | Change the type's description, or pass `null` or `""` to clear it. A new or changed one is up to 4,000 characters; a longer one saved before restates unchanged. Left out, a top-level `description` inside a sent `definition` becomes it; with neither, it stays as it is. |
 | `version` | `integer` | yes | The version you last read. REQUIRED; a stale one is refused 409. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 | `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints and tables named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
 | `declare` | `object` | no | Declare one keyword on one field of the stored definition, leaving the rest as it is stored — what a flow save's type fix sends. Not together with `definition`. |
@@ -225,15 +237,15 @@ Shape 1, with `id`, `project`, `key`, `provenance`, `description`, `version`, `c
 | `key` | `string` | yes | The type's key, as you see it in the editor. Editable — references resolve by id, so renaming breaks nothing. |
 | `provenance` | `"operator"` | yes | Always `operator` here: this route only writes types you authored. The read endpoint returns platform-supplied tiers too. |
 | `definition` | `unknown` | no | The type itself, as a JSON Schema document with an object at the top. |
-| `description` | `string \| null` | yes | Your note about what this type is for. Null when unset. |
+| `description` | `string \| null` | yes | Your note about what this type is for. Null when unset. Never repeated inside `definition`. |
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `warnings` | `object[]` | no | Present when the write removed something a use the platform only guessed may still read (`REMOVED_MAY_BE_USED`): each names the user and where. The write went through; check each by hand. |
+| `warnings` | `object[]` | no | Present when the write went through with something to check: a removal a use the platform only guessed may still read (`REMOVED_MAY_BE_USED`), or a `description` inside `definition` replaced by the row's own (`TYPE_DESCRIPTION_DROPPED`). |
 | `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
 | `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
 | `renames` | `object[]` | no | Present when the PATCH carried `renameFields`: each field renamed, the tables it reached, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
-| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this edit moved, with the version each holds now: the event types whose payload contract it reaches, the tables whose computed fields or declarations it derived again or whose processed fields it changed under a view endpoint, and an endpoint only where the edit rewrote its own settings (a re-bind by name, or a field rename's rewrite of its paths) or changed a view endpoint's contract. Any other endpoint serves its flow as it is now, so its `version` does not move. Replace the versions you hold for them before their next PATCH. Empty when the edit moved only this type. |
+| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this edit moved, with the version each holds now: the event types whose payload contract it reaches, the tables whose computed fields or declarations it derived again or whose processed fields it changed under a query endpoint, and an endpoint only where the edit rewrote its own settings (a re-bind by name, or a field rename's rewrite of its paths) or changed a query endpoint's contract. Any other endpoint serves its flow as it is now, so its `version` does not move. Replace the versions you hold for them before their next PATCH. Empty when the edit moved only this type. |
 
 Each item of `warnings`:
 
@@ -262,7 +274,7 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "query" \| "selection" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
 | `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
 | `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
@@ -342,7 +354,7 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "query" \| "selection" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
 | `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
 | `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
@@ -434,7 +446,7 @@ Each item of `types`:
 | `declaredBy` | `string \| null` | yes | For a library type, the function that declares it — e.g. `audio.metadata`. Null on every other tier: nothing else here is declared by a function. |
 | `profileEligible` | `boolean` | yes | Whether this type can be used as the project's end-user profile. Decided by the server — do not re-derive it. Always false for tiers you did not author. |
 | `tableEligible` | `boolean` | yes | Whether this type can be used as a table's data shape. Decided by the server — do not re-derive it. Always false for tiers you did not author. |
-| `vocabularyExtractable` | `boolean` | yes | Whether a `$vocabularyKey` marker on one of this type's fields would be read: true when a `text.generate` step in this project answers with exactly this type, so its markers become that step's vocabulary extraction. False when no such step does — a marker there saves and extracts nothing — and always false for tiers you did not author. Decided by the server; do not re-derive it. |
+| `vocabularyExtractable` | `boolean` | yes | Whether a `$vocabulary` marker on one of this type's fields would be read: true when a `text.generate` step in this project answers with exactly this type, so its markers become that step's vocabulary extraction. False when no such step does — a marker there saves and extracts nothing — and always false for tiers you did not author. Decided by the server; do not re-derive it. |
 | `usedAsProfile` | `boolean` | yes | Whether this project uses this type as its end-user profile. |
 | `usedByTables` | `string[]` | yes | Tables whose data shape is this type. |
 | `usedByEventTypes` | `string[]` | yes | Event types whose payload is this type, RETIRED ones included — deletion blocks on those too. |

@@ -67,7 +67,7 @@ One call answers every output field as a probability, an option or a number. Tex
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `recordRef` | yes | — | One stored record, given by its id. |
-| `tableKey` | string | yes | — | Which table the id refers to. |
+| `table` | string | yes | — | Which table the id refers to. |
 
 ## Worked example
 

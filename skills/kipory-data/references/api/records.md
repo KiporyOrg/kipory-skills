@@ -30,7 +30,6 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `POST` | [`/v1/records/aggregate`](#post-v1-records-aggregate) |  |
 | `POST` | [`/v1/records/bulk`](#post-v1-records-bulk) |  |
 | `POST` | [`/v1/records/query`](#post-v1-records-query) |  |
-| `POST` | [`/v1/views/{key}/preview`](#post-v1-views-key-preview) |  |
 
 ### `GET /v1/links`
 
@@ -42,11 +41,11 @@ A project's links as rows — every link between two of its records, narrowed by
 | --- | --- | --- | --- |
 | `project` | `string` | yes | The project's node id — the id `POST /v1/projects` answers and every `/v1/projects/{nodeId}` path takes. |
 | `relation` | `string` | no | Narrow to these relation keys — the `key` of a relation, not its id. Comma-separated; an unknown member narrows to nothing rather than being ignored. |
-| `producer` | `string` | no | Narrow to these producers — a `field:<type>.<field>` path, or a curated actor's key. Comma-separated; an unknown member narrows to nothing rather than being ignored. |
+| `producer` | `string` | no | Narrow to these producers — a `field:<jsonType>.<field>` path, or a curated actor's key. Comma-separated; an unknown member narrows to nothing rather than being ignored. |
 | `validity` | `"live" \| "retracted" \| "all"` | no | Which links to include; `live` by default. ⚠️ Only a CURATED relation can have retracted links — a field producer rewrites by deleting, so `retracted` over a field-only corpus is empty. |
 | `record` | `string` | no | Anchor the result on one record: only links with this record at either end. `direction` needs it. |
 | `direction` | `"outgoing" \| "incoming" \| "either"` | no | Which way the links point RELATIVE TO `record`. Refused without it. IGNORED for a symmetric relation. |
-| `tableKey` | `string` | no | Narrow to links with a record of this table at EITHER end. A table the project does not declare narrows to nothing. |
+| `table` | `string` | no | Narrow to links with a record of this table at EITHER end. A table the project does not declare narrows to nothing. |
 | `q` | `string` | no | Narrow to links where either end's natural key CONTAINS this, ignoring case, or either end's id IS it. Taken literally — `%` and `_` match themselves. ⚠️ Not matched against a record's content: an end drawn with `labelKind: preview` is found by its id, never by that guessed line. |
 | `sort` | `"valid-from" \| "relation"` | no | The ordering. `valid-from` is when each link came to be, with the link id as the tiebreak. `relation` groups the links by relation, the relations in the order their names read, each relation's links newest first. The response echoes it. |
 | `order` | `"asc" \| "desc"` | no | Which way `sort` runs. Under `relation` it turns the relations round and leaves each relation's links newest first. |
@@ -116,7 +115,7 @@ Reprocess a flow-backed table's records together: `scope: "all"`, or `"not-curre
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | The project, by its node id. |
-| `tableKey` | `string` | yes | The flow-backed table whose records to reprocess. |
+| `table` | `string` | yes | The flow-backed table whose records to reprocess. |
 | `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
 | `validateOnly` | `boolean` | no | `true` answers how many records it would run and what that is expected to cost, starting and charging nothing. |
 
@@ -126,7 +125,7 @@ Reprocess a flow-backed table's records together: `scope: "all"`, or `"not-curre
 | --- | --- | --- | --- |
 | `wouldStart` | `boolean` | yes | Whether the same request without `validateOnly` would start: `false` while another bulk reprocess of the table is under way. |
 | `refusal` | `object \| null` | yes | Why it would not start; `null` when it would. |
-| `tableKey` | `string` | yes | The table it would reprocess. |
+| `table` | `string` | yes | The table it would reprocess. |
 | `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
 | `shape` | `string` | yes | The table's processed-shape identifier now. |
 | `records` | `integer` | yes | The records it would run, as counted now. |
@@ -137,7 +136,7 @@ Reprocess a flow-backed table's records together: `scope: "all"`, or `"not-curre
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The bulk reprocess's id. |
-| `tableKey` | `string` | yes | The table whose records it reprocesses. |
+| `table` | `string` | yes | The table whose records it reprocesses. |
 | `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
 | `status` | `"running" \| "stopping" \| "finished" \| "stopped"` | yes | `running` while it queues records; `stopping` once asked to stop, until the runs it queued end; `finished` when no record was left; `stopped` when it was stopped, ended because its table lost its flow or was deleted, or had not moved for 10 minutes when the next start for its table took over. |
 | `version` | `integer` | yes | The lock `PATCH` sends back to stop it. Progress does not move it. |
@@ -164,7 +163,7 @@ One bulk reprocess: its status, how many records it reprocessed, failed, skipped
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The bulk reprocess's id. |
-| `tableKey` | `string` | yes | The table whose records it reprocesses. |
+| `table` | `string` | yes | The table whose records it reprocesses. |
 | `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
 | `status` | `"running" \| "stopping" \| "finished" \| "stopped"` | yes | `running` while it queues records; `stopping` once asked to stop, until the runs it queued end; `finished` when no record was left; `stopped` when it was stopped, ended because its table lost its flow or was deleted, or had not moved for 10 minutes when the next start for its table took over. |
 | `version` | `integer` | yes | The lock `PATCH` sends back to stop it. Progress does not move it. |
@@ -198,7 +197,7 @@ Stop a bulk reprocess (`stopped: true`, with its `version`): no further record i
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The bulk reprocess's id. |
-| `tableKey` | `string` | yes | The table whose records it reprocesses. |
+| `table` | `string` | yes | The table whose records it reprocesses. |
 | `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
 | `status` | `"running" \| "stopping" \| "finished" \| "stopped"` | yes | `running` while it queues records; `stopping` once asked to stop, until the runs it queued end; `finished` when no record was left; `stopped` when it was stopped, ended because its table lost its flow or was deleted, or had not moved for 10 minutes when the next start for its table took over. |
 | `version` | `integer` | yes | The lock `PATCH` sends back to stop it. Progress does not move it. |
@@ -212,15 +211,15 @@ Stop a bulk reprocess (`stopped: true`, with its `version`): no further record i
 
 ### `GET /v1/records`
 
-One page of a project's records of one table (`tableKey`), with that table's declared columns — filtered by declared fields (`field=name:op:value`, ops `eq` `gt` `gte` `lt` `lte`), terms, owner, status and time, and ordered and paged by cursor. `id=` resolves named records instead, `key=` finds one by its natural key, and `mode=semantic` ranks by meaning. `fields=` adds the named fields' values to every row's `values`, columns or not, so many records' fields are one read. For a question the address cannot spell (links, streams, `in`), use `POST /v1/records/query`; for one record whole, `GET /v1/records/{id}`; for the project's links as rows, `GET /v1/links`.
+One page of a project's records of one table (`table`), with that table's declared columns — filtered by declared fields (`field=name:op:value`, ops `eq` `gt` `gte` `lt` `lte`), terms, owner, status and time, and ordered and paged by cursor. `id=` resolves named records instead, `key=` finds one by its natural key, and `mode=semantic` ranks by meaning. `fields=` adds the named fields' values to every row's `values`, columns or not, so many records' fields are one read. For a question the address cannot spell (links, streams, `in`), use `POST /v1/records/query`; for one record whole, `GET /v1/records/{id}`; for the project's links as rows, `GET /v1/links`.
 
 **Query**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | The project's node id — the id `POST /v1/projects` answers and every `/v1/projects/{nodeId}` path takes. |
-| `tableKey` | `string` | no | The table this query is ABOUT. Omitted, the route chooses the table holding the most records and says so (`chosenByDefault`). To ask across EVERY table, send `subject=any`. The same name the create, query and bulk bodies use. |
-| `subject` | `"any"` | no | Send `any` to ask across every table. Refused BESIDE `tableKey`, which names two subjects for one query. A tableless query drops the declared columns and declared conditions and is ordered by ARRIVAL, which the response says. |
+| `table` | `string` | no | The table this query is ABOUT. Omitted, the route chooses the table holding the most records and says so (`chosenByDefault`). To ask across EVERY table, send `subject=any`. The same name the create, query and bulk bodies use. |
+| `subject` | `"any"` | no | Send `any` to ask across every table. Refused BESIDE `table`, which names two subjects for one query. A tableless query drops the declared columns and declared conditions and is ordered by ARRIVAL, which the response says. |
 | `mode` | `"exact" \| "semantic"` | no | `semantic` ranks by resemblance instead of matching literally, and is refused for a type that declares no meaning index. It returns a BOUNDED, UNPAGED ranking: no cursors, no page numbers. |
 | `q` | `string` | no | With `mode=exact`, matched against the natural key and the type's declared TEXT fields, case-insensitively. ⛔ It is NOT matched against the record's submitted content. With `mode=semantic`, the phrase to resemble. |
 | `field` | `string \| string[]` | no | A condition on a declared field, as `name:operator:value`. Repeat for more than one; they are combined with AND. Split on the FIRST TWO colons — the value is everything after the second, so a timestamp keeps its own. Operators by field family: text, reference and boolean take `eq`; number takes `eq`, `gt`, `gte`, `lt`, `lte`; date takes `gt`, `gte`, `lt`, `lte` — the words `POST /v1/records/query` and link filters use. Refused, by name, when the field is not declared queryable, when the operator does not belong to its family, or when it has no resolved storage behind it. |
@@ -235,9 +234,9 @@ One page of a project's records of one table (`tableKey`), with that table's dec
 | `after` | `string` | no | The page after this row — pass back the `nextCursor` you were given. |
 | `before` | `string` | no | The page before this row. Refused together with `after`: they name opposite directions from one row. |
 | `page` | `integer` | no | Jump to this page, 1-based, resolved as an OFFSET and therefore approximate while records are arriving. Refused (422) when this route declines to count — a phrase search is never counted, and an unnarrowed corpus past the threshold is not. Walk with `after`/`before` instead, which needs no total. |
-| `id` | `string \| string[]` | no | Name records by id — repeat for more than one, up to 100. The answer is the named records that exist in this project, of any type (or of `tableKey`, when one is sent), in the standard row shape; an id that names nothing here is simply absent, never an error, so a caller holding ids that may have been deleted resolves the survivors in one read. ⛔ It is a LOOKUP, not a query: refused beside `q`, `mode=semantic`, `sort`, `after`, `before`, `page`, `key` and every narrowing (`field`, `term`, `owner`, `status`, `createdAfter`, `createdBefore`). The rows come back ordered by id, never paged: `paging` and both cursors are null. |
-| `key` | `string` | no | The record of `tableKey` whose NATURAL KEY is exactly this — equality, case and all. Needs `tableKey`: a natural key is unique only within one. At most one record for a project-owned type; for a person-owned type one per owner, so send `owner` as well to get the one. Use `q` to find a record by PART of a name; this is for a key the caller already holds (a pasted URL, an external id). Surrounding whitespace is trimmed, as it is from the stored key. Refused beside `id` and `mode=semantic`. |
-| `fields` | `string \| string[]` | no | Fields whose values each row carries in `values`, by name — repeat for more than one, up to 32. A name is one top-level field the table declares, submitted or produced by its flow, whether or not it is a column; a dotted path is not read, and a stream field is refused (its events are not on a row). Needs `tableKey`, so never beside `subject=any`; works beside every other parameter, `id` included. Values come whole, never cut short; a field the record holds no value for is left out. A name the table does not declare is 422 `RECORD_PROJECTION_UNKNOWN_FIELD`, with the table's fields in the message. Omitted, rows carry no `values`. |
+| `id` | `string \| string[]` | no | Name records by id — repeat for more than one, up to 100. The answer is the named records that exist in this project, of any type (or of `table`, when one is sent), in the standard row shape; an id that names nothing here is simply absent, never an error, so a caller holding ids that may have been deleted resolves the survivors in one read. ⛔ It is a LOOKUP, not a query: refused beside `q`, `mode=semantic`, `sort`, `after`, `before`, `page`, `key` and every narrowing (`field`, `term`, `ownerUser`, `status`, `createdAfter`, `createdBefore`). The rows come back ordered by id, never paged: `paging` and both cursors are null. |
+| `key` | `string` | no | The record of `table` whose NATURAL KEY is exactly this — equality, case and all. Needs `table`: a natural key is unique only within one. At most one record for a project-owned type; for a person-owned type one per owner, so send `ownerUser` as well to get the one. Use `q` to find a record by PART of a name; this is for a key the caller already holds (a pasted URL, an external id). Surrounding whitespace is trimmed, as it is from the stored key. Refused beside `id` and `mode=semantic`. |
+| `fields` | `string \| string[]` | no | Fields whose values each row carries in `values`, by name — repeat for more than one, up to 32. A name is one top-level field the table declares, submitted or produced by its flow, whether or not it is a column; a dotted path is not read, and a stream field is refused (its events are not on a row). Needs `table`, so never beside `subject=any`; works beside every other parameter, `id` included. Values come whole, never cut short; a field the record holds no value for is left out. A name the table does not declare is 422 `RECORD_PROJECTION_UNKNOWN_FIELD`, with the table's fields in the message. Omitted, rows carry no `values`. |
 
 **Response `200`**
 
@@ -273,7 +272,7 @@ Each item of `records`:
 | `id` | `string` | yes | The record's id, and the open address. |
 | `identity` | `object` | yes | What to CALL this row — its declared natural key where the type has one, a fragment of its own content where it does not, and its id where neither is readable. Carries which of the three it was. |
 | `preview` | `string \| null` | yes | Null when the identity IS the record's own content. |
-| `tableKey` | `string` | yes | This row's own type. Present on every row, including a single-type page. |
+| `table` | `string` | yes | This row's own type. Present on every row, including a single-type page. |
 | `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | Where the record is in processing. |
 | `statusError` | `string \| null` | yes | What went wrong, for a failed record. Null otherwise. |
 | `failure` | `object \| null` | yes | How the record's latest processing failed and whose failure it was: its class, owner, whether processing it again could help, and the step that failed when one did. Null unless the record is `failed`. |
@@ -301,7 +300,7 @@ Write one record by hand into a project, judged by its type's declared shape exa
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | The project's node id — the id `POST /v1/projects` answers and every `/v1/projects/{nodeId}` path takes. |
-| `tableKey` | `string` | yes | The table to write, as the project declares it. Must be a table this project defines. |
+| `table` | `string` | yes | The table to write, as the project declares it. Must be a table this project defines. |
 | `data` | `object` | yes | The submission — the record's `data`, judged against the shape the table's own type declares. What becomes of a key the type does not declare is therefore the TYPE's answer, not this route's: a strict type refuses it, an open one carries it through, and one that says nothing drops it silently. |
 | `userId` | `string \| null` | no | Who owns the record. REQUIRED for a person-owned (`user`) type and refused for a project-owned (`project`, pool) one. Must be an active end user of this project. |
 | `requestId` | `string` | no | A UUID you make, for idempotency on a person-owned (`user`) write: two sends carrying one id converge on one record instead of two. A pool record needs none — an identical payload converges on one record. Omitted, every send is a new record. |
@@ -312,8 +311,8 @@ Write one record by hand into a project, judged by its type's declared shape exa
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The record's id, derived rather than minted. |
-| `tableKey` | `string` | yes | The type written, echoed from the request. |
-| `ownerScope` | `"user" \| "project"` | yes | Whose the row is, as the TYPE declares it — never as the request asked. |
+| `table` | `string` | yes | The type written, echoed from the request. |
+| `owner` | `"user" \| "project"` | yes | Whose the row is, as the TYPE declares it — never as the request asked. |
 | `userId` | `string \| null` | yes | The owner, or null for a pool record. |
 | `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | The record's status as it stands. With `outcome: "created"` that is where the type starts a record: one that binds a processing flow is born pending and handed to the queue; one that binds none is ready the moment it is written and is never enqueued, or `processing` until search can find it when its table has search. With `outcome: "existed"` it is the CURRENT status of the record this request converged onto, which may be anywhere in its lifecycle. |
 | `outcome` | `"created" \| "existed" \| "updated"` | yes | `existed` means the derived id was already present — a converging resend, reported as the success it is; nothing was overwritten. `updated` answers only `onKeyTaken: "update"`: another record held the natural key, and its `data` was replaced by this one's — `id` is that record's. |
@@ -369,7 +368,7 @@ Correct one record: send its `version` and either `data` (the document whole —
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The record, unchanged — a patch never re-mints it. |
-| `tableKey` | `string` | yes | Its type, echoed. |
+| `table` | `string` | yes | Its type, echoed. |
 | `version` | `integer \| null` | yes | The row's version AFTER this write, measured by re-reading it; the next patch's `version`. Null when it could not be read — re-open the record before saving again rather than reusing the version you sent. |
 | `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | Its processing state. A patch never re-runs the flow, so `derived` still describes the content as it was, until something re-runs it. It does re-index: on a table with search a ready record reads `processing` until search can find its new content. |
 | `reindexed` | `boolean` | yes | Whether a vector projection was enqueued. False for a type nothing indexes; true does not mean the points are written yet. |
@@ -703,7 +702,7 @@ Each item of `terms`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `vocabularyKey` | `string` | yes | Key of the vocabulary the term belongs to. |
+| `vocabulary` | `string` | yes | Key of the vocabulary the term belongs to. |
 | `key` | `string` | yes | The term's CANONICAL key — alias-resolved ONE hop, so a record filed under a merged-away term shows its merge target and agrees with what a filter on it would match. |
 | `label` | `string` | yes | The term's own display name. |
 | `labels` | `object` | no | The term's label in other languages; left out when it has none. |
@@ -719,7 +718,7 @@ Total a project's records: the records one question selects — `POST /v1/record
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | The project's node id — the id `POST /v1/projects` answers and every `/v1/projects/{nodeId}` path takes. |
-| `tableKey` | `string` | yes | The table whose records are totalled. |
+| `table` | `string` | yes | The table whose records are totalled. |
 | `clauses` | `object[]` | no | Which records count: `POST /v1/records/query`'s clauses, every one holding, each value given as itself (no `{ literal }`). Left out or empty, every record of the table counts. A `semantic` clause, at any depth, is 422 `AGGREGATE_SEMANTIC_CLAUSE`: a meaning search ranks a few records and does not total them. |
 | `groupBy` | `object[]` | no | Up to two keys to split the records by: `{ field }` (a field with a `filter` use), `{ field, bucket }` (a date field cut into `day`, `week` or `month`), `{ created }` (when the record was created), `{ vocabulary }` (the record's active terms; a record with two counts in both groups) or `{ status: true }`. `as` renames a key in the answer. Records with no value form one group keyed `null`. Left out, the answer is one row of totals. |
 | `measures` | `object` | yes | The totals, by the name each row carries them under: `{ count: true }`, or `countDistinct`, `sum`, `avg`, `min` or `max` naming a field with a `filter` use. `sum` and `avg` take a number field; `min` and `max` a number or a date. Of no records, a count and a sum are `0` and the rest are left out. |
@@ -788,19 +787,19 @@ Each item of `diagnostics`:
 
 ### `POST /v1/records/query`
 
-Ask a project's records one question: a conjunction of clauses — `field` (`eq` `lt` `lte` `gt` `gte` `in`), `term`, `link` (with link filters, a count and one hop of peer clauses), `stream`, and at most one `semantic` — in the grammar a flow's `record.query` step authors, run by the same executor. `tableKeys` in place of `tableKey` ranks several tables on one search model in one answer, each score naming its record's table; this route reads as every user, so a table that keeps each user's records apart refuses the whole query. `fields` names the columns each row carries; empty means all of them. Leave `clauses` out to list the table's records, newest first. `linked` brings each record's linked records with it, each in this same row shape — the option a flow's `record.query` takes; a `linked` refusal is 422 `VALIDATION_FAILED` with its rule in `details.reason`. Writes nothing. For a page with the table's declared columns and a filter the address can spell, `GET /v1/records` is the simpler read.
+Ask a project's records one question: a conjunction of clauses — `field` (`eq` `lt` `lte` `gt` `gte` `in`), `term`, `link` (with link filters, a count and one hop of peer clauses), `stream`, and at most one `semantic` — in the grammar a flow's `record.query` step authors, run by the same executor. `tables` in place of `table` ranks several tables on one search model in one answer, each score naming its record's table; this route reads as every user, so a table that keeps each user's records apart refuses the whole query. `fields` names the columns each row carries; empty means all of them. Leave `clauses` out to list the table's records, newest first. `linked` brings each record's linked records with it, each in this same row shape — the option a flow's `record.query` takes; a `linked` refusal is 422 `VALIDATION_FAILED` with its rule in `details.reason`. Writes nothing. For a page with the table's declared columns and a filter the address can spell, `GET /v1/records` is the simpler read.
 
 **Request body**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | The project's node id — the id `POST /v1/projects` answers and every `/v1/projects/{nodeId}` path takes. |
-| `tableKey` | `string` | no | The table the question is asked of; exactly one of `tableKey` and `tableKeys` is given. Every clause is validated against this table's `uses`: a field needs `filter`, a vocabulary `vocabularies`, a relation `link`, a stream field `stream`, and a semantic clause a `search` use somewhere on the table. |
-| `tableKeys` | `string[]` | no | Several tables to rank in one answer, 2 to 8, in place of `tableKey`. They must use one search model (`QUERY_TABLES_MODEL_MISMATCH`), every clause must be answerable by each (`QUERY_CLAUSE_UNROUTED` names the table that cannot), and the query must hold a `semantic` clause (`QUERY_TABLES_NEED_SEMANTIC`). The answer is ordered by meaning, has no cursor, and each entry of `scores` names its record's table. This route reads as every user, so a table that keeps each user's records apart refuses the whole query. |
-| `clauses` | `object[]` | no | Every returned record satisfies ALL of these — a conjunction, never an OR. Left out, the answer is the table's records, newest first, paged by `after` / `before` (an empty list is refused). Kinds: `field` (a slot column) `{ kind, field, op, value }` with `op` one of eq/lt/lte/gt/gte/in, `in` taking a list; `term` (a vocabulary assignment) `{ kind, vocabularyKey, slug }`, `slug` being the term's key; `link` (a relation) `{ kind, relation, direction?, where?, count?, peer? }` — `direction` outgoing/incoming/either, `where` stamped link filters `{ property, op, value }`, `count` `{ op, n }`, and `peer` one hop of `field`/`term` clauses, and at most one `semantic`, on the far record; `stream` (event rows) `{ kind, field, window?, where?, count? }` — exists/none/count inside a window; and at most one `semantic` `{ kind, field?, text, topK?, minScore?, passage? }` (a phrase ranked by meaning; `minScore` leaves out records scoring below it, `passage` asks for the text of each record's best-matching part). A clause the type's `uses` did not route is 422 `QUERY_CLAUSE_UNROUTED`, with the remedy in the message. |
+| `table` | `string` | no | The table the question is asked of; exactly one of `table` and `tables` is given. Every clause is validated against this table's `uses`: a field needs `filter`, a vocabulary `vocabularies`, a relation `link`, a stream field `stream`, and a semantic clause a `search` use somewhere on the table. |
+| `tables` | `string[]` | no | Several tables to rank in one answer, 2 to 8, in place of `table`. They must use one search model (`QUERY_TABLES_MODEL_MISMATCH`), every clause must be answerable by each (`QUERY_CLAUSE_UNROUTED` names the table that cannot), and the query must hold a `semantic` clause (`QUERY_TABLES_NEED_SEMANTIC`). The answer is ordered by meaning, has no cursor, and each entry of `scores` names its record's table. This route reads as every user, so a table that keeps each user's records apart refuses the whole query. |
+| `clauses` | `object[]` | no | Every returned record satisfies ALL of these — a conjunction, never an OR. Left out, the answer is the table's records, newest first, paged by `after` / `before` (an empty list is refused). Kinds: `field` (a slot column) `{ kind, field, op, value }` with `op` one of eq/lt/lte/gt/gte/in, `in` taking a list; `term` (a vocabulary assignment) `{ kind, vocabulary, slug }`, `slug` being the term's key; `link` (a relation) `{ kind, relation, direction?, where?, count?, peer? }` — `direction` outgoing/incoming/either, `where` stamped link filters `{ property, op, value }`, `count` `{ op, n }`, and `peer` one hop of `field`/`term` clauses, and at most one `semantic`, on the far record; `stream` (event rows) `{ kind, field, window?, where?, count? }` — exists/none/count inside a window; and at most one `semantic` `{ kind, field?, text, topK?, minScore?, passage? }` (a phrase ranked by meaning; `minScore` leaves out records scoring below it, `passage` asks for the text of each record's best-matching part). A clause the type's `uses` did not route is 422 `QUERY_CLAUSE_UNROUTED`, with the remedy in the message. |
 | `limit` | `integer` | no | How many records come back at most. For an exact-only query this is the page size; with a semantic clause the clause's own `topK` bounds the ranking and this caps what is returned of it. |
 | `order` | `object` | no | How the answer is ordered. Omitted: closest first when the query has a `semantic` clause of its own, newest created first otherwise. `field` orders by one of the type's own fields carrying a `filter` use (a date, number, true/false or text field; equal values newest first under `asc`; a record with no value in it is left out), and an exact-only query pages by it; beside a `semantic` clause it re-orders the ranking, which stays bounded. A text field needs the type's `maxLength` of at most 500, as it is now: otherwise 422 `VALIDATION_FAILED` with `details.reason` `QUERY_ORDER_TEXT_UNBOUNDED`. A cursor belongs to the order that minted it. |
-| `fields` | `string[]` | no | Which of the table's columns each row's `fields` list carries, by name. Empty or omitted: every column. The entries keep the table's declared order, and the rest of the row, `scores` and a `passage` are unchanged. A name that is not a column of the table is 422 `RECORD_PROJECTION_UNKNOWN_FIELD`, with the columns in the message. With `tableKeys`, a name any of the tables has as a column; each row carries the named columns its own table has. |
+| `fields` | `string[]` | no | Which of the table's columns each row's `fields` list carries, by name. Empty or omitted: every column. The entries keep the table's declared order, and the rest of the row, `scores` and a `passage` are unchanged. A name that is not a column of the table is 422 `RECORD_PROJECTION_UNKNOWN_FIELD`, with the columns in the message. With `tables`, a name any of the tables has as a column; each row carries the named columns its own table has. |
 | `linked` | `object` | no | The records each answered record is linked to, brought with it under `linked.<name>` — the option a flow's `record.query` takes. Per linked read: `relation`, `direction` (`outgoing` default, `incoming`), `peerTable` when the relation reaches several, `fields` (the fields each linked record carries in `values`; absent or empty is all of them, `["id"]` none), and for a linked read that brings a list `limit` (required), `sortField`, `order` and `onMore`; one more level under `linked`. Linked records are read across every owner, as the answer's own records are, and carry no vocabulary terms (`include.vocabularies` is refused). Each refusal below is 422 `VALIDATION_FAILED` with its rule in `details.reason`: an linked read the project's relations cannot answer (a `LINKED_*` rule, before anything is read); a list longer than its `limit`, `RECORD_LINKED_HAS_MORE`, unless `onMore: "stop"`, which keeps the first `limit` and marks the record in `linkedMore`; more linked records than one read may bring, `RECORD_LINKED_TOO_MANY`. |
 | `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
 | `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
@@ -809,7 +808,7 @@ Ask a project's records one question: a conjunction of clauses — `field` (`eq`
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `records` | `object[]` | yes | The records satisfying every clause — in keyset order (newest first) for an exact-only query, in closeness order when a semantic clause ran. The list route's row shape, without `values`, carrying `linked` when the query names it. On a query of several tables (`tableKeys`) each row carries its own table's fields, and `scores` names the table of the row at each position. |
+| `records` | `object[]` | yes | The records satisfying every clause — in keyset order (newest first) for an exact-only query, in closeness order when a semantic clause ran. The list route's row shape, without `values`, carrying `linked` when the query names it. On a query of several tables (`tables`) each row carries its own table's fields, and `scores` names the table of the row at each position. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
 | `paging` | `null` | yes | Always null: a query is never counted. An exact-only answer is walked by `after` / `before`; a ranking has no position to count from. |
@@ -825,7 +824,7 @@ Each item of `records`:
 | `id` | `string` | yes | The record's id, and the open address. |
 | `identity` | `object` | yes | What to CALL this row — its declared natural key where the type has one, a fragment of its own content where it does not, and its id where neither is readable. Carries which of the three it was. |
 | `preview` | `string \| null` | yes | Null when the identity IS the record's own content. |
-| `tableKey` | `string` | yes | This row's own type. Present on every row, including a single-type page. |
+| `table` | `string` | yes | This row's own type. Present on every row, including a single-type page. |
 | `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | Where the record is in processing. |
 | `statusError` | `string \| null` | yes | What went wrong, for a failed record. Null otherwise. |
 | `failure` | `object \| null` | yes | How the record's latest processing failed and whose failure it was: its class, owner, whether processing it again could help, and the step that failed when one did. Null unless the record is `failed`. |
@@ -850,70 +849,7 @@ Each item of `scores`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The record's id — one of `records`. |
-| `tableKey` | `string` | no | Present on every entry of a query that named several tables (`tableKeys`): the table the record at this position belongs to. Rows of different tables carry different fields; this tells them apart. |
+| `table` | `string` | no | Present on every entry of a query that named several tables (`tables`): the table the record at this position belongs to. Rows of different tables carry different fields; this tells them apart. |
 | `score` | `number` | yes | How close the record's closest part is to the query: a cosine similarity, on the same scale for every table. Higher is closer; a poor match can be negative. |
 | `passage` | `object` | no | The record's best-matching part, when the clause asked (`passage: true`) and the record is indexed in more than one part. |
 | `passageStale` | `true` | no | Present in place of `passage` when the record changed after it was last indexed, so the part that was scored can no longer be quoted. |
-
-### `POST /v1/views/{key}/preview`
-
-Read one page of a view as a chosen member of the project (`asUserId`), or as the project for a view that reads no person's records, with its params, a cursor and a limit. Answers the page, the JSON Schema of one item, every table the read reaches and the clauses it ran with params and its base merged in. Writes, charges and runs nothing. A view endpoint answers the same page to a caller; `record.view` reads it in a flow. Reads the applied view: plan and apply the document first to preview a new or edited view.
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `key` | `string` | yes | The view's key in the project document. |
-
-**Query**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `project` | `string` | yes | The project whose view to read — its node id. |
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `asUserId` | `string` | no | The person to read as; a project view needs none. |
-| `params` | `object` | no | A value for each param, by name. |
-| `after` | `string` | no | A `nextCursor` from an earlier preview, for the page after it. |
-| `before` | `string` | no | A `prevCursor` from an earlier preview, for the page before it. |
-| `limit` | `integer` | no | Rows in the page; the view's page size when absent. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `items` | `object[]` | yes | The page's rows, each in the view's item shape. |
-| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
-| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
-| `paging` | `null` | yes | Always null: a view's page is never counted; walk it by `after` / `before`. |
-| `itemSchema` | `object` | yes | The JSON Schema of one row. |
-| `tables` | `string[]` | yes | Every table the read reaches: its own, its sets', its base's and linked ones. |
-| `clauses` | `object[]` | yes | The clauses the read ran, with params and the base merged in: its literal clauses, then each set it compared with. |
-
-Each item of `clauses`:
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `kind` | `"field"` | yes | A condition on a field the type routes with `filter`. |
-| `field` | `string` | no | A field of the table with a `filter` use, or `id` (with `eq`, `in` or `not-in`). |
-| `op` | `"eq" \| "lt" \| "lte" \| "gt" \| "gte" \| "in" \| "not-in" \| "contains"` | no | Each operator takes one value; `in` and `not-in` take a list. `not-in` keeps records with no value in the field. `contains` matches text anywhere in a text field, ignoring case: at least 3 characters with a word in them, not signs alone (a search-speed limit). |
-| `value` | `string \| number \| boolean \| string \| number \| boolean[]` | no | One value, or a list for `in` and `not-in`; dates as ISO 8601. |
-| `vocabularyKey` | `string` | no | A vocabulary the table lists in `uses.vocabularies`. |
-| `slug` | `string` | no | The term, by slug. An alias resolves to its canonical term, one hop, as every term read does. |
-| `relation` | `string` | no | A relation a `link` use declares, from or to this table. |
-| `direction` | `"outgoing" \| "incoming" \| "either"` | no | Which end the record is on; default `outgoing`. |
-| `where` | `object[]` | no | Clauses on the relation's declared link filters (`link.element.filters`), ANDed. |
-| `count` | `object` | no | How many matching links to require; default at least one. |
-| `peer` | `object[]` | no | Clauses on the linked record, one hop away. |
-| `window` | `object` | no | The time window on the event's own `at`. Omitted or open-ended: bounded to the stream's retention, and the explanation says so. |
-| `text` | `string` | no | The phrase to resemble. Exactly one of a phrase and a record (`likeRecordId`) is given. |
-| `likeRecordId` | `string` | no | A record to resemble instead of a phrase; it is left out. |
-| `likeTableKey` | `string` | no | The table of the record to resemble, if not the queried one. |
-| `topK` | `integer` | no | How many to rank when this clause is the only one, or when it runs first above the pushdown cap. Default 50. |
-| `minScore` | `number` | no | Leave out records scoring below this, from −1 to 1. |
-| `passage` | `boolean` | no | `true` also returns the text of each record's best-matching part. |
-| `of` | `object[]` | no | 2 to 8 field, term, link or stream clauses. |
-| `set` | `object` | no | The values of one field across another view's rows, read in the same statement. Empty values are left out of the set. |

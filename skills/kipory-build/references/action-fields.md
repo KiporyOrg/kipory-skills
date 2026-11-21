@@ -43,7 +43,7 @@ An **action** is the kind of step that runs a function. This page has every fiel
 
 `with` holds, by name:
 
-- **the function's settings** — the config table on its page (`functions/<key>.md`): `tableKey`, `limit`, `fieldFilters`, `onKeyTaken`, …;
+- **the function's settings** — the config table on its page (`functions/<key>.md`): `table`, `limit`, `fieldFilters`, `onKeyTaken`, …;
 - **the values it reads** — the inputs its page names (`url.fetch` reads `url`, `text.decide` reads `message`, `audio.transcribe` reads `audio`), each an argument (§3);
 - **a model step's prompt** — `text.generate` takes `prompt` and `system`, `text.interpolate` takes `template`: plain text. A placeholder is `{{name}}`, `{{name.field}}` or `{{name[0]}}`, and the save reads it like any other read. One item's field (`{{found[0].fruit}}`) is not a placeholder (`TEMPLATE_PLACEHOLDER_UNREAD`): compute it in a step first and write `{{thatStep}}`. A placeholder that names a whole object or list (`{{order}}` where `order` is an object, `{{items}}` where it is a list) is refused at save, `INTERPOLATE_BARE_STRUCTURED_SLOT`: it would render empty. Name a field (`{{order.total}}`), write `{{order | json}}`, or loop over a list with `{{#items}}…{{/items}}`.
 
@@ -86,7 +86,7 @@ Wherever a step reads a value, it takes an argument:
 - **An expression's top-level names are reads too**, judged like paths. Inside `[…]` a bare name is the item's field. `$default(x, y)` fills only nothing; `$ifEmpty(x, y)` fills nothing or `""`, `[]`, `{}`. `functions/expressions.md` lists the functions an expression may call.
 - **What the plan proves inside an expression.** Beyond a path and `$default`: a variable bound once (`($r := found[0]; $r.name)` under an `if` on `{filled: found}`), a function called where it is written, `$merge([…])` of object constructors, a mapping from one proved record (`found[0].{"name": name}`), `$append`, `$distinct`, `$sort` and `$reverse` of a value, and `$map` over a list proved filled when its function always answers a value. Never proved: `$filter`, `$reduce`, `$lookup`, `$keys`, and a `$map` whose list may be empty or whose function may answer nothing; wrap them, `$list($filter(…))`. `x ?? d` and `$exists(x) ? x : d` are refused over a read not already proved, since both answer `null` when `x` is `null`; `$sum(rows.n) ?? 0` passes, its left side is never `null`. A refused expression names the read that is not proved and why.
 - **An `{expr}` has no `when`.** A value that exists only sometimes is `cond ? x` inside the expression — with no else it answers nothing, and `value.build` leaves that field out — or a step inside an `if`.
-- **A setting that names a thing is a plain value**: `tableKey: box`, `address: renewals@example.test`, a template's text, a vocabulary key. The function's page shows which settings take an argument.
+- **A setting that names a thing is a plain value**: `table: box`, `sender: support`, a template's text, `vocabulary: genre`. The function's page shows which settings take an argument.
 
 ## 4. A setting that names a field says `field`
 
@@ -94,7 +94,7 @@ A filter, a sort or a check names a field of the records it reads by its plain n
 
 ```yaml
 with:
-  tableKey: member
+  table: member
   dataNullChecks: [{ field: email, op: isNull }]
   fieldFilters: [{ field: renewsOn, op: eq, value: day }]
 ```

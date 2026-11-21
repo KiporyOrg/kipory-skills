@@ -15,6 +15,17 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `GET` | [`/v1/tables/{id}`](#get-v1-tables-id) |  |
 | `PATCH` | [`/v1/tables/{id}`](#patch-v1-tables-id) |  |
 | `DELETE` | [`/v1/tables/{id}`](#delete-v1-tables-id) |  |
+| `GET` | [`/v1/tables/{id}/queries`](#get-v1-tables-id-queries) |  |
+| `POST` | [`/v1/tables/{id}/queries`](#post-v1-tables-id-queries) |  |
+| `GET` | [`/v1/tables/{id}/queries/{key}`](#get-v1-tables-id-queries-key) |  |
+| `PATCH` | [`/v1/tables/{id}/queries/{key}`](#patch-v1-tables-id-queries-key) |  |
+| `DELETE` | [`/v1/tables/{id}/queries/{key}`](#delete-v1-tables-id-queries-key) |  |
+| `POST` | [`/v1/tables/{id}/queries/{key}/preview`](#post-v1-tables-id-queries-key-preview) |  |
+| `GET` | [`/v1/tables/{id}/selections`](#get-v1-tables-id-selections) |  |
+| `POST` | [`/v1/tables/{id}/selections`](#post-v1-tables-id-selections) |  |
+| `GET` | [`/v1/tables/{id}/selections/{key}`](#get-v1-tables-id-selections-key) |  |
+| `PATCH` | [`/v1/tables/{id}/selections/{key}`](#patch-v1-tables-id-selections-key) |  |
+| `DELETE` | [`/v1/tables/{id}/selections/{key}`](#delete-v1-tables-id-selections-key) |  |
 
 ### `GET /v1/tables`
 
@@ -47,12 +58,12 @@ Each item of `tables`:
 | `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the type this table references. Edited with `definition` on `PATCH /v1/tables/{id}` or on the type itself: the same type either way, for everything that uses it. |
 | `description` | `string \| null` | yes | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
-| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
+| `owner` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
 | `sharing` | `boolean` | yes | Whether records can be shared with people and teams (`record.grant`). Always false on a `project` table. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
-| `uses` | `object` | yes | What each field is FOR — the one authored statement this table carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the link store, `key` to the natural-key index, `stream` to the stream store; the table-level `vocabularies` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED from it and read-only. |
-| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`. |
+| `uses` | `object` | yes | What the table's fields are FOR, grouped by use — the one authored statement this table carries. `key` goes to the natural-key index, `filter` to indexed columns, `search` to the vector index, `stream` to the stream store, and `vocabularies` to the term vocabulary. A link is not stated here: it is stated on its relation (`from: <table>.<field>`). `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED and read-only. |
+| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `owner`. |
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: links this table produces, or null when no field carries `link` and the table declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this table may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
 | `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record; a refusal names the records that fail. |
@@ -94,8 +105,8 @@ Create a table that takes its data shape from an existing type. With `validateOn
 | `dataTypeId` | `string` | yes | Existing type in the same project that defines the table's data shape. A shape is always a type that already exists; a project document creates the type and the table in one apply. |
 | `description` | `string \| null` | no | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | no | Processing flow to bind. Supply one to have records processed on creation; omit or null to store them as submitted. |
-| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table: `user` for one person's own records, `project` for the project's shared content pool. Required — it is immutable once the table has records. |
-| `uses` | `object` | no | What each field is for. Omit for a table whose fields are stored with the record and read whole. Every projection — `searchable`, `queryable`, `relations`, the natural key, the vocabulary links — is derived from this and cannot be sent directly. |
+| `owner` | `"user" \| "project"` | yes | Who owns records of this table: `user` for one person's own records, `project` for the project's shared content pool. Required — it is immutable once the table has records. |
+| `uses` | `object` | no | What the table's fields are for, grouped by use (`key`, `filter`, `search`, `stream`, `vocabularies`, `join`). Omit for a table whose fields are stored with the record and read whole. A link is stated on its relation, not here. Every projection — `searchable`, `queryable`, `relations`, the natural key, the vocabulary links — is derived and cannot be sent directly. |
 | `computed` | `object` | no | Fields Kipory keeps from related records (`rollup`, `lookup`) or the record itself (`formula`). Omit for none. |
 | `reprocessOn` | `object[]` | no | Run the table's processing flow again for a record when its related records join, leave or change. Omit for never. |
 | `sharing` | `boolean` | no | `true` lets each record be shared with people and teams (`record.grant`); they then read it as its owner does. A `user` table only. Omit for off. |
@@ -162,7 +173,7 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "query" \| "selection" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
 | `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
 | `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
@@ -186,12 +197,12 @@ Each item of `renames`:
 | `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the type this table references. Edited with `definition` on `PATCH /v1/tables/{id}` or on the type itself: the same type either way, for everything that uses it. |
 | `description` | `string \| null` | yes | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
-| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
+| `owner` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
 | `sharing` | `boolean` | yes | Whether records can be shared with people and teams (`record.grant`). Always false on a `project` table. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
-| `uses` | `object` | yes | What each field is FOR — the one authored statement this table carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the link store, `key` to the natural-key index, `stream` to the stream store; the table-level `vocabularies` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED from it and read-only. |
-| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`. |
+| `uses` | `object` | yes | What the table's fields are FOR, grouped by use — the one authored statement this table carries. `key` goes to the natural-key index, `filter` to indexed columns, `search` to the vector index, `stream` to the stream store, and `vocabularies` to the term vocabulary. A link is not stated here: it is stated on its relation (`from: <table>.<field>`). `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED and read-only. |
+| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `owner`. |
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: links this table produces, or null when no field carries `link` and the table declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this table may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
 | `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record; a refusal names the records that fail. |
@@ -262,7 +273,7 @@ Each item of `vocabularies`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `vocabularyKey` | `string` | yes | The vocabulary's key, unique within the project. |
+| `vocabulary` | `string` | yes | The vocabulary's key, unique within the project. |
 | `label` | `string` | yes | The vocabulary's human-readable name. |
 | `cardinality` | `"one" \| "many"` | yes | Whether a record may carry one term in this vocabulary, or several. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen: dropped, minted as a live term, or minted as a candidate awaiting activation. |
@@ -314,7 +325,7 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "query" \| "selection" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
 | `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
 | `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
@@ -374,12 +385,12 @@ Read one table by id, with any `expand` sections — the derived contract, the p
 | `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the type this table references. Edited with `definition` on `PATCH /v1/tables/{id}` or on the type itself: the same type either way, for everything that uses it. |
 | `description` | `string \| null` | yes | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
-| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
+| `owner` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
 | `sharing` | `boolean` | yes | Whether records can be shared with people and teams (`record.grant`). Always false on a `project` table. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
-| `uses` | `object` | yes | What each field is FOR — the one authored statement this table carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the link store, `key` to the natural-key index, `stream` to the stream store; the table-level `vocabularies` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED from it and read-only. |
-| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`. |
+| `uses` | `object` | yes | What the table's fields are FOR, grouped by use — the one authored statement this table carries. `key` goes to the natural-key index, `filter` to indexed columns, `search` to the vector index, `stream` to the stream store, and `vocabularies` to the term vocabulary. A link is not stated here: it is stated on its relation (`from: <table>.<field>`). `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED and read-only. |
+| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `owner`. |
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: links this table produces, or null when no field carries `link` and the table declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this table may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
 | `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record; a refusal names the records that fail. |
@@ -445,7 +456,7 @@ Each item of `vocabularies`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `vocabularyKey` | `string` | yes | The vocabulary's key, unique within the project. |
+| `vocabulary` | `string` | yes | The vocabulary's key, unique within the project. |
 | `label` | `string` | yes | The vocabulary's human-readable name. |
 | `cardinality` | `"one" \| "many"` | yes | Whether a record may carry one term in this vocabulary, or several. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen: dropped, minted as a live term, or minted as a candidate awaiting activation. |
@@ -502,9 +513,9 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 | `definition` | `object` | no | Replace the table's shape — the JSON Schema of the type this table points at — wholesale, with the rules `PATCH /v1/types/{id}` meets: field names, an object schema, keywords something reads, a removed field no stored record still holds, every other row that uses the type, the bound flow's binding, and the contract check: a change that breaks the callers of an endpoint or table is saved only when an admin names it in `acceptBreaks`. Saved with the table in one transaction, and the type is named in `touched`. Refused 422 together with `dataTypeId`. |
 | `description` | `string \| null` | no | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | no | Omit to keep the current binding, supply an id to re-bind, or send null to remove the flow entirely. |
-| `ownerScope` | `"user" \| "project"` | no | Change who owns records of this table. Refused once the table has records, except a project table becoming person-owned with `ownerField`. Omit to keep. |
-| `ownerField` | `string` | no | With `ownerScope: "user"` on a project table: the text field whose value is each record's owner, a person of the project by user id. Every record becomes that person's, the field leaves the type and the records, and a key stays unique across the project unless `uses` says `scope: "owner"`. Refused (nothing changed) when a record names nobody active (422 `TABLE_OWNER_FIELD_UNUSABLE`), the type is shared, records hold files, or something outside the change reads the field (409 `TABLE_OWNER_CONVERSION_BLOCKED`). Request-only. |
-| `uses` | `object` | no | Replace the table's whole `uses` statement. Omit to keep the current one. Sent WHOLE, never merged: the order of `filter` fields is the slot order. Every projection is re-derived from it in the same transaction. |
+| `owner` | `"user" \| "project"` | no | Change who owns records of this table. Refused once the table has records, except a project table becoming person-owned with `ownerField`. Omit to keep. |
+| `ownerField` | `string` | no | With `owner: "user"` on a project table: the text field whose value is each record's owner, a person of the project by user id. Every record becomes that person's, the field leaves the type and the records, and a key stays unique across the project unless `uses` says `scope: "owner"`. Refused (nothing changed) when a record names nobody active (422 `TABLE_OWNER_FIELD_UNUSABLE`), the type is shared, records hold files, or something outside the change reads the field (409 `TABLE_OWNER_CONVERSION_BLOCKED`). Request-only. |
+| `uses` | `object` | no | Replace the table's whole `uses` statement. Omit to keep the current one. Sent whole, never merged; the order of `filter` means nothing. The links its relations state are kept. Every projection is re-derived in the same transaction. |
 | `computed` | `object \| null` | no | Replace the table's computed fields, whole. Omit to keep them; null to remove them all (their values go too). |
 | `reprocessOn` | `object[] \| null` | no | Replace when the table's processing runs again because related records changed. Omit to keep; null for never. |
 | `sharing` | `boolean` | no | Turn sharing records with people and teams on or off. A `user` table only. Omit to keep. |
@@ -517,7 +528,7 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 
 One of 2 shapes:
 
-Shape 1, with `id`, `dataTypeId`, `dataTypeKey`, `project`, `key`, `description`, `flowId`, `ownerScope`, `sharing`, `dataFields`, `contentFields`, `uses`, `searchable`, `relations`, `queryable`, `naturalKey`, `computed`, `computedFields`, `reprocessOn`, `hasRecords`, `recordCount`, `version`, `createdAt`, `updatedAt`, `touched`:
+Shape 1, with `id`, `dataTypeId`, `dataTypeKey`, `project`, `key`, `description`, `flowId`, `owner`, `sharing`, `dataFields`, `contentFields`, `uses`, `searchable`, `relations`, `queryable`, `naturalKey`, `computed`, `computedFields`, `reprocessOn`, `hasRecords`, `recordCount`, `version`, `createdAt`, `updatedAt`, `touched`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -530,12 +541,12 @@ Shape 1, with `id`, `dataTypeId`, `dataTypeKey`, `project`, `key`, `description`
 | `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the type this table references. Edited with `definition` on `PATCH /v1/tables/{id}` or on the type itself: the same type either way, for everything that uses it. |
 | `description` | `string \| null` | yes | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
-| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
+| `owner` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
 | `sharing` | `boolean` | yes | Whether records can be shared with people and teams (`record.grant`). Always false on a `project` table. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
-| `uses` | `object` | yes | What each field is FOR — the one authored statement this table carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the link store, `key` to the natural-key index, `stream` to the stream store; the table-level `vocabularies` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED from it and read-only. |
-| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`. |
+| `uses` | `object` | yes | What the table's fields are FOR, grouped by use — the one authored statement this table carries. `key` goes to the natural-key index, `filter` to indexed columns, `search` to the vector index, `stream` to the stream store, and `vocabularies` to the term vocabulary. A link is not stated here: it is stated on its relation (`from: <table>.<field>`). `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED and read-only. |
+| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `owner`. |
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: links this table produces, or null when no field carries `link` and the table declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this table may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
 | `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record; a refusal names the records that fail. |
@@ -606,7 +617,7 @@ Each item of `vocabularies`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `vocabularyKey` | `string` | yes | The vocabulary's key, unique within the project. |
+| `vocabulary` | `string` | yes | The vocabulary's key, unique within the project. |
 | `label` | `string` | yes | The vocabulary's human-readable name. |
 | `cardinality` | `"one" \| "many"` | yes | Whether a record may carry one term in this vocabulary, or several. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen: dropped, minted as a live term, or minted as a candidate awaiting activation. |
@@ -658,7 +669,7 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "query" \| "selection" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
 | `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
 | `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
@@ -750,7 +761,7 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "query" \| "selection" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
 | `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
 | `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
@@ -855,3 +866,369 @@ Each item of `contractChanges`:
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
 | `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
 | `consequences` | `object[]` | no | On a table's row: what the change does to the table's stored records, each with a count. The write carries each one out. A count never refuses the write; one consequence can: a `stream-migration` on a table whose stream is already being migrated is refused with 409 `STREAM_MIGRATING`. Absent on an endpoint's row and when nothing stored is affected. |
+
+### `GET /v1/tables/{id}/queries`
+
+List a table's queries, by key, each as the document writes it. `GET /v1/projects/{nodeId}/document` carries every table's queries on its row.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The table the rows live under: its key, or its id. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project the table belongs to — its node id. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `queries` | `object[]` | yes | The table's queries, by key. |
+
+Each item of `queries`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The query's id. |
+| `table` | `string` | yes | The key of the table the query lives under. |
+| `key` | `string` | yes | The query's key in its table; `<table>.<key>` names it from elsewhere. |
+| `version` | `integer` | yes | Moves on every save of the query; a PATCH states it. |
+| `definition` | `object` | yes | The query, as the document writes it. |
+
+### `POST /v1/tables/{id}/queries`
+
+Create a query under a table, judged as a document plan judges it: refused 422 naming each finding, 409 when the key is taken. `POST /v1/projects/{nodeId}/document` writes many at once, with the tables they read, and its `/plan` checks them first.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The table the rows live under: its key, or its id. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project the table belongs to — its node id. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `key` | `string` | yes | The query's key in its table. |
+| `definition` | `object` | yes | A read declared once under its table and read by name. |
+
+**Response `201`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The query's id. |
+| `table` | `string` | yes | The key of the table the query lives under. |
+| `key` | `string` | yes | The query's key in its table; `<table>.<key>` names it from elsewhere. |
+| `version` | `integer` | yes | Moves on every save of the query; a PATCH states it. |
+| `definition` | `object` | yes | The query, as the document writes it. |
+
+### `GET /v1/tables/{id}/queries/{key}`
+
+Read one query of a table. `GET /v1/tables/{id}/queries` lists them all.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The table the rows live under: its key, or its id. |
+| `key` | `string` | yes | The row's key in its table. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project the table belongs to — its node id. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The query's id. |
+| `table` | `string` | yes | The key of the table the query lives under. |
+| `key` | `string` | yes | The query's key in its table; `<table>.<key>` names it from elsewhere. |
+| `version` | `integer` | yes | Moves on every save of the query; a PATCH states it. |
+| `definition` | `object` | yes | The query, as the document writes it. |
+
+### `PATCH /v1/tables/{id}/queries/{key}`
+
+Change a query: its whole `definition`, a new `key`, or both, at the `version` read (409 when it moved). `POST /v1/projects/{nodeId}/document` writes many at once, with the tables they read, and its `/plan` checks them first.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The table the rows live under: its key, or its id. |
+| `key` | `string` | yes | The row's key in its table. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project the table belongs to — its node id. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `version` | `integer` | yes | The version the change is made against: the row's `version` as read. A stale one is refused 409. |
+| `key` | `string` | no | A new key for the query: refused while a step, query, selection or endpoint names it; a project document renames it and moves them all. |
+| `definition` | `object` | no | The query's whole definition, replacing the one it holds. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The query's id. |
+| `table` | `string` | yes | The key of the table the query lives under. |
+| `key` | `string` | yes | The query's key in its table; `<table>.<key>` names it from elsewhere. |
+| `version` | `integer` | yes | Moves on every save of the query; a PATCH states it. |
+| `definition` | `object` | yes | The query, as the document writes it. |
+
+### `DELETE /v1/tables/{id}/queries/{key}`
+
+Delete a query. Refused (422, `REMOVED_STILL_USED`) while a step, a query, a selection or an endpoint still names it. Deleting the table deletes its queries with it. `POST /v1/projects/{nodeId}/document` writes many at once, with the tables they read, and its `/plan` checks them first.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The table the rows live under: its key, or its id. |
+| `key` | `string` | yes | The row's key in its table. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project the table belongs to — its node id. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The removed row's id. |
+| `deleted` | `true` | yes | Always true: the row is gone. |
+
+### `POST /v1/tables/{id}/queries/{key}/preview`
+
+Read one page of a query as a chosen member of the project (`asUserId`), or as the project for a query that reads no person's records, with its params, a cursor and a limit. Answers the page, the JSON Schema of one item, every table the read reaches and the clauses it ran with params and its base merged in. Writes, charges and runs nothing. A query endpoint answers the same page to a caller; `record.query` with `query: <table>.<key>` reads it in a flow. Reads the saved query: write it first to preview a new or edited one.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The table the rows live under: its key, or its id. |
+| `key` | `string` | yes | The row's key in its table. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project the table belongs to — its node id. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `asUserId` | `string` | no | The person to read as; a project query needs none. |
+| `params` | `object` | no | A value for each param, by name. |
+| `after` | `string` | no | A `nextCursor` from an earlier preview, for the page after it. |
+| `before` | `string` | no | A `prevCursor` from an earlier preview, for the page before it. |
+| `limit` | `integer` | no | Rows in the page; the query's page size when absent. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `items` | `object[]` | yes | The page's rows, each in the query's item shape. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
+| `paging` | `null` | yes | Always null: a query's page is never counted; walk it by `after` / `before`. |
+| `itemSchema` | `object` | yes | The JSON Schema of one row. |
+| `tables` | `string[]` | yes | Every table the read reaches: its own, its sets', its base's and linked ones. |
+| `clauses` | `object[]` | yes | The clauses the read ran, with params and the base merged in: its literal clauses, then each set it compared with. |
+
+Each item of `clauses`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"field"` | yes | A condition on a field the type routes with `filter`. |
+| `field` | `string` | no | A field of the table with a `filter` use, or `id` (with `eq`, `in` or `not-in`). |
+| `op` | `"eq" \| "lt" \| "lte" \| "gt" \| "gte" \| "in" \| "not-in" \| "contains"` | no | Each operator takes one value; `in` and `not-in` take a list. `not-in` keeps records with no value in the field. `contains` matches text anywhere in a text field, ignoring case: at least 3 characters with a word in them, not signs alone (a search-speed limit). |
+| `value` | `string \| number \| boolean \| string \| number \| boolean[]` | no | One value, or a list for `in` and `not-in`; dates as ISO 8601. |
+| `vocabulary` | `string` | no | A vocabulary the table lists in `uses.vocabularies`. |
+| `slug` | `string` | no | The term, by slug. An alias resolves to its canonical term, one hop, as every term read does. |
+| `relation` | `string` | no | A relation a `link` use declares, from or to this table. |
+| `direction` | `"outgoing" \| "incoming" \| "either"` | no | Which end the record is on; default `outgoing`. |
+| `where` | `object[]` | no | Clauses on the relation's declared link filters (`link.element.filters`), ANDed. |
+| `count` | `object` | no | How many matching links to require; default at least one. |
+| `peer` | `object[]` | no | Clauses on the linked record, one hop away. |
+| `window` | `object` | no | The time window on the event's own `at`. Omitted or open-ended: bounded to the stream's retention, and the explanation says so. |
+| `text` | `string` | no | The phrase to resemble. Exactly one of a phrase and a record (`likeRecordId`) is given. |
+| `likeRecordId` | `string` | no | A record to resemble instead of a phrase; it is left out. |
+| `likeTable` | `string` | no | The table of the record to resemble, if not the queried one. |
+| `topK` | `integer` | no | How many to rank when this clause is the only one, or when it runs first above the pushdown cap. Default 50. |
+| `minScore` | `number` | no | Leave out records scoring below this, from −1 to 1. |
+| `passage` | `boolean` | no | `true` also returns the text of each record's best-matching part. |
+| `of` | `object[]` | no | 2 to 8 field, term, link or stream clauses. |
+| `set` | `object` | no | The values of one field across another query's rows, read in the same statement. Empty values are left out of the set. |
+
+### `GET /v1/tables/{id}/selections`
+
+List a table's selections, by key, each as the document writes it. `GET /v1/projects/{nodeId}/document` carries every table's selections on its row.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The table the rows live under: its key, or its id. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project the table belongs to — its node id. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `selections` | `object[]` | yes | The table's selections, by key. |
+
+Each item of `selections`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The selection's id. |
+| `table` | `string` | yes | The key of the table the selection lives under. |
+| `key` | `string` | yes | The selection's key in its table; `<table>.<key>` names it from elsewhere. |
+| `version` | `integer` | yes | Moves on every save of the selection; a PATCH states it. |
+| `definition` | `object` | yes | The selection, as the document writes it. |
+
+### `POST /v1/tables/{id}/selections`
+
+Create a selection under a table, judged as a document plan judges it: refused 422 naming each finding, 409 when the key is taken. `POST /v1/projects/{nodeId}/document` writes many at once, with the tables they read, and its `/plan` checks them first.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The table the rows live under: its key, or its id. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project the table belongs to — its node id. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `key` | `string` | yes | The selection's key in its table. |
+| `definition` | `object` | yes | The answer a query's rows take: properties mapped to this table's fields, plus linked selections. |
+
+**Response `201`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The selection's id. |
+| `table` | `string` | yes | The key of the table the selection lives under. |
+| `key` | `string` | yes | The selection's key in its table; `<table>.<key>` names it from elsewhere. |
+| `version` | `integer` | yes | Moves on every save of the selection; a PATCH states it. |
+| `definition` | `object` | yes | The selection, as the document writes it. |
+
+### `GET /v1/tables/{id}/selections/{key}`
+
+Read one selection of a table. `GET /v1/tables/{id}/selections` lists them all.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The table the rows live under: its key, or its id. |
+| `key` | `string` | yes | The row's key in its table. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project the table belongs to — its node id. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The selection's id. |
+| `table` | `string` | yes | The key of the table the selection lives under. |
+| `key` | `string` | yes | The selection's key in its table; `<table>.<key>` names it from elsewhere. |
+| `version` | `integer` | yes | Moves on every save of the selection; a PATCH states it. |
+| `definition` | `object` | yes | The selection, as the document writes it. |
+
+### `PATCH /v1/tables/{id}/selections/{key}`
+
+Change a selection: its whole `definition`, a new `key`, or both, at the `version` read (409 when it moved). `POST /v1/projects/{nodeId}/document` writes many at once, with the tables they read, and its `/plan` checks them first.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The table the rows live under: its key, or its id. |
+| `key` | `string` | yes | The row's key in its table. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project the table belongs to — its node id. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `version` | `integer` | yes | The version the change is made against: the row's `version` as read. A stale one is refused 409. |
+| `key` | `string` | no | A new key for the selection: refused while a step, query, selection or endpoint names it; a project document renames it and moves them all. |
+| `definition` | `object` | no | The selection's whole definition, replacing the one it holds. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The selection's id. |
+| `table` | `string` | yes | The key of the table the selection lives under. |
+| `key` | `string` | yes | The selection's key in its table; `<table>.<key>` names it from elsewhere. |
+| `version` | `integer` | yes | Moves on every save of the selection; a PATCH states it. |
+| `definition` | `object` | yes | The selection, as the document writes it. |
+
+### `DELETE /v1/tables/{id}/selections/{key}`
+
+Delete a selection. Refused (422, `REMOVED_STILL_USED`) while a step, a query, a selection or an endpoint still names it. Deleting the table deletes its selections with it. `POST /v1/projects/{nodeId}/document` writes many at once, with the tables they read, and its `/plan` checks them first.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The table the rows live under: its key, or its id. |
+| `key` | `string` | yes | The row's key in its table. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project the table belongs to — its node id. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The removed row's id. |
+| `deleted` | `true` | yes | Always true: the row is gone. |

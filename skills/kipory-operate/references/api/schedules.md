@@ -20,7 +20,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/schedules`
 
-List one project's schedules (`?project=<nodeId>`), each with the `version` its PATCH takes. `expand=timing` adds when each fires next and the occurrences ahead (`windowHours` sizes the window), `expand=lastRun` how the last run went, `expand=drift` the flow inputs no longer supplied, `expand=flowLabel` the bound flow's name. The same rows, as authored, ride `GET /v1/bootstrap` and the `surfaces.schedules` section of `GET /v1/projects/{nodeId}/document`; run timings and counts are only here.
+List one project's schedules (`?project=<nodeId>`), each with the `version` its PATCH takes. `expand=timing` adds when each fires next and the occurrences ahead (`windowHours` sizes the window), `expand=lastRun` how the last run went, `expand=drift` the flow inputs no longer supplied, `expand=flowLabel` the bound flow's name. The same rows, as authored, ride `GET /v1/bootstrap` and the `schedules` section of `GET /v1/projects/{nodeId}/document`; run timings and counts are only here.
 
 **Query**
 
@@ -47,7 +47,7 @@ Each item of `schedules`:
 | `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this schedule. |
 | `flowId` | `string` | yes | The flow this schedule runs. |
 | `inputs` | `object` | yes | Fixed inputs handed to the flow on every firing. A schedule has no caller, so these are the only inputs it ever gets. |
-| `cronPattern` | `string` | yes | Five-field cron pattern deciding when it fires. |
+| `cron` | `string` | yes | Five-field cron pattern deciding when it fires. |
 | `tz` | `string` | yes | IANA timezone the pattern is read in. This is what decides behaviour across daylight-saving changes, so it is not cosmetic. |
 | `enabled` | `boolean` | yes | Whether the schedule is currently firing. Switch it with `PATCH /v1/schedules/{id}` `{enabled, version}`: switching on re-arms `nextRunAt` from now, switching off clears it. |
 | `startsAt` | `string \| null` | yes | Nothing fires before this instant, or null for no start bound. |
@@ -73,7 +73,7 @@ Each item of `schedules`:
 
 ### `POST /v1/schedules`
 
-Create a schedule: a flow run on a five-field cron pattern in a timezone, with fixed inputs and optional bounds (`startsAt`, `endsAt`, `maxRuns`). It is created switched on; a pattern and bounds that can never fire are refused (422). With `validateOnly: true` it answers whether the create would be refused and the occurrences it would fire (`derived.upcoming`), writing nothing. Several schedules at once, beside the flows they run: the `surfaces.schedules` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Create a schedule: a flow run on a five-field cron pattern in a timezone, with fixed inputs and optional bounds (`startsAt`, `endsAt`, `maxRuns`). It is created switched on; a pattern and bounds that can never fire are refused (422). With `validateOnly: true` it answers whether the create would be refused and the occurrences it would fire (`derived.upcoming`), writing nothing. Several schedules at once, beside the flows they run: the `schedules` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 
@@ -84,7 +84,7 @@ Create a schedule: a flow run on a five-field cron pattern in a timezone, with f
 | `label` | `string \| null` | no | Display text, unlike the key changeable later. Omit it or pass null and the schedule has none. |
 | `flowId` | `string` | yes | The flow to run on each firing. |
 | `inputs` | `object` | yes | Fixed inputs handed to the flow every time. A schedule has no caller, so whatever the flow needs must be here. |
-| `cronPattern` | `string` | yes | Five-field cron pattern deciding when it fires. |
+| `cron` | `string` | yes | Five-field cron pattern deciding when it fires. |
 | `tz` | `string` | yes | IANA timezone the pattern is read in — this decides what happens across daylight-saving changes. |
 | `startsAt` | `string \| null` | no | Do not fire before this instant. Pass null to clear the bound. |
 | `endsAt` | `string \| null` | no | Do not fire after this instant. Pass null to clear the bound. |
@@ -122,7 +122,7 @@ Each item of `diagnostics`:
 | `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this schedule. |
 | `flowId` | `string` | yes | The flow this schedule runs. |
 | `inputs` | `object` | yes | Fixed inputs handed to the flow on every firing. A schedule has no caller, so these are the only inputs it ever gets. |
-| `cronPattern` | `string` | yes | Five-field cron pattern deciding when it fires. |
+| `cron` | `string` | yes | Five-field cron pattern deciding when it fires. |
 | `tz` | `string` | yes | IANA timezone the pattern is read in. This is what decides behaviour across daylight-saving changes, so it is not cosmetic. |
 | `enabled` | `boolean` | yes | Whether the schedule is currently firing. Switch it with `PATCH /v1/schedules/{id}` `{enabled, version}`: switching on re-arms `nextRunAt` from now, switching off clears it. |
 | `startsAt` | `string \| null` | yes | Nothing fires before this instant, or null for no start bound. |
@@ -174,7 +174,7 @@ Read one schedule. `expand` takes the list's keys (`timing`, `lastRun`, `drift`,
 | `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this schedule. |
 | `flowId` | `string` | yes | The flow this schedule runs. |
 | `inputs` | `object` | yes | Fixed inputs handed to the flow on every firing. A schedule has no caller, so these are the only inputs it ever gets. |
-| `cronPattern` | `string` | yes | Five-field cron pattern deciding when it fires. |
+| `cron` | `string` | yes | Five-field cron pattern deciding when it fires. |
 | `tz` | `string` | yes | IANA timezone the pattern is read in. This is what decides behaviour across daylight-saving changes, so it is not cosmetic. |
 | `enabled` | `boolean` | yes | Whether the schedule is currently firing. Switch it with `PATCH /v1/schedules/{id}` `{enabled, version}`: switching on re-arms `nextRunAt` from now, switching off clears it. |
 | `startsAt` | `string \| null` | yes | Nothing fires before this instant, or null for no start bound. |
@@ -215,7 +215,7 @@ Change a schedule — its flow and inputs, pattern, timezone, bounds, name, over
 | `label` | `string \| null` | no | New display text. Omit to leave it alone, or pass null to clear it. |
 | `flowId` | `string` | no | Bind a different flow. Omit to leave it alone. |
 | `inputs` | `object` | no | Replace the fixed inputs entirely — this is not a merge. Omit to leave them alone. |
-| `cronPattern` | `string` | no | New cron pattern. Omit to leave it alone. |
+| `cron` | `string` | no | New cron pattern. Omit to leave it alone. |
 | `tz` | `string` | no | New timezone. Omit to leave it alone. |
 | `startsAt` | `string \| null` | no | Do not fire before this instant. Pass null to clear the bound. |
 | `endsAt` | `string \| null` | no | Do not fire after this instant. Pass null to clear the bound. |
@@ -230,7 +230,7 @@ Change a schedule — its flow and inputs, pattern, timezone, bounds, name, over
 
 One of 2 shapes:
 
-Shape 1, with `id`, `project`, `key`, `label`, `flowId`, `inputs`, `cronPattern`, `tz`, `enabled`, `startsAt`, `endsAt`, `maxRuns`, `overlapPolicy`, `pausedAt`, `pauseReason`, `failurePolicy`, `createdByUserId`, `nextRunAt`, `lastRunAt`, `runCount`, `version`, `createdAt`, `updatedAt`:
+Shape 1, with `id`, `project`, `key`, `label`, `flowId`, `inputs`, `cron`, `tz`, `enabled`, `startsAt`, `endsAt`, `maxRuns`, `overlapPolicy`, `pausedAt`, `pauseReason`, `failurePolicy`, `createdByUserId`, `nextRunAt`, `lastRunAt`, `runCount`, `version`, `createdAt`, `updatedAt`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -241,7 +241,7 @@ Shape 1, with `id`, `project`, `key`, `label`, `flowId`, `inputs`, `cronPattern`
 | `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this schedule. |
 | `flowId` | `string` | yes | The flow this schedule runs. |
 | `inputs` | `object` | yes | Fixed inputs handed to the flow on every firing. A schedule has no caller, so these are the only inputs it ever gets. |
-| `cronPattern` | `string` | yes | Five-field cron pattern deciding when it fires. |
+| `cron` | `string` | yes | Five-field cron pattern deciding when it fires. |
 | `tz` | `string` | yes | IANA timezone the pattern is read in. This is what decides behaviour across daylight-saving changes, so it is not cosmetic. |
 | `enabled` | `boolean` | yes | Whether the schedule is currently firing. Switch it with `PATCH /v1/schedules/{id}` `{enabled, version}`: switching on re-arms `nextRunAt` from now, switching off clears it. |
 | `startsAt` | `string \| null` | yes | Nothing fires before this instant, or null for no start bound. |
@@ -348,7 +348,7 @@ Resume a schedule the platform paused because its runs kept failing, or were ref
 | `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this schedule. |
 | `flowId` | `string` | yes | The flow this schedule runs. |
 | `inputs` | `object` | yes | Fixed inputs handed to the flow on every firing. A schedule has no caller, so these are the only inputs it ever gets. |
-| `cronPattern` | `string` | yes | Five-field cron pattern deciding when it fires. |
+| `cron` | `string` | yes | Five-field cron pattern deciding when it fires. |
 | `tz` | `string` | yes | IANA timezone the pattern is read in. This is what decides behaviour across daylight-saving changes, so it is not cosmetic. |
 | `enabled` | `boolean` | yes | Whether the schedule is currently firing. Switch it with `PATCH /v1/schedules/{id}` `{enabled, version}`: switching on re-arms `nextRunAt` from now, switching off clears it. |
 | `startsAt` | `string \| null` | yes | Nothing fires before this instant, or null for no start bound. |

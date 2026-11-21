@@ -17,6 +17,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `POST` | [`/v1/projects/{nodeId}/document/plan`](#post-v1-projects-nodeid-document-plan) |  |
 | `GET` | [`/v1/projects/{nodeId}/document/plans/{planId}`](#get-v1-projects-nodeid-document-plans-planid) |  |
 | `GET` | [`/v1/projects/{nodeId}/document/summary`](#get-v1-projects-nodeid-document-summary) |  |
+| `GET` | [`/v1/projects/{nodeId}/requires`](#get-v1-projects-nodeid-requires) |  |
 
 ### `GET /v1/project-document/example`
 
@@ -28,19 +29,19 @@ Public: no credential needed.
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kipory` | `11` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
-| `basedOn` | `string` | no | The read this document was made from: `<nodeId>@<version>`, the project it was exported from and that project's version then. The export writes it; keep it in the file. A plan with no `basedOn` query reads it here, so a change made after your read is never overwritten silently. Planned on another project it is refused (422 `VALIDATION_FAILED`, `details.reason` `BASED_ON_OTHER_PROJECT`): to apply the file there, plan it with that project's current version as `?basedOn=<version>`. |
+| `kipory` | `12` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
+| `basedOn` | `string` | no | The read this document was made from: `<nodeId>@<version>`, the project it was exported from and that project's version then. The export writes it (not in its `plain` form); keep it in the file. A plan with no `basedOn` query reads it here, so a change made after your read is never overwritten silently. Planned on another project it is refused (422 `VALIDATION_FAILED`, `details.reason` `BASED_ON_OTHER_PROJECT`): to apply the file there, plan it with that project's current version as `?basedOn=<version>`. |
 | `project` | `object` | no | The project's own settings. Optional in a partial document. |
-| `types` | `object` | no | Types, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `requires` | `object` | no | What the project needs from its organization and vault: derived on export, checked on plan, never applied. A missing connection is an error; a missing secret or address, a differing fingerprint or an entry nothing uses is a warning. |
+| `types` | `object` | no | Types, each written as its JSON Schema, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `tables` | `object` | no | Tables, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
-| `relations` | `object` | no | Relations, with their pairings, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `relations` | `object` | no | Relations, each stating its ends (`from` and `to`, or `between`), keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `vocabularies` | `object` | no | Vocabularies, with their terms, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
-| `shapes` | `object` | no | Row projections: the answers views' rows take, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
-| `views` | `object` | no | Views: reads declared once and read by name, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
-| `events` | `object` | no | The event registry. |
-| `vectors` | `object` | no | Vector spaces. |
+| `events` | `object` | no | The event registry: event types, keyed `<categoryKey>/<key>`. The prefix is the namespace the event lives in, and nothing has to exist before it. A type in a source provider's namespace (`<provider>/…`) is written by that provider's source: a plan reports it as `derived` and never writes it, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `flows` | `object` | no | Flows keyed by key, each with its steps, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
-| `surfaces` | `object` | no | Entry points. |
+| `endpoints` | `object` | no | Endpoints, keyed by the endpoint's own key: each a method holding its path, and the flow, stream or event subscription it serves, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `triggers` | `object` | no | Triggers: a flow run on each recorded event of one type, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `schedules` | `object` | no | Schedules: a flow run on a cron pattern, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `evals` | `object` | no | Eval suites keyed by key, each with its cases, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `acceptBreaks` | `object` | no | Accept that this document breaks the callers of the endpoints and tables named here, by key — once for the whole document, never on a row. Needed for every `breaking` row of the plan's `contractChanges`; only an admin of the project may apply one. A statement about this plan and its apply, never part of the project: the export never writes it. |
 
@@ -59,7 +60,7 @@ Public: no credential needed.
 
 ### `GET /v1/projects/{nodeId}/document`
 
-The project's whole configuration as one document addressed by key — flows with their steps, tables, vocabularies, endpoints, schedules, triggers, evals. Edit it and send it back through `POST …/document/plan` (what would change) and `POST …/document` (apply). To read or change one row, its own route is simpler (`GET /v1/flows/{id}`, `PUT /v1/flows/{id}/steps`, …); this is for the whole project at once — a copy, a diff, a template. The same configuration by id, with a live stream, is `GET /v1/bootstrap?project=`.
+The project's whole configuration as one document addressed by key — flows with their steps, tables, vocabularies, endpoints, schedules, triggers, evals. Sparse: a field equal to its default, an empty collection and an empty section are left out (`defaults=show` states them); `form=plain` drops `basedOn` and every row's `id` for a portable copy. Edit it and send it back through `POST …/document/plan` (what would change) and `POST …/document` (apply). To read or change one row, its own route is simpler (`GET /v1/flows/{id}`, `PUT /v1/flows/{id}/steps`, …); this is for the whole project at once — a copy, a diff, a template. The same configuration by id, with a live stream, is `GET /v1/bootstrap?project=`.
 
 **Path parameters**
 
@@ -71,7 +72,10 @@ The project's whole configuration as one document addressed by key — flows wit
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `section` | `string` | no | Comma-separated section names to include (`types,flows`). Omit for the whole document. Each named section is complete. |
+| `section` | `string` | no | Comma-separated section names to include (`types,flows`). Omit for the whole document. Each named section is complete, in the form asked for. |
+| `form` | `"bound" \| "plain"` | no | `bound` (the default): the document with `basedOn` and each row's `id`, so a plan of it catches a change made since this read and matches a renamed row. `plain`: neither — a portable document for a template, a copy or reading; a plan of it matches rows by key. |
+| `defaults` | `"hide" \| "show"` | no | `hide` (the default): the document is sparse — a field equal to its default, an empty collection and an empty section are left out, and mean that default. `show`: every default stated with its value, every section and collection stated even when empty, and `inherited` beside the document listing what the project takes from its organization or the platform (in YAML, a comment at its place). Planned back, a stated default changes nothing. |
+| `fingerprints` | `"hide" \| "show"` | no | `show`: each operation a connection the project requires carries its contract hash. |
 
 **Response `200`**
 
@@ -79,7 +83,16 @@ The project's whole configuration as one document addressed by key — flows wit
 | --- | --- | --- | --- |
 | `version` | `string` | yes | The project's structure version the document was read at — written into the document as `basedOn: <nodeId>@<version>`. A plan reads the document's `basedOn`; changes after it in what you state are listed as `moved`. |
 | `document` | `object` | yes | A project's whole configuration as one name-addressed document. Every section is optional; an absent section is untouched on apply. |
+| `inherited` | `object[]` | no | With `defaults=show`: each value the project runs on without holding it itself — inherited from its organization or the platform. `path` is where the value would stand in `document`. Shown, never applied: a document that states `inherited` is refused. |
 | `warnings` | `object[]` | no | Present when the export has something to warn about: a value a save now refuses, saved before that rule (`field` names its place in `document`; a plan of this document refuses it until you change it), or the whole document near a size limit (`DOCUMENT_NEAR_LIMIT`). |
+
+Each item of `inherited`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | Where the value would stand in the document, dotted: `project.ai.models.reasoning`. |
+| `value` | `unknown` | yes | The value in force. |
+| `from` | `string` | yes | Who decided it: `platform`, or the kind of the node that did (`organization`). |
 
 Each item of `warnings`:
 
@@ -117,6 +130,7 @@ Apply a kept plan: `{planId, note}`, the plan from `POST …/document/plan` with
 | `ok` | `boolean` | yes | True when `diagnostics` holds no `error` this document introduces — an error with `introduced: false` was already in the project, is reported, and does not gate. An apply of this document would commit exactly when this is true. |
 | `version` | `string` | yes | The project's structure version the plan was computed against. |
 | `changes` | `object[]` | yes | The rows that change, in the document's own order, then any row a delete takes along. Rows the document states that already say this are only counted, under `counts.unchanged`. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |
+| `kept` | `object[]` | no | Each `project.identity` and `project.credits` setting the project holds that this document does not state: applying it keeps them as they are. To change one, state it; `off` clears it. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
 | `diagnostics` | `object[]` | yes | Every finding this document introduces, and every finding about the document itself. A finding about a flow's steps also carries `at`, and its `fixes` or the `decision` it needs; any other finding may carry `fixes` that set values at document paths. Findings the project already had are counted under `health`, not listed, except these, each marked `introduced: false` and none making `ok` false: a warning or a note already on a step this document changes, so you see it while you edit that step; every finding, when the document changes nothing (the plan is then a health report); and a standing notice about the project as a whole. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
 | `moved` | `object[]` | no | Elements this document states or changes that someone else changed after your read (`basedOn`), with who, when, why and what. Any here makes `ok` false and the apply would be refused: read the project again, make your change on what it says now, and plan again. Absent when none moved. |
@@ -138,12 +152,19 @@ Each item of `changes`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | Where the row stands in the document, e.g. `tables.Member` or `flows.intake.steps.classify`. |
 | `kind` | `"create" \| "update" \| "move" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `move`: a step whose list or position changes, with its value kept (a field it also changes is listed under `fields`). `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
-| `resource` | `"project-settings" \| "project-config" \| "route-enablement" \| "types" \| "embedding-profiles" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "relation-pairings" \| "shapes" \| "views" \| "event-types" \| "api-endpoints" \| "sources" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
 | `expressionParts` | `object` | no | On a step whose function takes a JSONata expression (`value.transform`): the size of each expression the document states, in parts, by its `with` field. An expression may have at most 1,000 parts; from 800 the plan also warns `JSONATA_EXPRESSION_NEAR_LIMIT`. Absent on other rows and on an expression that does not parse. |
 | `fields` | `object[]` | no | On an `update`: what changes in the row, field by field, with the value before and after. Text over several lines also carries a line diff. |
+
+Each item of `kept`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The setting, e.g. `project.identity.appDomain` or `project.credits.userLimit`. |
+| `value` | `unknown` | yes | What the project holds, as the document spells it. |
 
 Each item of `consequences`:
 
@@ -193,7 +214,7 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "query" \| "selection" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
 | `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
 | `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
@@ -218,7 +239,7 @@ Each item of `contractChanges`:
 
 ### `POST /v1/projects/{nodeId}/document/plan`
 
-What applying this document would change — the rows that change, each update field by field — and how the health of the flows it reaches moves; nothing in the project is written. It binds to the read you made the document from: `basedOn` from the query, else the `basedOn` the export wrote into the document as `<nodeId>@<version>` (a plan you mean to apply needs one, or it is a 422 — except on a project still as created, whose export states nothing but its own name, description and routes, where it binds to the version it was planned on). A document read from another project is refused 422 `VALIDATION_FAILED` with `details.reason` `BASED_ON_OTHER_PROJECT`, naming both projects; to apply it here, plan it with this project's current version as `?basedOn=<version>`. Elements it changes that someone else changed after that read are listed under `moved`, with who, why and what, and make `ok` false. The answer's `planId` is what you apply with `POST /v1/projects/{nodeId}/document`, and `GET …/document/plans/{planId}` reads it back. `keep=false` plans a preview and keeps nothing. A read older than the history the project keeps is 409 `PLAN_STALE`. A row the plan rehearses held by another write for more than a second, or more plans of the project at once than it works out together, is 409 `DESIGN_BUSY` with `Retry-After`: your read is still good, send the same plan again after it. A caller who may not apply (below EDITOR) gets what the document would change and `DOCUMENT_APPLY_FORBIDDEN`, not rehearsed or judged. The plan lists in `contractChanges` every endpoint and table whose callers' contract the document changes, judged once over the state it leaves; a break the document's top-level `acceptBreaks` does not name is a `CONTRACT_BREAK_NOT_ACCEPTED` finding, a break by a caller below ADMIN is a `CONTRACT_BREAK_FORBIDDEN` finding whatever it names, a name the project does not have is a `VALIDATION_FAILED` finding, and `permissions.mayAcceptBreaks` says whether you may accept. To change one row, its own write is simpler (`PATCH /v1/flows/{id}`, `POST /v1/flows/{id}/steps/edit`, …), and each takes `validateOnly` for the same kind of dry run on that one row; pick this when several rows must change together and be judged as one.
+What applying this document would change — the rows that change, each update field by field — and how the health of the flows it reaches moves; nothing in the project is written. It binds to the read you made the document from: `basedOn` from the query, else the `basedOn` the export wrote into the document as `<nodeId>@<version>` (a plan you mean to apply needs one, or it is a 422 — except on a project still as created, whose export states nothing but its own name, where it binds to the version it was planned on). A document read from another project is refused 422 `VALIDATION_FAILED` with `details.reason` `BASED_ON_OTHER_PROJECT`, naming both projects; to apply it here, plan it with this project's current version as `?basedOn=<version>`. Elements it changes that someone else changed after that read are listed under `moved`, with who, why and what, and make `ok` false. The answer's `planId` is what you apply with `POST /v1/projects/{nodeId}/document`, and `GET …/document/plans/{planId}` reads it back. `keep=false` plans a preview and keeps nothing. A read older than the history the project keeps is 409 `PLAN_STALE`. A row the plan rehearses held by another write for more than a second, or more plans of the project at once than it works out together, is 409 `DESIGN_BUSY` with `Retry-After`: your read is still good, send the same plan again after it. A caller who may not apply (below EDITOR) gets what the document would change and `DOCUMENT_APPLY_FORBIDDEN`, not rehearsed or judged. The plan lists in `contractChanges` every endpoint and table whose callers' contract the document changes, judged once over the state it leaves; a break the document's top-level `acceptBreaks` does not name is a `CONTRACT_BREAK_NOT_ACCEPTED` finding, a break by a caller below ADMIN is a `CONTRACT_BREAK_FORBIDDEN` finding whatever it names, a name the project does not have is a `VALIDATION_FAILED` finding, and `permissions.mayAcceptBreaks` says whether you may accept. To change one row, its own write is simpler (`PATCH /v1/flows/{id}`, `POST /v1/flows/{id}/steps/edit`, …), and each takes `validateOnly` for the same kind of dry run on that one row; pick this when several rows must change together and be judged as one.
 
 **Path parameters**
 
@@ -247,6 +268,7 @@ _No fields._
 | `ok` | `boolean` | yes | True when `diagnostics` holds no `error` this document introduces — an error with `introduced: false` was already in the project, is reported, and does not gate. An apply of this document would commit exactly when this is true. |
 | `version` | `string` | yes | The project's structure version the plan was computed against. |
 | `changes` | `object[]` | yes | The rows that change, in the document's own order, then any row a delete takes along. Rows the document states that already say this are only counted, under `counts.unchanged`. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |
+| `kept` | `object[]` | no | Each `project.identity` and `project.credits` setting the project holds that this document does not state: applying it keeps them as they are. To change one, state it; `off` clears it. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
 | `diagnostics` | `object[]` | yes | Every finding this document introduces, and every finding about the document itself. A finding about a flow's steps also carries `at`, and its `fixes` or the `decision` it needs; any other finding may carry `fixes` that set values at document paths. Findings the project already had are counted under `health`, not listed, except these, each marked `introduced: false` and none making `ok` false: a warning or a note already on a step this document changes, so you see it while you edit that step; every finding, when the document changes nothing (the plan is then a health report); and a standing notice about the project as a whole. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
 | `moved` | `object[]` | no | Elements this document states or changes that someone else changed after your read (`basedOn`), with who, when, why and what. Any here makes `ok` false and the apply would be refused: read the project again, make your change on what it says now, and plan again. Absent when none moved. |
@@ -266,12 +288,19 @@ Each item of `changes`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | Where the row stands in the document, e.g. `tables.Member` or `flows.intake.steps.classify`. |
 | `kind` | `"create" \| "update" \| "move" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `move`: a step whose list or position changes, with its value kept (a field it also changes is listed under `fields`). `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
-| `resource` | `"project-settings" \| "project-config" \| "route-enablement" \| "types" \| "embedding-profiles" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "relation-pairings" \| "shapes" \| "views" \| "event-types" \| "api-endpoints" \| "sources" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
 | `expressionParts` | `object` | no | On a step whose function takes a JSONata expression (`value.transform`): the size of each expression the document states, in parts, by its `with` field. An expression may have at most 1,000 parts; from 800 the plan also warns `JSONATA_EXPRESSION_NEAR_LIMIT`. Absent on other rows and on an expression that does not parse. |
 | `fields` | `object[]` | no | On an `update`: what changes in the row, field by field, with the value before and after. Text over several lines also carries a line diff. |
+
+Each item of `kept`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The setting, e.g. `project.identity.appDomain` or `project.credits.userLimit`. |
+| `value` | `unknown` | yes | What the project holds, as the document spells it. |
 
 Each item of `consequences`:
 
@@ -321,7 +350,7 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "query" \| "selection" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
 | `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
 | `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
@@ -364,6 +393,7 @@ A plan kept by `POST …/document/plan`, as it answered, with whether it was app
 | `ok` | `boolean` | yes | True when `diagnostics` holds no `error` this document introduces — an error with `introduced: false` was already in the project, is reported, and does not gate. An apply of this document would commit exactly when this is true. |
 | `version` | `string` | yes | The project's structure version the plan was computed against. |
 | `changes` | `object[]` | yes | The rows that change, in the document's own order, then any row a delete takes along. Rows the document states that already say this are only counted, under `counts.unchanged`. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |
+| `kept` | `object[]` | no | Each `project.identity` and `project.credits` setting the project holds that this document does not state: applying it keeps them as they are. To change one, state it; `off` clears it. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
 | `diagnostics` | `object[]` | yes | Every finding this document introduces, and every finding about the document itself. A finding about a flow's steps also carries `at`, and its `fixes` or the `decision` it needs; any other finding may carry `fixes` that set values at document paths. Findings the project already had are counted under `health`, not listed, except these, each marked `introduced: false` and none making `ok` false: a warning or a note already on a step this document changes, so you see it while you edit that step; every finding, when the document changes nothing (the plan is then a health report); and a standing notice about the project as a whole. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
 | `moved` | `object[]` | no | Elements this document states or changes that someone else changed after your read (`basedOn`), with who, when, why and what. Any here makes `ok` false and the apply would be refused: read the project again, make your change on what it says now, and plan again. Absent when none moved. |
@@ -387,12 +417,19 @@ Each item of `changes`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | Where the row stands in the document, e.g. `tables.Member` or `flows.intake.steps.classify`. |
 | `kind` | `"create" \| "update" \| "move" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `move`: a step whose list or position changes, with its value kept (a field it also changes is listed under `fields`). `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
-| `resource` | `"project-settings" \| "project-config" \| "route-enablement" \| "types" \| "embedding-profiles" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "relation-pairings" \| "shapes" \| "views" \| "event-types" \| "api-endpoints" \| "sources" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
 | `expressionParts` | `object` | no | On a step whose function takes a JSONata expression (`value.transform`): the size of each expression the document states, in parts, by its `with` field. An expression may have at most 1,000 parts; from 800 the plan also warns `JSONATA_EXPRESSION_NEAR_LIMIT`. Absent on other rows and on an expression that does not parse. |
 | `fields` | `object[]` | no | On an `update`: what changes in the row, field by field, with the value before and after. Text over several lines also carries a line diff. |
+
+Each item of `kept`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The setting, e.g. `project.identity.appDomain` or `project.credits.userLimit`. |
+| `value` | `unknown` | yes | What the project holds, as the document spells it. |
 
 Each item of `consequences`:
 
@@ -442,7 +479,7 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "query" \| "selection" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
 | `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
 | `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
@@ -480,4 +517,52 @@ What a project holds, in one compact line per type, table, relation, view, flow,
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `version` | `string` | yes | The project's structure version the lines were read at, as `version` on `GET …/document`. A plan of a change made from this read sends it as `basedOn`. |
-| `lines` | `string[]` | yes | One line per element, in document order: `type`, `table`, `relation`, `shape`, `view`, `vocabulary`, `event`, `vector`, `flow`, `endpoint`, `source`, `trigger`, `schedule`, `eval`. Each starts with its kind and key; two spaces separate its parts. A type lists its fields (`name:type`, `*` when required); a table its owner, type and the fields it keys, filters and links; a flow its inputs (`?` when optional, `[]` for a list), outputs and its function steps as `steps key:function`; an endpoint its method, path, auth, target and success status; a schedule its cron, time zone, flow and whether it runs. The platform's own event types are left out. |
+| `lines` | `string[]` | yes | One line per element, in document order: `type`, `table` (followed by each of its `query` and `selection` lines, named `<table>.<key>`), `relation`, `vocabulary`, `event`, `embedding`, `flow`, `endpoint`, `trigger`, `schedule`, `eval`. Each starts with its kind and key; two spaces separate its parts. A type lists its fields (`name:type`, `*` when required); a table its owner, type and the fields it keys, filters and links; a query its base, params, order and selection; a trigger its event, how many things it watches and its flow; a flow its inputs (`?` when optional, `[]` for a list), outputs and its function steps as `steps key:function`; an endpoint its method, path, auth, target and success status; a schedule its cron, time zone, flow and whether it runs. The platform's own event types are left out. |
+
+### `GET /v1/projects/{nodeId}/requires`
+
+What the project needs from its organization and vault, read off its flows' steps: every connection and operation they call (`<slug>.<operation>`) and every stored secret they name (`<type>/<purpose>`), each present or missing, with the flows and steps that need it, and how many are missing. A connection's `source` and `url` are answered only to a reader at VIEWER on the organization (as `GET /v1/nodes/{organization}/connections`); otherwise both are null. The same entries the document's `requires` section derives on `GET /v1/projects/{nodeId}/document`; a missing connection is made with `POST /v1/nodes/{organization}/connections`, a missing secret stored with `POST /v1/secrets`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | Node id of the project. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `version` | `string` | yes | The project version the steps were read at. |
+| `organization` | `string \| null` | yes | The node id of the organization whose connections the project uses — or null when it sits under none. |
+| `missing` | `integer` | yes | How many entries below are missing: a connection, an operation, a secret or a sending address. Zero when the project has everything it needs. |
+| `connections` | `object[]` | yes | The connections the steps call (`<slug>.<operation>`): the organization's, and any function no code or connection serves, read as a missing connection by its first word. |
+| `secrets` | `object[]` | yes | The vault entries the steps name. |
+| `emailAddresses` | `object[]` | yes | The sending addresses the steps name beyond the project's default one, by sender. |
+
+Each item of `connections`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `slug` | `string` | yes | The connection's slug. |
+| `present` | `boolean` | yes | Whether the organization has it. A missing one is made with `POST /v1/nodes/{organization}/connections`. |
+| `source` | `"openapi" \| "mcp" \| null` | yes | Its source — null when the organization lacks it, or when you may not read the organization's connections (VIEWER at the organization). |
+| `url` | `string \| null` | yes | Its link — null when the organization lacks it, or when you may not read the organization's connections (VIEWER at the organization). |
+| `operations` | `object[]` | yes | The operations the steps call, by name. |
+
+Each item of `secrets`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `entry` | `string` | yes | The vault entry as `<type>/<purpose>`. |
+| `present` | `boolean \| null` | yes | Whether it is stored and switched on for the project or an organization above it; null when that could not be read. |
+| `usedBy` | `object[]` | yes | The steps that name it. |
+
+Each item of `emailAddresses`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `sender` | `string` | yes | The sender name a step's `sender` setting uses (`project.mail.senders`). |
+| `address` | `string \| null` | yes | The address the project's senders bind it to — or null when no sender of that name is set. |
+| `present` | `boolean \| null` | yes | Whether the project may send as that address (this project or an organization above it owns it and has it switched on); null when that could not be read. |
+| `usedBy` | `object[]` | yes | The steps that send as it. |

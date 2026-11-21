@@ -216,10 +216,8 @@ Your own standing: the balance of the wallet that pays for you (`active`, `over-
 | `wallet` | `"member" \| "node"` | yes | Whose wallet this is: `member` is your own wallet in this project, funded by the project's grants and refused at zero; `node` is the wallet the project settles to, which `payer` names. |
 | `nextGrantAt` | `string \| null` | yes | When the project's next periodic grant to your member wallet is due, or null when `wallet` is `node` or the project makes no periodic grant. |
 | `payer` | `object \| null` | yes | Where the wallet is held. When `wallet` is `node`: the nearest node at or above the project that holds one — a project without its own wallet draws on its organization's, so a new project can open with a balance that is not zero. When `wallet` is `member`: this project. Null when the request names no project or no wallet resolves. |
-| `perUserSpendCap` | `integer \| null` | yes | The ceiling on what YOU personally may spend, or null when the project sets none. ⚠️ NOT a second balance: it limits your share of the wallet above, and both gates must pass independently. |
-| `perUserSpendConsumed` | `integer` | yes | What you have spent against that ceiling in the current window. Always present, and 0 rather than absent for a first-time caller. |
-| `perUserSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window `perUserSpendConsumed` covers: LIFETIME is the whole history, the others the current UTC calendar period. |
-| `perUserSpendWindowStart` | `string \| null` | yes | The instant the consumed figure was actually summed from, or null for a lifetime window. Read it rather than recomputing it from the period. |
+| `userLimit` | `object \| null` | yes | The limit on what YOU personally may spend per window, as the project's settings name it (`userLimit`), or null when the project sets none. ⚠️ NOT a second balance: it limits your share of the wallet above, and both gates must pass independently. |
+| `userSpend` | `object` | yes | What you have spent against that limit, in the window it counts. |
 
 ### `GET /v1/organizations/{nodeId}/ledger`
 

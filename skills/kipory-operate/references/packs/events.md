@@ -70,6 +70,9 @@ are lower-case kebab (`order-placed`), because each becomes a segment of the eve
 opens that namespace. List a project's types with `GET /v1/event-types?project=<nodeId>`, one
 namespace's with `&categoryKey=`.
 
+In the project document the `events` map is keyed by that address, one level deep:
+`events: { order/placed: { label: Order placed, defaultScope: project, durable: true, payload: Order } }`.
+
 ## Raising one from a flow
 
 An `event.emit` step names the namespace (`category`) and the event, both plain keys, plus optionally

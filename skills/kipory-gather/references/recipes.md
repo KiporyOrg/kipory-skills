@@ -97,7 +97,7 @@ cut and an `each`; each value looks its item up, then creates or updates it:
                     - key: found
                       function: record.list
                       with:
-                        tableKey: post
+                        table: post
                         limit: 1
                         fieldFilters:
                           [{ field: link, op: eq, value: item.link }]
@@ -116,7 +116,7 @@ cut and an `each`; each value looks its item up, then creates or updates it:
                         steps:
                           - key: create
                             function: record.create
-                            with: { tableKey: post, data: item }
+                            with: { table: post, data: item }
 ```
 
 - **`url.fetch` returns the feed as one string**, whatever content type the server names, so

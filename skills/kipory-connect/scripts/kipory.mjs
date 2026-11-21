@@ -6,8 +6,13 @@
 //   connect                    first call: writes ./kipory (this command, for every later
 //                              call: ./kipory <command>), proves the key, prints the summary
 //   summary                    what the project holds, one line per element
-//   pull [file.yaml]           the project as it is now, as YAML carrying its read
-//                              (basedOn), to project.kipory.yaml: edit it, ship it
+//   pull [file.yaml] [--plain] [--defaults] [--fingerprints]
+//                              the project as it is now, as YAML carrying its read
+//                              (basedOn), to project.kipory.yaml: edit it, ship it.
+//                              Sparse: a default is left out and means its value.
+//                              --plain: no basedOn, no ids (a portable copy; its read
+//                              is kept beside it); --defaults: every default stated,
+//                              inherited values as comments; --fingerprints: reserved
 //   plan <doc> [--seen <version>]
 //                              plan a document: one line per error, warnings counted
 //   apply [<doc>] [--note <text>]
@@ -98,6 +103,9 @@ const SWITCHES = new Set([
   "help",
   "pages",
   "report",
+  "plain",
+  "defaults",
+  "fingerprints",
 ]);
 const VALUED = new Set([
   "note",
@@ -1165,24 +1173,43 @@ const pull = async (file = PULL_FILE) => {
         `${file} holds text that pull did not write and no apply sent: ship it, or pull beside it (kipory pull <another>.yaml) and carry your edits over`,
       );
   }
+  const plain = flags.get("plain") === true;
+  const form = new URLSearchParams();
+  if (plain) form.set("form", "plain");
+  if (flags.get("defaults") === true) form.set("defaults", "show");
+  if (flags.get("fingerprints") === true) form.set("fingerprints", "show");
+  // A plain file carries no read, so the read is taken first and kept beside
+  // it: one made before the export is never newer than what the file holds,
+  // so a change in between is listed as moved, never undone.
+  const before = plain ? await currentVersion(id) : undefined;
   const res = await api(
     "GET",
-    `/v1/projects/${encodeURIComponent(id)}/document`,
+    `/v1/projects/${encodeURIComponent(id)}/document${form.size > 0 ? `?${form}` : ""}`,
     undefined,
     undefined,
     { accept: "application/yaml" },
   );
   if (res.status < 200 || res.status >= 300)
     throw refused(`reading the project: ${refusal(res)}`);
-  const read = carriedRead(YAML_BASED_ON.exec(res.text)?.[3]);
+  const read = plain
+    ? before === undefined
+      ? undefined
+      : `${id}@${before}`
+    : carriedRead(YAML_BASED_ON.exec(res.text)?.[3]);
   if (read === undefined)
     throw refused(
       "the project's YAML carries no basedOn: this deployment's export cannot be planned as a file",
     );
   if (existsSync(file)) writeDocument(file, res.text);
   else writeFileSync(file, res.text);
-  // The file carries its read; only its text is kept for it.
-  reads.set(id, key, { pulled: sha(Buffer.from(res.text)) });
+  // A bound file carries its read; only its text is kept for it.
+  reads.set(
+    id,
+    key,
+    plain
+      ? { read, pulled: sha(Buffer.from(res.text)) }
+      : { pulled: sha(Buffer.from(res.text)) },
+  );
   if (asJson) {
     out(JSON.stringify({ file, basedOn: read, bytes: res.bytes.length }));
     return;
@@ -2687,7 +2714,7 @@ const COMMAND_FLAGS = {
   ],
   preview: ["as", "input", "apply", "fan-out-cap", "schedule"],
   summary: [],
-  pull: [],
+  pull: ["plain", "defaults", "fingerprints"],
   connect: [],
   docs: ["more", "full"],
   find: ["report"],

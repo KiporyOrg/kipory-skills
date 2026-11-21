@@ -100,38 +100,32 @@ the payment system as its idempotency key and as the reference it hands back), a
 key and its answer; it is the only place the answer is read.
 
 ```yaml
-kipory: 11
+kipory: 12
 types:
   ChargeAttempt:
-    definition:
-      type: object
-      required: [attemptKey, memberId, outcome]
-      properties:
-        attemptKey: { type: string, maxLength: 120 }
-        memberId: { type: string, maxLength: 64 }
-        outcome: { type: string, enum: [pending, paid, declined] }
+    type: object
+    required: [attemptKey, memberId, outcome]
+    properties:
+      attemptKey: { type: string, maxLength: 120 }
+      memberId: { type: string, maxLength: 64 }
+      outcome: { type: string, enum: [pending, paid, declined] }
 tables:
   chargeAttempt:
-    ownerScope: project
+    owner: project
     type: ChargeAttempt
     uses:
-      fields:
-        - source: { family: submission, field: attemptKey }
-          uses: [key, filter]
+      key: attemptKey
+      filter: [attemptKey]
 flows:
   charge-member:
     label: Charge a member once for a renewal
-    inputs:
-      memberId: { typeName: string }
-      renewsOn: { typeName: string }
-      amount: { typeName: number }
-    outputs:
-      sent: { typeName: boolean }
+    inputs: { memberId: string, renewsOn: string, amount: number }
+    outputs: { sent: boolean }
     steps:
       - key: attempt
         function: record.create
         with:
-          tableKey: chargeAttempt
+          table: chargeAttempt
           onKeyTaken: skip
           fields:
             attemptKey: { expr: "memberId & '@' & renewsOn" }
@@ -158,15 +152,14 @@ flows:
   settle-charge:
     label: Settle a charge from the payment system's answer
     inputs:
-      attemptKey: { typeName: string }
-      status: { typeName: string, description: "paid or declined" }
-    outputs:
-      outcome: { typeName: string }
+      attemptKey: string
+      status: { type: string, description: "paid or declined" }
+    outputs: { outcome: string }
     steps:
       - key: found
         function: record.list
         with:
-          tableKey: chargeAttempt
+          table: chargeAttempt
           limit: 1
           pages: { max: 1, onMore: stop }
           fieldFilters: [{ field: attemptKey, op: eq, value: attemptKey }]
@@ -205,22 +198,13 @@ flows:
           out: { outcome: { literal: declined } }
       - key: done
         return: { outcome: settle.outcome }
-surfaces:
-  endpoints:
-    settle-charge:
-      contractConfig:
-        method: POST
-        path: /v1/club/charges/settle
-        successStatus: 200
-        auth: required
-        params: {}
-      targetConfig:
-        kind: flow.invoke
-        execution: sync
-        flow: settle-charge
-        inputs:
-          attemptKey: { from: body }
-          status: { from: body }
+endpoints:
+  settle-charge:
+    POST: /v1/club/charges/settle
+    flow: settle-charge
+    inputs:
+      attemptKey: { from: body }
+      status: { from: body }
 ```
 
 - **The key makes it once.** A second run for the same member and day finds the key taken

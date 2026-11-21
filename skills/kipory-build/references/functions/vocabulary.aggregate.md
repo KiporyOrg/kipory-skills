@@ -70,15 +70,15 @@ Output:
 ```
 {
   "vocabularies": [
-    { "vocabularyKey": "category", "totalTerms": 2, "totalItems": 17, "entries": [
+    { "vocabulary": "category", "totalTerms": 2, "totalItems": 17, "entries": [
       { "slug": "finance", "label": "Finance", "itemsCount": 12, "parentSlug": null, "parentLabel": null },
       { "slug": "medical", "label": "Medical", "itemsCount": 5,  "parentSlug": null, "parentLabel": null }
     ]},
-    { "vocabularyKey": "type", "totalTerms": 2, "totalItems": 10, "entries": [
+    { "vocabulary": "type", "totalTerms": 2, "totalItems": 10, "entries": [
       { "slug": "invoice",    "label": "Invoice",    "itemsCount": 7, "parentSlug": "finance", "parentLabel": "Finance" },
       { "slug": "lab-result", "label": "Lab result", "itemsCount": 3, "parentSlug": "medical", "parentLabel": "Medical" }
     ]},
-    { "vocabularyKey": "tag", "totalTerms": 1, "totalItems": 9, "entries": [
+    { "vocabulary": "tag", "totalTerms": 1, "totalItems": 9, "entries": [
       { "slug": "2026", "label": "2026", "itemsCount": 9, "parentSlug": null, "parentLabel": null }
     ]}
   ]

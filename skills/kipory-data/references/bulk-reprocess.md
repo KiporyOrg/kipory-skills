@@ -4,7 +4,7 @@ Read this to bring many records of one table to its current shape, or to run its
 them again. Starting one is ADMIN; its dry run is VIEWER.
 
 ```
-POST  /v1/record-reprocesses { project, tableKey, scope: "not-current" | "all", validateOnly? }
+POST  /v1/record-reprocesses { project, table, scope: "not-current" | "all", validateOnly? }
 GET   /v1/record-reprocesses/{id}
 PATCH /v1/record-reprocesses/{id} { version, stopped: true }
 ```

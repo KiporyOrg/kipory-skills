@@ -1,12 +1,12 @@
 ---
 name: kipory-build
-description: Build or edit a Kipory backend as one project document — tables, flows written as steps over the function catalog (`if`, `each`, `repeat`, `parallel`, `try`, `return`, `fail`), endpoints, views and schedules — then plan, apply and try it as a person. Use when implementing the processing a plan called for, adding or changing a step, choosing a function, calling a model or LLM with a prompt (summarise, extract, classify, decide yes or no) and choosing its model, looping over a list, branching, calling a sub-flow, when a plan or a step save is refused, health says the flow cannot run, or a model or provider stopped answering. Not for putting a flow on HTTP in depth (kipory-expose), not for reading a past run (kipory-diagnose), and before changing a flow that an endpoint or a table already depends on, read kipory-evolve.
+description: Build or edit a Kipory backend as one project document — tables, flows written as steps over the function catalog (`if`, `each`, `repeat`, `parallel`, `try`, `return`, `fail`), endpoints, queries and schedules — then plan, apply and try it as a person. Use when implementing the processing a plan called for, adding or changing a step, choosing a function, calling a model or LLM with a prompt (summarise, extract, classify, decide yes or no) and choosing its model, looping over a list, branching, calling a sub-flow, when a plan or a step save is refused, health says the flow cannot run, or a model or provider stopped answering. Not for putting a flow on HTTP in depth (kipory-expose), not for reading a past run (kipory-diagnose), and before changing a flow that an endpoint or a table already depends on, read kipory-evolve.
 license: MIT
 ---
 
 # Build a backend
 
-A backend on Kipory is one **project document**: types, tables, flows of **steps** (written in the order they run — a function, or `if`, `each`, `repeat`, `parallel`, `try`, `return`, `fail`), endpoints, views and schedules, planned and then applied as a whole. The fact most people get wrong: **a document that plans clean is not proven to work.** Call it as a person before you say it does.
+A backend on Kipory is one **project document**: types, tables, flows of **steps** (written in the order they run — a function, or `if`, `each`, `repeat`, `parallel`, `try`, `return`, `fail`), endpoints, queries and schedules, planned and then applied as a whole. The fact most people get wrong: **a document that plans clean is not proven to work.** Call it as a person before you say it does.
 
 ## Start here
 
@@ -15,7 +15,7 @@ A backend on Kipory is one **project document**: types, tables, flows of **steps
 
 ## Rules that keep a plan clean
 
-- **The format is 11** (`"kipory": 11`); an older document is refused at plan with `DOCUMENT_VERSION_UNSUPPORTED`. Plan the document alone, never an export's `{ "version", "document" }` envelope. Everything is addressed by `key`.
+- **The format is 12** (`kipory: 12`); an older document is refused at plan with `DOCUMENT_VERSION_UNSUPPORTED`. Plan the document alone, never an export's `{ "version", "document" }` envelope. Everything is addressed by `key`.
 - **A partial document is fine, and absence never deletes.** Removal is `delete: true` on a row and needs ADMIN. A flow's `steps` are stated whole: a step you leave out is removed.
 - **Written order is run order**: a step reading a value only a step below it gives is refused (`STEP_READS_LATER`).
 - **Gate on each diagnostic's `severity`**, never its `code`. Fix every error a plan lists in one edit, then plan again. `kipory plan` prints one line per error with its document path.
@@ -45,7 +45,7 @@ First check you need a flow at all; usually you don't. A vocabulary whose `match
 | `references/records-and-endpoints.md`                              | a record's processing flow, roll-ups                                          |
 | `references/endpoint-answers.md`                                   | what an endpoint answers: rows, 404, 422, 403, natural-key collisions         |
 | `references/record-query.md`                                       | `record.query`: a per-user feed, the clause grammar, totals                   |
-| `references/views.md`, `references/view-endpoints.md`              | views; `record.view` in a flow and the view endpoint                          |
+| `references/queries.md`, `references/query-endpoints.md`           | queries under a table; a named query in a flow and the query endpoint         |
 | `references/models.md`                                             | which model function, `text.decide` questions, task bindings, prices          |
 | `references/checking.md`                                           | the save-time proof and its fixes, dry runs, previews, what needs ADMIN       |
 | `references/first-flow.md` · `references/row-by-row.md`            | one flow built step by step; the step kinds and the step routes               |

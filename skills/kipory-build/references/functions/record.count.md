@@ -22,7 +22,7 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 | `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; an empty list counts zero; a never-produced input skips the step. |
 | `linkFilters` | object[], at least 1 item | no | — | Count only rows carrying a link of these relations. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; a never-produced input skips the step. |
 | `statuses` | string[] of `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` \| `DELETING` \| `MERGED`, at least 1 item | no | — | Count only rows with these statuses; omit it to count all. |
-| `tableKey` | string | yes | — | The table to count. |
+| `table` | string | yes | — | The table to count. |
 | `userId` | union | no | — | The person whose records to read; empty reads as the run. ⚠️ Left empty in a run with no person, the step counts every person's records. |
 | `vocabularyFilter` | object[], at least 1 item | no | — | Count only rows tagged with all of these vocabulary terms. ⚠️ A nested term slug matches under every parent unless `parentSlug` is set. |
 
@@ -103,7 +103,7 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `vocabularyKey` | string | yes | — | The vocabulary, by key. |
+| `vocabulary` | string | yes | — | The vocabulary, by key. |
 | `slug` | string | yes | — | The term a row must carry, by slug. |
 | `parentSlug` | string | no | — | The parent term's slug, to narrow a nested term to one branch. |
 
@@ -122,7 +122,7 @@ Step settings (`with`):
 ```json
 {
   "userId": "userInfo.userId",
-  "tableKey": "item"
+  "table": "item"
 }
 ```
 
@@ -149,7 +149,7 @@ Step settings (`with`):
 ```json
 {
   "userId": "userInfo.userId",
-  "tableKey": "item",
+  "table": "item",
   "fieldFilters": [
     {
       "field": "kind",
@@ -184,7 +184,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "item",
+  "table": "item",
   "fieldFilters": [
     {
       "field": "sourceId",

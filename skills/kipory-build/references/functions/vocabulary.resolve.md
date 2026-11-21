@@ -22,7 +22,7 @@ Reuses a matching term or coins a new one when allowed. Wire the output into one
 | `extractedVocabularies` | union[] | no | — | Vocabulary values already extracted; they are read, not proposed. |
 | `maxValues` | object | no | — | Most values per multi-value vocabulary; leave one out for no cap. ⚠️ Only applies to vocabularies that accept many values. |
 | `model` | string | no | — | The proposal model by catalog id; default is the extraction model. |
-| `vocabularyKeys` | string[] | no | — | Which of the project's vocabularies to propose values for. ⚠️ A key the project does not declare is refused when the step runs. |
+| `vocabularies` | string[] | no | — | Which of the project's vocabularies to propose values for. ⚠️ A key the project does not declare is refused when the step runs. |
 
 ### `context` — each item is one of
 
@@ -74,7 +74,7 @@ Step settings (`with`):
 
 ```json
 {
-  "vocabularyKeys": [
+  "vocabularies": [
     "category",
     "type"
   ],
@@ -96,8 +96,8 @@ Output:
 
 ```
 [
-  { "outcome": "match", "vocabularyKey": "category", "termId": "trm_7h2" },
-  { "outcome": "create-new", "vocabularyKey": "type", "proposedSlug": "receipt",
+  { "outcome": "match", "vocabulary": "category", "termId": "trm_7h2" },
+  { "outcome": "create-new", "vocabulary": "type", "proposedSlug": "receipt",
     "proposedLabel": "Receipt", "parentTermId": null }
 ]
 ```
@@ -112,7 +112,7 @@ Step settings (`with`):
 
 ```json
 {
-  "vocabularyKeys": [
+  "vocabularies": [
     "category",
     "type"
   ],

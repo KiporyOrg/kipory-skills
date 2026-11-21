@@ -5,6 +5,8 @@
 > **Source of truth for facts:** endpoint paths & request shapes → live `GET /v1/openapi.json`;
 > the function keys and settings a step can use → live `GET /v1/functions`. **Always** confirm a
 > function key against the live catalog, never against this pack. This pack carries judgment.
+>
+> **Format 12 names:** a flow value's type is `type` and its list flag `list` (they were `typeName` and `isList`), a step scope's JSON kind is `jsonType`, and flow coverage lists `tables` (it was `tableKeys`).
 
 A flow is a list of steps run in the order written. Each step has a key that is also the name its
 value is read by; an action step runs a function, a block (`if`, `each`, `repeat`, `parallel`, `try`)
@@ -38,10 +40,11 @@ A flow is `{key, label, description, inputs, outputs, steps}`:
 
 - **`key`** — kebab-case (`renew-members`), fixed at create, refused (not lower-cased) in any other
   form. `label` is the display text and changes freely.
-- **`inputs` and `outputs`** — maps by name. Authored, each value is
-  `{typeName, isList, optional, description}` with only `typeName` required: the name of a
-  registered type (`string`, `number`, `boolean`, a library type or one of your project's). Read
-  back, each carries the resolved `type`. A caller may leave out an `optional` input; a flow may
+- **`inputs` and `outputs`** — maps by name. Authored, each value is a type name — a
+  registered type (`string`, `number`, `boolean`, a library type or one of your project's) — with
+  `?` when it is optional and `[]` when it is a list (`string?`, `Note[]`, `number[]?`), or the long
+  form `{type, list, optional, description}` with only `type` required, for a value that needs a
+  `description`. A caller may leave out an `optional` input; a flow may
   not give an `optional` output.
 - **`steps`** — the list, in written order. A step is `key` plus **exactly one kind**:
 
@@ -76,24 +79,24 @@ run). It gives back, per member, 1 when a note went out and 0 when the member ha
 `Member` type marks only `name` required, so `email` may be missing.
 
 ```yaml
-kipory: 11
+kipory: 12
 flows:
   renew-members:
     label: Renew members
     description: Sends a renewal note to each member due on a day.
     inputs:
-      day: { typeName: string, description: "The renewal day, as YYYY-MM-DD." }
-      dryRun: { typeName: boolean, optional: true }
+      day: { type: string, description: "The renewal day, as YYYY-MM-DD." }
+      dryRun: boolean?
     outputs:
       notes:
-        typeName: number
-        isList: true
+        type: number
+        list: true
         description: Per member due, 1 when a note was sent and 0 when the member has no email.
     steps:
       - key: dueMembers
         function: record.list
         with:
-          tableKey: member
+          table: member
           limit: 100
           fieldFilters:
             - { field: renewsOn, op: eq, value: day }
@@ -116,7 +119,6 @@ flows:
                           - key: send
                             function: email.send
                             with:
-                              address: boxes@orchard.example
                               to: clubMember.email
                               subject: { literal: "Your fruit box renews soon" }
                               text: note
@@ -149,6 +151,8 @@ Read it as the run does:
   error with a ready fix.
 - `dryRun` is optional. `{eq: [dryRun, true]}` is false when `dryRun` is missing (every condition
   is false on nothing), so `not` makes the send run unless the caller said `true`.
+- `send` names no sender, so the mail goes out from the project's default address; `sender:
+support` would pick the address bound to `support` in the document's `project.mail.senders`.
 
 - Each branch of `hasEmail` gives `written`, so `hasEmail.written` is always a value, and the
   `each` hands it out through its own `out`. `answer` reads the list of them as `perMember[].written`.
@@ -223,7 +227,7 @@ Which of these one saved step may read is listed for you by `GET /v1/flows/{id}?
 ("Reading a flow", below).
 
 **`with` holds the function's settings.** Not every setting reads a value. A setting that **names a
-thing** — `tableKey`, a template's text, a vocabulary key, the sending `address` — is a plain value
+thing** — `table`, a template's text, a `vocabulary`, the `sender` — is a plain value
 written as itself. Which settings read values is the function's `freeFormInput` on
 `GET /v1/functions?project=<project id>`: there a bare string is a path and text is
 `{literal: "…"}`; everywhere else a string is the setting's own value. A key the function does not
@@ -264,7 +268,7 @@ a guard (`if` + `has`, a `fail` first, `optional`) like any other unproved read.
 - An `if` with no `else`, or a branch that does not give a name, makes that name possibly nothing
   after the block. Give every branch the same `out` names when a later step needs them.
 
-<!-- field-ok: ownerId — a member of a person-owned table's row in a flow (437-person-owned-tables), not a wire field -->
+<!-- field-ok: ownerId — a member of a person-owned table's row in a flow, not a wire field -->
 
 ⚠️ **`userInfo` and `tableInfo` are optional values.** `userInfo` is the signed-in person; a
 schedule, a key's call and most triggers have none, and it is then absent, not empty. `tableInfo`
@@ -280,7 +284,7 @@ person's records (each row names its person as `ownerId`). Guard a required read
       steps:
         - key: mine
           function: record.list
-          with: { tableKey: box, limit: 20 }
+          with: { table: box, limit: 20 }
 ```
 
 or, for a read you write, `{path: userInfo.userId, optional: true}`.
@@ -341,7 +345,7 @@ list's order.
   steps:
     - key: page
       function: record.list
-      with: { tableKey: member, limit: 100, cursor: cursor }
+      with: { table: member, limit: 100, cursor: cursor }
 ```
 
 The first pass's `cursor` is `""`, a value, so it reads page one; once a page has no `nextCursor`,
@@ -592,7 +596,6 @@ calls, endpoint fields. `""`, `[]` and `{}` are **values**:
           - key: send
             function: email.send
             with:
-              address: boxes@orchard.example
               to: clubMember.email
               subject: { literal: "Renewal" }
               text: note
@@ -774,8 +777,8 @@ bigger than a batch of edits.
   a checkpoint restore, a document apply. Re-read the flow, re-apply your change to what is there
   now, send the new `version`. Do not retry blind: edits are not idempotent.
 - **A break** (409 `CONTRACT_BREAK_NOT_ACCEPTED`, or 403 `CONTRACT_BREAK_FORBIDDEN` below admin):
-  the flow answers an endpoint over a view, and the steps change what that endpoint takes or answers
-  (the `record.view` step reads another view, or its paging inputs change). The answer's
+  the flow answers an endpoint over a query, and the steps change what that endpoint takes or answers
+  (the `record.query` step reads another query, or its paging inputs change). The answer's
   `contractChanges` names the endpoint and each change; an admin resends with
   `acceptBreaks: {endpoints: [...]}`. A save that changes nothing a caller meets answers
   `contractChanges: []`. See Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`).
@@ -803,7 +806,7 @@ and breaks nothing. A calling flow that passes the call's whole value on leaves 
 and so does an eval assertion that reads the run's values (its output, or the inputs) through a filter or
 whole (kept as `<suite>.<case>`).
 Refused: a flow a table processes its records with (`RENAME_FLOW_PROCESSES_TABLE`), and an input
-the platform fills by its name: a view's parameter, a trigger's `event`, a scorer's inputs
+the platform fills by its name: a query's parameter, a trigger's `event`, a scorer's inputs
 (`RENAME_NAME_TAKEN`).
 
 ### Check before you save — `validateOnly: true`
@@ -1045,7 +1048,7 @@ customer may type: "chatgpt", "zapier"). Match a request against both, then the 
 product name back. `askAi.functionKey` names the function that takes a free instruction as its
 prompt — the fallback when nothing fits. A setting naming a table, flow or vocabulary may carry
 `offerAs`, how the function reads with one object ("Save to {table}"); word a choice with it. The one
-setting with `suggestOnMatchingType` (`record.create`'s `tableKey`) is the natural next step for a
+setting with `suggestOnMatchingType` (`record.create`'s `table`) is the natural next step for a
 value whose type is a table's type: saving it there.
 
 ## How an action step runs
@@ -1102,7 +1105,7 @@ POST  /v1/projects/{nodeId}/document/plan     what applying it to the target wou
 POST  /v1/projects/{nodeId}/document          apply it to the target
 ```
 
-The document is `kipory: 11`, and each flow sits under `flows.<key>` with its `steps` in written order,
+The document is `kipory: 12`, and each flow sits under `flows.<key>` with its `steps` in written order,
 stated whole: a step the list leaves out is removed. Everything is addressed by key, so nothing in it
 is a source-project id. The plan names each step by flow and key; a step whose list or position
 changed is a move. A document in another format is refused at plan (`DOCUMENT_VERSION_UNSUPPORTED`).

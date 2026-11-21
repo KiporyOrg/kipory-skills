@@ -5,6 +5,8 @@
 > **Source of truth for facts:** the list of shipped templates → live `GET /v1/templates`; endpoint
 > paths & request shapes → live `GET /v1/openapi.json`. This pack carries judgment about when a
 > template is the right starting point and what it does to the project it seeds.
+>
+> **Format 12 names:** a template's files are project documents, so they spell format 12's names: a table's `owner`, a vocabulary's `parent`, a flow value's `type` and `list`, a schedule's `cron` and a step's `table`.
 
 ## What it is
 
@@ -31,21 +33,34 @@ slug grammar would refuse included; there is no `422` on this read.
 Read the document before you choose. It is exactly what the new project will hold — there is no
 hidden part, and no parameters: a template is applied as written. `Accept: application/yaml`
 answers YAML. It is an ordinary project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) in the current format,
-`kipory: 11`, and every rule of that pack holds for it: what a row may state, how each reference is
-spelled, and what is refused. A template may carry `views` and `shapes` too, spelled as that
-pack spells them (a clause `op` is `in`, `not-in`, `contains` and the rest, an `order` by `created` takes a `direction`, and a view holds no `any`; a linked read's far table is
-`peerTable`, and a view's linked read may say `when`): a flow it ships then reads its views by key. A `delete: true` row, a config namespace's too, finds nothing to remove in a new
+`kipory: 12`, and every rule of that pack holds for it: what a row may state, how each reference is
+spelled, and what is refused.
+
+**What format 12 moved in a template's document.** A file written as `kipory: 11` reads differently:
+
+- A table's `queries` and `selections` sit under that table, as maps by key; a flow it ships reads
+  one with `record.query` and `query: <table>.<key>`.
+- `events` holds the event types directly, keyed `<category>/<key>`, with no `types` level.
+- `endpoints`, `triggers` and `schedules` are top-level sections; `surfaces` is gone, and so are
+  sources: a trigger holds what it watches.
+- Embeddings live in the `project` section, under `ai.embeddings` (`{ model, matchExactWords,
+chunking }`) with `ai.defaultEmbedding` beside them; `vectors` is gone. A table names one with
+  `uses.search.embedding`, or none for `default`, which a new project gets made on first use.
+  `chunking`, on an embedding or a table's search, is `whole` or `{ tokens, overlap }`.
+- A relation a field produces says `from: <table>.<field>` and `to: <table>`.
+
+A `delete: true` row, a config namespace's too, finds nothing to remove in a new
 project. A template that breaks one is refused like any other document. A table there names its
 type by key with `type` — the type stated under `types` — never inline. Check
 each `evals` suite's `applyWrites` before you run it: `true` means a run saves the records the
-flow writes into your new project. Check each endpoint's `contractConfig.auth` too: `"none"` would
-make it public, callable with no credential. No shipped template declares one — a new project has
-no public spend cap, and a public endpoint cannot be saved without it — so every endpoint a template
-gives you needs a key or a session until you decide otherwise. An endpoint there is written as on
+flow writes into your new project. Check each endpoint's `auth` too: `none` would
+make it public, callable with no credential, and a public endpoint is unlimited until
+`project.credits.publicEndpointsLimit` sets a cap. No shipped template declares one, so every
+endpoint a template gives you needs a key or a session until you decide otherwise. An endpoint there is written as on
 `POST /v1/api-endpoints`, `responseType` and a `from: "patch"` input included: read `responseType`
 to know an endpoint answers CSV or other text rather than JSON. A template file may leave out a
 parameter's `type` and `required`, a path parameter's entry and an endpoint's `inputs`, as any
-project document may; the project it creates stores them whole. A template's people tables (`ownerScope:
+project document may; the project it creates stores them whole. A template's people tables (`owner:
 user`) are read as any document's are: a run that acts for nobody reaches every person's records,
 a key may be `{ kind: key, scope: project }`, and a `flow.invoke` may say `as: project`.
 
@@ -65,8 +80,9 @@ way; the project document (capability pack `project-document` — `GET /v1/capab
 Four things to know about the result:
 
 - The create call's `name` wins. The `name` and `description` in a template's own `project`
-  section are ignored; the rest of its `project` section (config namespaces, enabled routes) applies.
-- A schedule, trigger or source lands enabled unless the template states `enabled: false` on it —
+  section are ignored; the rest of its `project` section (config namespaces, built-in routes it
+  switches off, its `ai`, `identity`, `credits` and `mail`) applies.
+- A schedule or trigger lands enabled unless the template states `enabled: off` on it —
   the same field the document carries, so an exported project's switched-off rows stay off. A
   row carries `failurePolicy` across too; a `paused` marker the platform put on the source row
   does not travel — the new project's rows start unpaused.
@@ -82,7 +98,7 @@ Four things to know about the result:
   first version. Nothing records which template it came from: the project is yours from the first
   moment, and the link is deliberately not kept.
 
-A template is written in the current document format (`kipory: 11`), so its flows are stated as
+A template is written in the current document format (`kipory: 12`), so its flows are stated as
 `steps` in written order, and they are judged as a document's are: a step the save refuses — a read
 it cannot prove, a condition whose list key is misspelled — refuses the project's creation, and
 nothing is made.
@@ -115,10 +131,8 @@ user): a project created from the template gets them as written. Its tables
 likewise carry `computed` (a rollup's `ifNone` included), `reprocessOn` and `sharing` as a document's do —
 `renameComputed` too, though a
 template rarely renames — and a plan of one lists the `recompute` consequence for a table whose
-stored records get computed values. Its search is stated as a
-document states it too: a profile under `vectors` is a `modelId`, `keywords` and
-`defaultChunking`, a table marks its `search` fields with no `role`, and the template names
-no collection and no slot.
+stored records get computed values. A table marks its `search`
+fields with no `role`, and the template names no collection and no slot.
 
 ## When not to use one
 

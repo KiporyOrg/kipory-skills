@@ -52,6 +52,8 @@ DELETE /v1/secrets/{id}             remove it → { id, deleted: true }
 
 A secret is identified by the node it hangs on, its **type**, and a **purpose** you choose. When a function says the key is missing, the failure names the vendor it wanted: store a credential whose purpose is that vendor's name, on the node the flow runs under or any ancestor of it, then run again. There is nothing to redeploy and no flow edit to make.
 
+A project document never carries a value. Its export lists, under `requires.secrets`, each stored credential its steps name as `<type>/<purpose>` (`api_key/firecrawl`); a plan warns about one the vault does not hold, and the apply ignores the list. Credentials the platform supplies, and an optional vendor key of your own, are not listed. Sign-in with your own app (`project.identity.providers.google.oauthApp: own`) reads `oauth_client/google` from the vault.
+
 ## What will bite you
 
 **What will bite you** — where a secret is used, upserts, node scope, disable and suspension, ADMIN writes, push keys, and the coverage read: `references/pitfalls.md`.

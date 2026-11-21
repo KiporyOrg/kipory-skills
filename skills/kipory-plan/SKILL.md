@@ -35,7 +35,7 @@ license: MIT
 
 **An empty step is a decision.** An omitted step and a forgotten one look identical to the reader, and the reader is the person who needs to catch your mistake. Write "none, because…".
 
-**The four primitives easy to leave out and expensive to discover later**: a table declared searchable needs an **embedding profile** to name; a flow calling a paid web vendor, or any outside API through `url.fetch` or `url.send`, may need a **secret**; a threshold you will want to tune belongs in a **project-config namespace**, not baked into a flow; and the **eval cases** in step 8 are the only part of a plan that survives a later rewrite.
+**The four primitives easy to leave out and expensive to discover later**: a table declared searchable searches with an **embedding** (`project.ai.embeddings` — the first searchable table creates `default` when none is stated, so state it to choose the model); a flow calling a paid web vendor, or any outside API through `url.fetch` or `url.send`, may need a **secret**; a threshold you will want to tune belongs in a **project-config namespace**, not baked into a flow; and the **eval cases** in step 8 are the only part of a plan that survives a later rewrite.
 
 ## What will bite you
 

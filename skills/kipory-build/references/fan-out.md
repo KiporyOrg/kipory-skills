@@ -14,7 +14,7 @@ The control shapes §2 and §6 (`patterns.md` has the map of every section). A f
 ```yaml
 - key: due
   function: record.list
-  with: { tableKey: member, limit: 100, pages: { max: 10, onMore: fail } }
+  with: { table: member, limit: 100, pages: { max: 10, onMore: fail } }
 - key: perMember
   each: due.records
   as: member

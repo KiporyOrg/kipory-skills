@@ -94,7 +94,7 @@ Every generated file opens with a stamp naming its source, and the content hashe
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `kipory-connect`  | **Start here.** Prove the deployment and the key, see what the project holds, and the `kipory` command that plans, applies and tests in single calls                              |
 | `kipory-plan`     | Turn an idea into a build sheet — everything that will exist, before authoring                                                                                                    |
-| `kipory-model`    | Tables and types, vocabularies and terms, relations, the embedding profile that makes records searchable                                                                          |
+| `kipory-model`    | Tables and types, vocabularies and terms, relations, the embedding that makes records searchable                                                                                  |
 | `kipory-build`    | Build and edit flows over the function catalog: steps, blocks, values, health, preview, checkpoints                                                                               |
 | `kipory-data`     | Read and write records, files and links by hand: import, correct, reprocess, delete; the processing stream                                                                        |
 | `kipory-gather`   | Reach outside the project: fetch and scrape pages, call an API with or without a stored key, send a request to an outside system, web search, social platforms, places, geocoding |

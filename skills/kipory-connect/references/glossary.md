@@ -20,7 +20,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Type.** A named, reusable set of fields a table or a flow's input or output refers to. Builtin and library types are synthesized on read and have no rows.
 
-**Search model.** What a table's search is indexed with: the embedding model and its vector space, whether keywords are indexed too, and the default chunking. It is the operator UI's word; the API spells it **embedding profile** — `/v1/embedding-profiles`, `vectors.profiles` in a project document, and `uses.search.profile` on a table, whose search indexes with the profile's live generation.
+**Embedding.** What a table's search is indexed with: the embedding model and its vector space, whether exact words are indexed too, and the default chunking — `/v1/embeddings` in the row API. A project document writes them as `project.ai.embeddings`, with `project.ai.defaultEmbedding` naming the one a table gets when its `uses.search` names none (`uses.search.embedding`); the key `default` always resolves, made as the engine default on first use. The table's search indexes with that embedding's live generation.
 
 **Wallet.** The credit balance one payer holds: an organisation or a project, or — where a project turns member wallets on — one member in that project (`/v1/wallets`). A charge is a debit on the wallet that pays; grants, expiries and returns move credits between a project and its members.
 
@@ -32,7 +32,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Vocabulary vs. term.** A **vocabulary** is a classification kind — a namespace of terms. A **term** is one value in it. Terms are created through the vocabulary (`POST /v1/vocabularies/{id}/terms`, one or many) and renamed, archived, merged or deleted at `/v1/terms/{id}`.
 
-**Relation vs. pairing vs. link.** A **relation** is the declared definition of a typed link between records; a **pairing** is one (tableA, tableB) pair the relation admits; a **link** is an actual instance joining two records. The link read walks one hop at a time; a record read can bring its linked records with it, two levels deep (`linked`).
+**Relation vs. end vs. link.** A **relation** is the declared definition of a typed link between records; its **ends** are the pairs of tables it connects (`from`/`to`, or `between`); a **link** is an actual instance joining two records. The link read walks one hop at a time; a record read can bring its linked records with it, two levels deep (`linked`).
 
 **Event.** In the design API, an **event type** is a declared, emittable signal in a **category**, with a scope of `run`, `record`, `user` or `project`. It is unrelated to the charges statement's "credit events", to the run timeline's events, and to server-sent events on a stream.
 
@@ -52,4 +52,4 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Managed email address.** A sending identity attached to a node that the outbound mail step sends _as_. Not a mailbox the platform creates.
 
-**Version.** Usually the optimistic-lock counter a PATCH must echo. On an embedding profile it is the lock too — the geometry number is `generation`. On a record it is the lock `PATCH /v1/records/{id}` presents; a run's write moves it too. On a document apply it is the project's. On the bootstrap it is a decimal string to compare as a big integer. On the function catalog and the capability packs it is a content hash.
+**Version.** Usually the optimistic-lock counter a PATCH must echo. On an embedding it is the lock too — the geometry number is `generation`. On a record it is the lock `PATCH /v1/records/{id}` presents; a run's write moves it too. On a document apply it is the project's. On the bootstrap it is a decimal string to compare as a big integer. On the function catalog and the capability packs it is a content hash.

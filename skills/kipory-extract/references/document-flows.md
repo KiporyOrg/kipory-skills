@@ -91,8 +91,8 @@ model call — the step still pays its compute fee — and a changed language hi
 
 The extracted text is only useful if something keeps it. The usual route needs no write step at
 all: make the extraction the table's **processing flow**. Its declared output (`body`, say)
-becomes the record's processed field, and a `search` use on `{ "family": "processed", "field":
-"body" }` has the platform chunk, embed and index it — `kipory-build`'s
+becomes the record's processed field, and `uses: { search: [{ field: body, family: processed }] }`
+has the platform chunk, embed and index it — `kipory-build`'s
 `references/records-and-endpoints.md` has the whole document, file in and searchable text out.
 File-producing steps (`pdf.screenshot`, `image.resize`) work in a project-scoped table's processing
 flow; the files they produce are project files and stay with the record. In a run with no record —

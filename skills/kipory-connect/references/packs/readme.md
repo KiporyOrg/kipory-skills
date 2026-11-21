@@ -56,7 +56,7 @@ quietly working around it.
 | Create a project, or find its id and its address                           | Project provisioning (capability pack `project-provisioning` — `GET /v1/capability-packs/project-provisioning`)                    |
 | Understand how a request to a project's own host is served, end to end     | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)          |
 | Expose a flow over HTTP — sync, async or streaming                         | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)          |
-| Declare a read once and serve it as a paged, typed `GET` (a view)          | The project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)       |
+| Declare a read once and serve it as a paged, typed `GET` (a query)         | The project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) |
 | Mint a token that can call a project's API                                 | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)          |
 | Build or edit a flow; add, change or move its steps                        | Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                              |
 | Make a flow actually return its declared output                            | Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                              |
@@ -74,7 +74,7 @@ quietly working around it.
 | Store what "working" means and re-check it after every edit                | Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — a contract suite                         |
 | Judge whether a change made a flow **better**, not just still passing      | Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — scorer flows                             |
 | Give a project tunable runtime settings — thresholds, cadences, weights    | Project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`)                                |
-| Make a table searchable                                                    | Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`)                        |
+| Make a table searchable                                                    | Embeddings (capability pack `embeddings` — `GET /v1/capability-packs/embeddings`)                                        |
 | See what you have spent, or why a call was refused with `402`              | Credits and spend (capability pack `credits` — `GET /v1/capability-packs/credits`)                                    |
 | Use your own vendor API key, so the vendor bills you and not us            | Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`)                                              |
 | Store any credential a flow needs, without it being readable back          | Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`)                                              |
@@ -98,7 +98,7 @@ judgment, and both defer to the live system for facts.
   from idea to build sheet, and the rule that facts are confirmed live, never recalled.
 - **The project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)** — a whole project as one key-addressed file:
   export, plan, apply. Read it before authoring anything larger than one row.
-- **Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`)** — what must exist before what, and the two cycles the
+- **Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`)** — what must exist before what, and the one cycle the
   row-by-row API cannot express in one call.
 - **Project templates (capability pack `templates` — `GET /v1/capability-packs/templates`)** — shipped documents a project can start from, by naming
   one in the create call.
@@ -116,16 +116,15 @@ judgment, and both defer to the live system for facts.
   schema edit cascades into.
 - **Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`)** — classification against a resolvable vocabulary, and the path
   from resolving to committing terms.
-- **Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`)** — typed record-to-record links: relations,
-  pairings, the declaration that rides on the table, the surfaces links arrive on, the linked records a read
-  brings two levels deep, and the walk of any depth that does not exist.
+- **Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`)** — typed record-to-record links: relations stated
+  `from` a table's field `to` a table, the ways links arrive, the linked records a read brings two
+  levels deep, and the walk of any depth that does not exist.
 - **Schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`)** — time-triggered flow runs, run history, and why the next-run time
   you are given is one you can hold the platform to.
 - **Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`)** — event-triggered flow runs: the durable event log, the selector and
   filter, the two reserved inputs, replay, and why a trigger never catches up.
 - **Sources (capability pack `sources` — `GET /v1/capability-packs/sources`)** — what writes events into your log from outside your flows: the
-  provider registry, the config each one takes, the vocabulary a first source seeds, and why a
-  source never names a flow.
+  provider registry, the `watch` a trigger states to hold a source, and what a first watch seeds.
 - **Events (capability pack `events` — `GET /v1/capability-packs/events`)** — the registry, emitting from a flow, and the difference between a signal
   scoped to one run and one on the bus.
 - **Flow checkpoints (capability pack `flow-checkpoints` — `GET /v1/capability-packs/flow-checkpoints`)** — atomic snapshot and restore; the safety net to take
@@ -135,8 +134,8 @@ judgment, and both defer to the live system for facts.
   and asks "does this still work?"; scorer flows ask "is this any good?"
 - **Project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`)** — namespaced runtime tunables typed by a bound type,
   readable by flows.
-- **Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`)** — the one place a project's vector space is
-  defined.
+- **Embeddings (capability pack `embeddings` — `GET /v1/capability-packs/embeddings`)** — `project.ai.embeddings`, the one place a
+  project's vector space is defined.
 - **Credits and spend (capability pack `credits` — `GET /v1/capability-packs/credits`)** — the balance and the statement of charges, and the second gate a client
   that renders only `status` never sees.
 - **Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`)** — the node-scoped credential vault. Which tier's key pays the vendor,

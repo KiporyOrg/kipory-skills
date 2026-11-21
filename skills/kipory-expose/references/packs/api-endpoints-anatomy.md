@@ -2,22 +2,32 @@
 
 # Capability pack — Anatomy of a dynamic endpoint
 
-> **Source of truth for facts:** the contract, target and input grammars, and the `api-endpoints`
+> **Source of truth for facts:** the endpoint and input grammars, and the `api-endpoints`
 > resource wire shape → live `GET /v1/openapi.json`. Which paths the platform itself occupies →
 > `GET /v1/coded-routes`, the whole manifest as rows, before you pick a path. Whether a coded route
 > already occupies one you have ALREADY saved → request `expand=shadowed` on the api-endpoints read,
 > which returns the occupying route's method, path and group as `shadowedBy`, and in
 > `partiallyShadowedBy` every coded route with a literal where your path has a parameter; the save
 > refuses a collision regardless. This pack is the narrative and the judgment; the schemas are the truth.
+>
+> **Format 12 names:** an invocation's status reports a refused write's table as `table` (it was `tableKey`).
 
 **Read this one early.** It traces the whole life of a request, and every other capability —
 schedules, events, record processing — rides the same machinery.
 
 ## What it is
 
-You author an endpoint through the **design API**. That row declares an HTTP **contract** — method,
-path, params — and a **target**: which flow to invoke, and how request fields map onto its
-inputs. The endpoint is then live on the project's own host. No redeploy.
+You author an endpoint through the **design API**. That row declares an HTTP **contract** — one
+method key holding the path, then its status, params and the like — and what it serves: a `flow`
+it runs, a `stream`, or a `subscribe` to events, exactly one of the three, with how request fields
+map onto the flow's inputs. The endpoint is then live on the project's own host. No redeploy.
+
+```yaml
+endpoints:
+  join: { POST: /v1/club/members, status: 201, flow: join }
+  feed: { GET: /v1/club/feed, flow: list-feed, timeoutMs: 10000 }
+  digest: { POST: /v1/club/digest, flow: build-digest, async: true }
+```
 
 A fresh project serves **nothing**. There are no starter endpoints and no starter flows; every
 route a project answers is one you authored.
@@ -53,15 +63,15 @@ requires one is refused `403` before the flow runs. A step counts wherever it si
 call would not take too; a disabled step (`enabled: false`) does not. A
 subscription to a `user`-scoped channel is `requiresUser: true` as well: a key has no such channel.
 
-`contractConfig.responseBody` names one required output of the bound flow to send as the whole
+`responseBody` names one required output of the bound flow to send as the whole
 response body. Absent, the body is an object of every output the flow's `return` gave, keyed by
 its name (`{ "result": { … } }`); set to `result`, the body is that output's value alone, and the published
-OpenAPI response is that output's schema. Only a synchronous `flow.invoke` takes it.
+OpenAPI response is that output's schema. Only a synchronous `flow` endpoint (no `async`) takes it.
 
-`contractConfig.responseType` sends that one output as text instead of JSON: `text/csv`,
+`responseType` sends that one output as text instead of JSON: `text/csv`,
 `text/tab-separated-values`, `text/plain` or `text/markdown`, as
 `<type>; charset=utf-8` with `X-Content-Type-Options: nosniff`, whatever the caller's `Accept`
-says. It needs `responseBody` naming a required text output, on a synchronous `flow.invoke` with no
+says. It needs `responseBody` naming a required text output, on a synchronous `flow` endpoint with no
 `redirect`, `statusOutput` or 204. A refusal is still the JSON error, and a text the run had to cut
 at its size limit answers 502, never a broken file. The published 200 is that type with a string
 schema. Build CSV with a `text.csv` step (headings, one line a row, RFC 4180 quoting, formulas
@@ -71,23 +81,37 @@ CSV makes two endpoints.
 
 **A field a declared type marks optional is in the answer, `null` when it has no value** — at every
 depth: an optional output the `return` left out, an optional field a returned object lacks, list
-items, and a view endpoint's items. The published OpenAPI document lists every field as required,
+items, and a query endpoint's items. The published OpenAPI document lists every field as required,
 and the ones that may have no value as nullable. A field the type requires that a record leaves out
 still answers 502 (mark it optional, or give it a value of its type). A type that lists no fields
 (plain `object`) is sent as it is — a record returned straight from `record.read` included — so
-declare an output's type with its fields, the table's own type (`typeName: Link`) or a project type,
-to get them all.
+declare an output's type with its fields, the table's own type (`outputs: { link: Link }`) or a
+project type, to get them all.
+
+## An endpoint is one flat row
+
+An endpoint is the same flat row wherever you meet it: the project document, the row API's body and
+its read, the bootstrap. Its method is the key holding its path (`POST: /v1/club`), `status`,
+`auth` and the contract's other settings sit beside it, and it serves exactly one of
+`flow: <flow>`, `stream: <flow>` or `subscribe: { categoryKey, scope }`, with that target's own
+settings beside it: a flow's `async` and `timeoutMs`; a stream's `delta`, its `events` and its `retry`. The document names the
+flow by key, the row API by id. A finding names a place in that row (`status`, `POST`,
+`inputs.<name>`, `events.0`). There is one translation point between this row and how the platform
+stores it, so the document, the row API and every finding agree on every name.
 
 ## The one write-shape rule people get wrong
 
 ⚠️ **The write body is the read shape minus everything the server derives.**
 
-A flow-backed target names its flow **by id only** — the save reads the flow's key, so it is not a
-field you may send. It comes back on every read.
+An endpoint names what it serves by key in a project document — `flow: join`, `stream: draft` — and
+by the flow's **id** on the row API (`POST /v1/api-endpoints`), whose body is the same flat row;
+`expand=flowLabel` names the flow on a read. The old nested body (`contractConfig` /
+`targetConfig`) is refused as unknown keys. Everything a read computes
+— `invokeUrl`, `access`, `resolutionRank`, `syncWaitMs`, `health` — is not a field you may send.
 
-**So you cannot echo a stored target config back verbatim.** Strip the flow key first. An unknown key is refused loudly, naming the key, rather than being silently dropped — which
-is the right behaviour and also means a round-trip that "should" work fails until you understand
-why.
+**So you cannot echo a read back verbatim.** Strip the derived fields first. An unknown key is
+refused loudly, naming the key, rather than being silently dropped — which is the right behaviour
+and also means a round-trip that "should" work fails until you understand why.
 
 ## The key you author
 
@@ -104,7 +128,7 @@ first character a letter or a digit
 <!-- field-ok: subscriptionsList — an example of a key an operator authored, not a platform field -->
 
 ⚠️ **This is not the flow-key rule.** A flow's `key` is strict lower-case kebab (as are terms,
-event types and their namespaces, relations and embedding profiles), a vocabulary's is camelCase, a
+event types and their namespaces, relations and embeddings), a vocabulary's is camelCase, a
 table's is a table name and a step's is camelCase. Address keys are none of those, and
 deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here. Each
 element's key has exactly one format; do not assume one from another. A key outside its format is
@@ -145,9 +169,9 @@ could not be bound after (a required object input on a GET, say) is refused, nam
 The project document states such an endpoint as you wrote it — the marker, no `inputs`, only the
 parameters you stated — so an export applies back unchanged.
 
-On the row API a write is whole. A PATCH replaces both configs, so one that leaves `inputs` out
+On the row API a write is whole. A PATCH replaces the whole endpoint, so one that leaves `inputs` out
 binds by name, replacing bindings the endpoint held as written; a project document instead keeps
-the written bindings it holds. A read sent back as it came — dropping the flow's `key`, as for any
+the written bindings it holds. A read sent back as it came — dropping the derived fields, as for any
 endpoint — is accepted with the marker, its bindings and both
 sets of parameters, when those bindings and parameters are what binding by name works out from
 `paramsAsWritten`: change something else and the endpoint stays bound by name. Change a binding
@@ -222,16 +246,16 @@ on `validateOnly` and in a document plan. A contract usually sends such a value 
 in the path only when the contract puts it there (`{name}` in braces).
 
 There is **no read-only flag to set.** Whether a VIEWER-level caller may make a call is the
-platform's decision, not a declaration: an asynchronous invoke and a DELETE are writes; any other
+platform's decision, not a declaration: an `async: true` endpoint and a DELETE are writes; any other
 GET is a read; anything else is a write exactly when the bound flow — sub-flows included — reaches a
 step that changes data: a function that writes, an event emitted beyond the run (it can start
-triggers), or a vocabulary resolution. An asynchronous invoke cannot be saved on GET. So a
+triggers), or a vocabulary resolution. An `async: true` endpoint cannot be saved on GET. So a
 POST search whose flow only reads is open to viewers without declaring anything.
 
 ### A public endpoint: `auth: "none"`
 
-Every endpoint needs a key or a session unless its contract says otherwise. `contractConfig.auth`
-is `"required"` (the default, and what every endpoint saved without it is) or `"none"`. An endpoint
+Every endpoint needs a key or a session unless it says otherwise. `auth`
+is `required` (the default, and what every endpoint saved without it is) or `none`. An endpoint
 saved `auth: "none"` is **public**: anyone can call it, with nothing in `Authorization` and no
 cookie. Use it for what a signed-out visitor needs — a list a landing page shows, a sign-up form, a
 public search box — instead of running a server of your own that holds a key and relays the call.
@@ -245,33 +269,40 @@ What that changes:
   save a second endpoint that requires a credential.
 - **The `Idempotency-Key` header is ignored.** Every public run belongs to the project, so two
   strangers sending the same key would otherwise share one write.
-- **The project pays.** Each call is charged to the project's wallet, GETs included. The most public
-  calls may spend per UTC day is `publicSpendCapCredits` in the project's settings
-  (`PATCH /v1/projects/{nodeId}/settings`). It must be set **before** an endpoint can be saved
-  public, and it cannot be cleared while one is; `0` is a real ceiling that refuses every public
-  call, which makes it the switch for all of them at once.
+- **The project pays.** Each call is charged to the project's wallet, GETs included. Public
+  endpoints are **unlimited by default**: nothing has to be set before one is saved. To cap what
+  public calls may spend per UTC day, state it in the project document:
+  `project: { credits: { publicEndpointsLimit: { credits: 500, per: day } } }`; `off` removes the
+  cap, and leaving the setting out keeps whatever the project holds. `credits: 0` is a real
+  ceiling that refuses every public call, which makes it the switch for all of them at once.
 - **A page on any site can call it.** The response allows any origin and never credentials — for
   the project's own app too. A browser call sent with credentials (`credentials: "include"`) is
   rejected by the browser, so call a public endpoint without them.
-- **It has its own limits.** `contractConfig.publicRpm` is the requests per minute the endpoint takes
+- **It has its own limits.** `publicRpm` is the requests per minute the endpoint takes
   from all callers together (1–600; saved as 60 when you leave it out). Each caller's address has an
   allowance per project, the project's public endpoints share a per-minute total and a ceiling on
   requests running at once (of which one address may hold only a share), and a request body may be
   at most 256 KB. None of this is shared with
   credentialed traffic: a flood of anonymous calls never refuses a key or a signed-in user.
 
-Only a **synchronous invoke** can be public. A stream, a subscription and an asynchronous invoke
-stay behind a credential, and so does a flow whose signature takes the calling user (`userInfo`).
+Only a **synchronous `flow`** endpoint can be public. A `stream`, a `subscribe` and an `async: true`
+endpoint stay behind a credential, and so does a flow whose signature takes the calling user (`userInfo`).
 The flow may write: that is what a sign-up form is. `validateOnly` warns `PUBLIC_ENDPOINT_WRITES`
-when it does, and always warns `PUBLIC_ENDPOINT_SPENDS`, naming the model and vendor functions the flow
-reaches — the same list an endpoint read carries as `spends` inside its `access`, beside `public`.
+when it does. It warns `PUBLIC_ENDPOINT_SPENDS` only when the flow reaches steps that call a model
+or a metered vendor (the same list an endpoint read carries as `spends` inside its `access`, beside
+`public`), or when the flow cannot be read; a flow that spends nothing draws no warning. The
+warning names those steps, the worst day from the endpoint's own rate (at the default 60 calls a
+minute, up to 86,400 paid calls a day), and what bounds the spend: the project's
+`credits.publicEndpointsLimit` when one is set, otherwise only that rate and the wallet.
+Making an endpoint public when its flow spends needs ADMIN, on the row API and in a document; an
+editor may still make public an endpoint whose flow spends nothing.
 It also warns `PUBLIC_ENDPOINT_NAMES_PERSON` when a `record.query`, `record.count`, `record.list`
 or `record.aggregate` of a person-owned table takes its `userId` from the request, and
 `PUBLIC_ENDPOINT_READS_PEOPLE` when the flow reads a person-owned table naming no person: either
 way anyone can read everyone's records. Read a fixed person, return only what is public, or keep
 such an endpoint behind a credential.
 
-Going back to `auth: "required"` takes effect on the next request. Going public can take up to 30
+Going back to `auth: required` takes effect on the next request. Going public can take up to 30
 seconds to be served.
 
 **A public endpoint can be a webhook receiver or a link someone clicks.** Bind the signature header
@@ -336,12 +367,12 @@ may match (a sender rolling its secret sends two), and a `t` more than `toleranc
 set, at most 86400) from now, either way, is refused 401 like a mismatch, so a captured call cannot
 be replayed later. It takes no `prefix`. Bind the whole header to `sig`.
 
-**The answer's shape** (a synchronous invoke only, not a view endpoint) — each names a flow output,
-and the outputs it names are not in the body:
+**The answer's shape** (a synchronous `flow` endpoint only, not a query endpoint) — each names a flow
+output, and the outputs it names are not in the body:
 
-| `contractConfig`                        | Answers                                                                                                                                                                                           |
+| On the endpoint                         | Answers                                                                                                                                                                                           |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `successStatus: 204`                    | 204, no body                                                                                                                                                                                      |
+| `status: 204`                           | 204, no body                                                                                                                                                                                      |
 | `redirect: { "location": "url" }`       | 302 (or `status`: 301, 303, 307, 308) with `Location` set to the output: an `http(s)` address or a path starting with `/`. A GET whose flow writes (a click count) may redirect                   |
 | `statusOutput: "status"`                | the status the run outputs: 200, 201, 202, 204 or 206 — 201 for a new event, 200 for a replay                                                                                                     |
 | `headers: { "Cache-Control": "cache" }` | each header from its output, up to 10: Cache-Control, Content-Disposition, Content-Language, ETag, Expires, Last-Modified, Link, Retry-After, or an `X-` name (not `X-Kipory-` or `X-RateLimit-`) |
@@ -349,12 +380,12 @@ and the outputs it names are not in the body:
 An output the answer cannot carry — a `Location` that is no address, a status outside the list, a
 header value with a line break — answers 502 and nothing is written.
 
-## The target
+## What it serves
 
-Three kinds:
+Three kinds, exactly one per endpoint:
 
-- **Invoke** — a buffered call. Synchronous returns the result and has a timeout ceiling;
-  asynchronous returns an acknowledgement immediately. Its status read
+- **`flow: <key>`** — a buffered call. Synchronous returns the result and has a timeout ceiling
+  (`timeoutMs`); with `async: true` it returns an acknowledgement immediately. Its status read
   (the `statusPath` its acknowledgement names) carries `acceptedAt`, `startedAt` (when a worker last
   started it; null until one has — on the first attempt the gap is the time it waited, and the run's
   `queued` says why) and `attempt`; `output` once the run is ready and, once it has failed,
@@ -380,29 +411,29 @@ Three kinds:
   cannot differ; a throttled account is run again and waits with `reason: "platform-account"`. The
   same holds for a save that ran past its time budget (cause `timed-out`, with `budgetMs`): the
   same changes would take as long, so the run fails once and is not started again.
-- **Stream** — server-sent events, naming in `deltaOutput` which output streams as deltas (or
-  `null`), with an optional allowlist of events to surface. Deltas come only from a `text.generate`
+- **`stream: <key>`** — server-sent events, naming in `delta` which output streams as deltas (left
+  out, none), with an optional allowlist of events to surface. Deltas come only from a `text.generate`
   step with structured output whose text field carries the same name as that output; any other
   flow streams `stage` frames and then its `result`, with no deltas at all.
-  - **`surfaceEvents` is a list of `{ "categoryKey": "…", "eventKey": "…" }` objects**, one per event
-    type the stream may carry. A bare string is refused, and so is a pair the project's events do
-    not register.
+  - **`events` is a list of `"<category>/<key>"` strings**, one per event type the stream may
+    carry (`events: ["draft/section-ready"]`). A string without the `/` is refused, and so is a
+    type the project's events do not register.
   - **A surfaced event reaches the client as it is emitted**, not at the end: one emitted in a
     sub-flow or in an `each` arrives while the run is still going. That is what makes a
     stream of partial results possible.
   - **Steps run in written order.** A slow step holds back every step written after it; to show a
     fast result before a slow one, put both in a `parallel` block and emit an event from each.
-- **Subscribe** — a bus subscription over events (capability pack `events` — `GET /v1/capability-packs/events`).
+- **`subscribe`** — a bus subscription over events (capability pack `events` — `GET /v1/capability-packs/events`).
 
 **An endpoint answers JSON, text of one declared type, a redirect, an empty 204 or server-sent
-events.** A buffered invoke answers JSON, or with `responseType` CSV, TSV, plain text or Markdown; a
+events.** A `flow` endpoint answers JSON, or with `responseType` CSV, TSV, plain text or Markdown; a
 stream and a subscription answer `text/event-stream`. There is no HTML response and no binary file
 download — hand a file out as a link from a `file.download-url` step — see limits (capability pack `limits` — `GET /v1/capability-packs/limits`).
 
-**A retry is made safe with an `Idempotency-Key` header.** On an asynchronous invoke a second call
+**A retry is made safe with an `Idempotency-Key` header.** On an `async: true` endpoint a second call
 with the same key gets the first call's acknowledgement and starts no second run, while the run's
 history is kept (90 days unless the deployment changed it). On a synchronous
-invoke or a stream the flow runs again, and what converges is what it writes: a per-user record a
+`flow` or a `stream` the flow runs again, and what converges is what it writes: a per-user record a
 create step writes takes the same id as the first call's, and a charge already recorded for the
 same step is not taken twice.
 
@@ -414,7 +445,7 @@ so make the retry-worthy case an output your flow's `return` sets to a known val
 attempt's output into the next attempt's inputs; `onExhausted` names the error a caller gets when
 the last attempt still asks for a retry. Every output it names must be an output of the flow.
 
-**Calls that must not overlap take turns on a declared key** (`serialize`, synchronous invoke
+**Calls that must not overlap take turns on a declared key** (`serialize`, synchronous `flow`
 only). `"serialize": { "key": ["path.slotId"] }` names request values an input already reads —
 `path.<name>`, `query.<name>`, or `body.<input>` with optional fields inside it — and every call
 whose values are all equal waits, before its flow runs, for the one ahead of it, in order of
@@ -423,7 +454,7 @@ and each runs its flow once instead of being refused and run again. Endpoints na
 `line` take turns with each other (book and cancel). A call whose turn does not come within
 `maxWaitMs`, or within what its own wait leaves for a run, answers 409 `SERIALIZE_KEY_BUSY` with
 `Retry-After` and ran nothing. A call missing a key value is not held back. The save refuses a key
-part no input reads, and a key on an asynchronous invoke or a view endpoint. The order holds among
+part no input reads, and a key on an `async: true` endpoint or a query endpoint. The order holds among
 the calls one api process serves; correctness still rests on the save's own checks.
 
 **Input mapping** binds each flow input to a request location: the body, a path parameter or
@@ -432,7 +463,7 @@ input, a path binding needs that path parameter declared and required, and every
 must be bound — by name when `inputs` is left out, by the map when it is stated. **The ambient values (`userInfo` and the like) cannot be bound from HTTP at all**,
 which is what stops a caller claiming to be a different user.
 
-**A target declares no output mapping, and this is deliberate.** Its response shape comes from one
+**An endpoint declares no output mapping, and this is deliberate.** Its response shape comes from one
 place — the flow as it is now (below) — so there is nothing to configure on the way out.
 Records are read through the `record.read` / `record.list` functions inside a flow, so a
 record-shaped response is a flow output like any other, given by its `return`.
@@ -491,64 +522,66 @@ change that gave its callers a different contract — its verdict, each change, 
 accepted a break — an `unbound` entry, judged the same way, for the write that takes it off its
 flow, a `release` entry for each platform release that changed it, and an `ability` entry for each
 change the platform made to a platform function whose type the contract holds (judged as a release
-is: a break nobody ruled is never made). A view endpoint's history
-holds the view's side too: a view, shape, table, relation or step edit that changes what its
+is: a break nobody ruled is never made). A query endpoint's history
+holds the query's side too: a query, selection, table, relation or step edit that changes what its
 callers send or read is such a `write`, with the verdict and who accepted a break. A label edit adds no entry of
 its own; like any saved change, it first gives an endpoint with no history its `first`, and records a
 `release` where the endpoint's contract had already moved since its last entry without a save that
 judged it. Read it to answer "what changed for my callers, and when"; to see what a write is about
 to change, send it with `validateOnly: true`.
 
-## A view endpoint: the contract comes from the view
+## A query endpoint: the contract comes from the query
 
-<!-- field-ok: readAfter — a flow input a project names, after its `record.view` step `read` -->
-<!-- field-ok: readBefore — a flow input a project names, after its `record.view` step `read` -->
-<!-- field-ok: readLimit — a flow input a project names, after its `record.view` step `read` -->
+<!-- field-ok: readAfter — a flow input a project names, after its `record.query` step `read` -->
+<!-- field-ok: readBefore — a flow input a project names, after its `record.query` step `read` -->
+<!-- field-ok: readLimit — a flow input a project names, after its `record.query` step `read` -->
 
-A `GET`, synchronous `flow.invoke` whose response body (`responseBody`, or the flow's only output)
-is the value of a `record.view` step, returned unchanged, is a **view endpoint**. Declare no params and no
-bindings for it: they come from the view as it is now. Nothing of the view is stored on the
-endpoint, so a view, shape or table edit reaches the next request with no endpoint save;
+A `GET`, synchronous `flow` endpoint whose response body (`responseBody`, or the flow's only output)
+is the value of a `record.query` step reading a named query (`with: { query: note.mine }` — a step
+always names it as `<table>.<key>`), returned unchanged, is a **query endpoint**. Declare no
+params and no bindings for it: they come from the query as it is now. Nothing of the query is
+stored on the endpoint, so a query, selection or table edit reaches the next request with no
+endpoint save;
 `GET /v1/api-endpoints/{id}?expand=contract` reads what callers meet now.
 
-- **Query**: the view's params, typed and bounded as the view declares them, plus the three
-  paging names — `after` to page on, `before` to page back, and `limit` (1 to the view's
+- **Request**: the query's params, typed and bounded as the query declares them, plus the three
+  paging names — `after` to page on, `before` to page back, and `limit` (1 to the query's
   `pageSize.max`). A param binds the flow input of the same name; the paging names bind the
-  `record.view` step's own paging inputs, named after the step — for the step `read`,
+  `record.query` step's own paging inputs, named after the step — for the step `read`,
   `readAfter`, `readBefore` and `readLimit`. So the flow declares an input per param it exposes
   and per paging input; a path parameter of the same name feeds a param instead. An unknown key, a value of the wrong type or out of
-  bounds is `422 VALIDATION_FAILED`. A flow input typed otherwise than the view gives it is refused
-  at save, `VIEW_INPUT_TYPE`; a flow that declares none of the step's paging inputs is warned
-  `VIEW_PAGING_NOT_DECLARED`, since its endpoint would answer only the first page.
-- **Answer**: `{items, nextCursor, prevCursor, paging: null}`; a view that ranks by meaning takes
-  no cursor and answers both `null`. A `one: true` view answers the record itself, or `404
-NOT_FOUND` whether it does not exist or the caller may not read it. A cursor from another view,
-  person or params is `400 VIEW_CURSOR_INVALID`.
-- **Not a view endpoint**: an asynchronous one, or one whose contract declares any of the three
+  bounds is `422 VALIDATION_FAILED`. A flow input typed otherwise than the query gives it is refused
+  at save, `QUERY_INPUT_TYPE`; a flow that declares none of the step's paging inputs is warned
+  `QUERY_PAGING_NOT_DECLARED`, since its endpoint would answer only the first page.
+- **Answer**: `{items, nextCursor, prevCursor, paging: null}`; a query that ranks by meaning takes
+  no cursor and answers both `null`. A `one: true` query answers the record itself, or `404
+NOT_FOUND` whether it does not exist or the caller may not read it. A cursor from another query,
+  person or params is `400 QUERY_CURSOR_INVALID`.
+- **Not a query endpoint**: an `async: true` one, or one whose contract declares any of the three
   paging names itself. It keeps its declared contract, and the plan warns
-  `VIEW_ENDPOINT_NOT_DERIVED`.
-- **Revalidation**: when the flow is that one `record.view` and every input comes from the request,
-  and the view reads only fields and links (no term, stream or meaning clause, no vocabulary, no
+  `QUERY_ENDPOINT_NOT_DERIVED`.
+- **Revalidation**: when the flow is that one `record.query` and every input comes from the request,
+  and the query reads only fields and links (no term, stream or meaning clause, no vocabulary, no
   file), and its item is typed, the answer carries an `ETag`.
   Send it back as `If-None-Match`: while nothing the answer depends on changed — the records and
-  links of every table the view reads, the caller, and every query and path value of the request,
+  links of every table the query reads, the caller, and every query and path value of the request,
   an input you bound by hand too — the answer is `304` with no body, no run and no charge. The
   `ETag` also stops matching when the endpoint's contract changes, or the flow (any step edit),
-  a view or shape it reads, a table it reaches or a relation its linked reads go through is
+  a query or selection it reads, a table it reaches or a relation its linked reads go through is
   edited, or the endpoint is saved. An edit anywhere else in the project leaves it standing. Every
-  view-endpoint answer carries `Vary: Authorization, Cookie, Accept`; a `200` or a `304` also carries
+  query-endpoint answer carries `Vary: Authorization, Cookie, Accept`; a `200` or a `304` also carries
   `Cache-Control: private, no-cache` and the `ETag`, and a refusal carries neither.
-- **Live**: a view endpoint that answers an `ETag` also streams. Send the same `GET` with
+- **Live**: a query endpoint that answers an `ETag` also streams. Send the same `GET` with
   `Accept: text/event-stream` — preferred over JSON: `application/json, text/event-stream` gets the
   `200` — and the answer is a stream: a `page` frame with what the `200` would answer, then a new
   `page` frame each time that answer changes — with no refetch and no `event.emit` in the flows
   that write. Callers asking the same — the same query and path values, as the project (every API
-  key of it) or as the same person — share one read of the view per change: a change costs one run
+  key of it) or as the same person — share one read of the query per change: a change costs one run
   for the project's keys together and one per person watching, however many streams each has
   open. Two people watching are two reads. Each read is charged like the `200` (to the newest of those callers), takes one of the
   project's running requests and counts against its requests per minute; a busy project's reads
   wait their turn rather than fail. Each stream's first page is its own run, so a refusal (a `one`
-  view with no record, a wallet refusal, a suspended project) answers before the stream opens, as
+  query with no record, a wallet refusal, a suspended project) answers before the stream opens, as
   the `200` would. A page arrives about a tenth of a second after a run that changed it settles,
   and within about a second after any other write; a joiner may get its first page twice. A frame
   reflects the newest answer; a client that reads slowly gets the newest page, not every one in
@@ -561,17 +594,15 @@ NOT_FOUND` whether it does not exist or the caller may not read it. A cursor fro
   (`endpoints.streams-at-once`). A public endpoint (`auth: "none"`) does not stream: it answers the
   `200`. `GET /v1/openapi.json` publishes the stream's frames as the operation's
   `text/event-stream` answer.
-- **An edit that changes what a view endpoint's callers meet is judged like any contract change.**
-  A view or shape edit in a document, a table or type edit that changes the rows the view answers,
-  a relation or pairing edit its linked reads go through, a step edit that points the answering
-  step at another view: each lists the endpoint in `contractChanges` (the plan's, the write's
+- **An edit that changes what a query endpoint's callers meet is judged like any contract change.**
+  A query or selection edit in a document, a table or type edit that changes the rows the query answers,
+  a relation edit its linked reads go through, a step edit that points the answering
+  step at another query: each lists the endpoint in `contractChanges` (the plan's, the write's
   answer). Adding a field or a param, or widening a bound, is `safe` and saves unasked. Removing a
   field the item answers, narrowing `limit`, retyping a param or turning a list into `one` is
   `breaking`: the write is refused `409 CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks` names the
   endpoint, which only an admin of the project may send. The endpoint itself is not written and its
-  `version` does not move. Removing a pairing through its own route takes no `acceptBreaks`: when
-  that would break an endpoint it is refused, and the same removal goes through the project
-  document.
+  `version` does not move.
 
 ## The life of a request
 
@@ -594,8 +625,8 @@ NOT_FOUND` whether it does not exist or the caller may not read it. A cursor fro
    endpoint you read carries `resolutionRank`, its place in exactly that order — compare it between
    endpoints of the **same method** to see which one serves a path both match, rather than
    re-deriving the order.
-4. **Write gate.** A write requires write permission. A GET is a read; a DELETE or an asynchronous
-   invoke is a write; anything else is a write when its bound flow — sub-flows included — reaches a
+4. **Write gate.** A write requires write permission. A GET is a read; a DELETE or an `async: true`
+   endpoint is a write; anything else is a write when its bound flow — sub-flows included — reaches a
    step that changes data (the contract section above lists which), or a function the platform cannot
    resolve. It is checked _after_ matching, so a
    bogus path still 404s rather than revealing itself as a 403.
@@ -624,9 +655,9 @@ NOT_FOUND` whether it does not exist or the caller may not read it. A cursor fro
 | **503** | `TEMPORARILY_UNAVAILABLE`: the platform's database could not serve in time. It is not a verdict on the credential — keep the session or key. Retry a read after `Retry-After`, backing off if it repeats; a write may already have landed, so retry it only if repeating it is safe or you have checked its result                                                                              |
 | **504** | A synchronous flow exceeding its timeout — the endpoint's `syncWaitMs`                                                                                                                                                                                                                                                                                                                          |
 
-⭐ **How long a synchronous invoke waits is on the endpoint you read**: `syncWaitMs` is the wait the
-dispatcher applies — your `syncTimeoutMs` clamped to the ceiling, or the platform default when you
-set none — and `null` for an asynchronous invoke, a stream or a subscription. Compare a step's `timeoutMs`
+⭐ **How long a synchronous `flow` waits is on the endpoint you read**: `syncWaitMs` is the wait the
+dispatcher applies — your `timeoutMs` clamped to the ceiling, or the platform default when you
+set none — and `null` for an `async: true` endpoint, a `stream` or a `subscribe`. Compare a step's `timeoutMs`
 against it rather than against a default you remember.
 
 **A public endpoint's refusals are its own.** It never answers 403, and 401 only for a request
@@ -680,42 +711,40 @@ optional. Preview names the gap in `missingRequiredOutput`.
 configuration still parses — those are always fully valid, so you never have to null-check a
 config. `unreadable` holds the rest.
 
-A row lands there when its stored `contractConfig` or `targetConfig` no longer parses against
+A row lands there when its stored configuration no longer parses against
 the current schema — corrupt data, typically left behind by a breaking schema change to a row
 written before it. **It is listed rather than dropped, and that is the point:** the key is still
 taken and the traffic still 404s, so hiding it would make a broken endpoint read as a deleted
-one. It cannot be shown or edited until it is re-saved.
+one. It cannot be shown until it is re-saved: a whole flat write (`PATCH` with its `version`)
+repairs it, a `DELETE` removes it, and a project document can restate it or remove it with
+`delete: true`. Each `issues` entry names its place in the flat row.
 
 One kind of unreadable row also stops a design write: a row that still carries a stored copy of
-its flow's signature (`targetConfig.signature`), saved by an older platform version. A flow edit,
+its flow's signature, saved by an older platform version. A flow edit,
 type edit, rename or document apply that reaches such an endpoint answers 409 `CONFLICT` with
 `details.reason: "endpoint-unreadable"` and the endpoint keys in the `endpoints` list of `details`, and writes
 nothing, because what it would change for that endpoint's callers cannot be checked. Re-save each
-named endpoint (`PATCH /v1/api-endpoints/{id}` with its `version` and both configs), then send the
+named endpoint (`PATCH /v1/api-endpoints/{id}` with its `version` and the whole endpoint), then send the
 write again. A row unreadable for any other reason does not block a write that reaches it.
 
-Each entry carries `contractIssues` and `targetIssues` — **one entry per failed field**, each a
-`path` and a `message`:
+Each entry carries one `issues` array — **one entry per failed field**, each a `path` and a
+`message` — at the flat path you would write: the method key, `status`, `inputs.<name>`,
+`subscribe.categoryKey`, `events.0`:
 
 ```json
 {
   "key": "legacyExport",
-  "contractIssues": [],
-  "targetIssues": [
+  "issues": [
     {
-      "path": "source.scope",
+      "path": "subscribe.scope",
       "message": "Invalid enum value. Expected 'record' | 'user' | 'project', received 'currentUser'"
     }
   ]
 }
 ```
 
-⚠️ **An EMPTY array is an answer** — that half parsed fine. The two are never both empty: a row
-in this bucket failed at least one.
-
-⚠️ **`path` is relative to its own half**, so keep the half when you display it: a bare `method`
-could be the contract's or the target's, and they are different things to go and fix. An empty
-`path` is also a real answer — the configuration failed as a whole rather than at one field.
+⚠️ **`issues` is never empty** — a row in this bucket failed at least one field. An empty `path`
+is a real answer — the configuration failed as a whole rather than at one field.
 
 ## Minting a key
 
@@ -746,8 +775,8 @@ than to a user.
 ## Asking what it would publish — `validateOnly`
 
 `POST /v1/api-endpoints` and `PATCH /v1/api-endpoints/{id}` take **`validateOnly: true`** in the
-body. Each runs every rule its write runs — the key's charset, both config schemas, the shared
-endpoint-config validator, the route-collision check — writes nothing, and answers **200** with a
+body. Each runs every rule its write runs — the key's charset, the endpoint schema, the shared
+endpoint validator, the route-collision check — writes nothing, and answers **200** with a
 verdict:
 
 ```json
@@ -786,14 +815,13 @@ project's OTHER endpoints, so a sibling saved before yours moves it; `access` is
 bound flow inside the write's own transaction. That is what the `DERIVED_SNAPSHOT` warning is for —
 it is a warning, not an error, so `ok` stays true.
 
-⛔ **The findings name the field you sent.** A config rule reports `source.categoryKey` or
-`source.eventKeys[0]` because the target config is the document it reads — the verdict rewrites
-those to `targetConfig.source.categoryKey`, the path in your request body; an unknown one is
-`SUBSCRIBE_EVENT_UNKNOWN`. The same is true of a refused SAVE: a real POST that fails
+⛔ **The findings name the field you sent**, flat: `status`, the method key, `inputs.<name>`,
+`subscribe.categoryKey`, `subscribe.eventKeys[0]`, `events.0` — the path in your request body; an
+unknown event is `SUBSCRIBE_EVENT_UNKNOWN`. The same is true of a refused SAVE: a real POST that fails
 carries the same findings on `details.issues`, so a form does not need two readers.
 
 ⭐ **Both ways an address can be taken come back the same way.** A `CONFLICT` finding on `key`
-means the key is already used; a `CONFLICT` finding on `contractConfig.path` means another endpoint
+means the key is already used; a `CONFLICT` finding on the method key (`GET`, `POST`, …) means another endpoint
 already serves that method and path. Neither is an exception in the verdict — both are findings you
 can put under the input that caused them. A real save answers the same two as a `409 CONFLICT`
 with no `details`, told apart by the suffix of its message. And not every finding names a field:

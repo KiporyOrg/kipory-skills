@@ -10,7 +10,7 @@ The small functions and expression habits most flows use. A function's settings 
 - `record.read` — `ids` holds a **list** of ids, or of objects carrying `id` (`page.records`). A search's hits carry `recordId`: name `hits[].recordId`. One id is `ids: {expr: "[bookId]"}`.
 - `list.concat` — an ordered `inputs` list; flattens lists, lifts single values, joins in order (`concat` or `dedup-concat`).
 - `record.query` — records matching several clauses at once (a field, a term, a link, a phrase by meaning) ([record-query.md](record-query.md), §9).
-- `record.view` — the same read declared once as a view and named by key; prefer it whenever the read's values are the caller's own sets or the request's params ([views.md](views.md), §11).
+- `record.query` with `query: <table>.<key>` — the same read declared once as a query under its table and named by key; prefer it whenever the read's values are the caller's own sets or the request's params ([queries.md](queries.md), §11).
 - `value.build` — an object whose every field is a JSONata expression. A field that should be there only sometimes is `cond ? x` (no else: the field is left out); there is no per-field `when`.
 
 ### `value.transform`

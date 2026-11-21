@@ -66,7 +66,7 @@ The other model functions answer no question of yours: `text.rerank` orders a li
 
 **Every field of the `outputSchema` type is one question** (except one typed `DecisionConfidence`, below), asked in the type's field order against `with.message`. The field's `description` is the question's wording, and it is required on every field. There are exactly three forms:
 
-| Form   | The field's definition                                                                                                                                                                | What comes back                                                                  |
+| Form   | The field's schema                                                                                                                                                                    | What comes back                                                                  |
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | Yes/no | a `$ref` to the builtin `probability` type, plus `description`; optionally `x-criteria: { "true": "…", "false": "…" }` saying what each side looks like (either side may be left out) | the chance of yes, a number from 0 to 1                                          |
 | Choice | `enum` of text, 2 to 255 options — or, to word each option, `oneOf` of `{ "const": "<option>", "description": "<what it covers>" }`                                                   | one option's text                                                                |
@@ -74,34 +74,32 @@ The other model functions answer no question of yours: `text.rerank` orders a li
 
 ```json
 "TicketTriage": {
-  "definition": {
-    "type": "object",
-    "properties": {
-      "team": {
-        "enum": ["billing", "tech", "sales"],
-        "description": "Which team should answer this message?"
-      },
-      "refund": {
-        "$ref": "#/$defs/<probability entry id>",
-        "description": "Is the customer asking for money back?",
-        "x-criteria": {
-          "true": "They ask for a refund or to reverse a charge.",
-          "false": "They ask about anything else."
-        }
-      },
-      "urgency": {
-        "type": "number",
-        "minimum": 0,
-        "maximum": 2,
-        "x-levels": ["can wait", "today", "now"],
-        "description": "How urgent is it?"
+  "type": "object",
+  "properties": {
+    "team": {
+      "enum": ["billing", "tech", "sales"],
+      "description": "Which team should answer this message?"
+    },
+    "refund": {
+      "$ref": "#/$defs/<probability entry id>",
+      "description": "Is the customer asking for money back?",
+      "x-criteria": {
+        "true": "They ask for a refund or to reverse a charge.",
+        "false": "They ask about anything else."
       }
+    },
+    "urgency": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 2,
+      "x-levels": ["can wait", "today", "now"],
+      "description": "How urgent is it?"
     }
   }
 }
 ```
 
-- **The `probability` reference is by id**, on the row API and in a document alike: `{ "$ref": "#/$defs/<dataTypeId>" }`, the id read from `GET /v1/types?project={nodeId}&key=probability` (`kipory-model` has the rule for a `$ref` inside a definition). The id is the project's own, so read it after the project exists.
+- **The `probability` reference is by id**, on the row API and in a document alike: `{ "$ref": "#/$defs/<dataTypeId>" }`, the id read from `GET /v1/types?project={nodeId}&key=probability` (`kipory-model` has the rule for a `$ref` inside a type). The id is the project's own, so read it after the project exists. The example is a document's `types` row, the schema itself; the row API takes the same schema under `definition`.
 - **What the save refuses**, each as `DECISION_QUESTIONS_INVALID` naming the field in `details.field`:
   - a `boolean` field — a yes/no is a probability, compared where you branch;
   - a field with no `description`;
@@ -161,7 +159,7 @@ An AI step's model resolves in this order: `text.generate`'s `with.model` at run
 - **Pinning `modelId` opts the step out of the project's next model change, silently.** An unrecognised `modelId` is refused at the save.
 - **A model that cannot read images is refused for a step that hands it files** (`LLM_MODEL_LACKS_VISION`): a step of any function that hands its model files, whose own model (`modelId` or a fixed `with.model`) the catalog marks without vision, and whose prompt, system prompt or inputs read a value typed a file or a list of files. `details.visionModelIds` lists the models that can; pick one, or stop handing it the files. A model the catalog does not know, or a step that follows the project's binding, is not judged at save.
 - **A `text.generate` step's `with.model` naming an unknown or disabled model fails the run** with no fallback.
-- **The model records are searched with is not a step setting.** It belongs to the table's embedding profile, and changing it re-embeds every record (`kipory-model`).
+- **The model records are searched with is not a step setting.** It belongs to the embedding the table's `search` names (`project.ai.embeddings`), and changing it re-embeds every record (`kipory-model`).
 
 Three reads say what is there:
 
@@ -196,6 +194,6 @@ Bind a task with `PUT /v1/nodes/{nodeId}/task-models/{task} { "modelId": "<creat
 - **Routing is not an alternative model.** `PUT /v1/nodes/{nodeId}/routing/{modelId} { providerOrder, failover: "on-exhaustion" }` (ADMIN) retries the SAME model through the next account in `providerOrder`. Naming an account that does not offer the model is refused with `PROVIDER_HAS_NO_OFFER`.
 - **This recipe moves chat tasks only.** Term writes and a semantic vocabulary's resolution embed on the platform's shared term model, which a project cannot rebind (`kipory-model`).
 
-**A sync endpoint over `text.generate` can 504 while the model is fast.** `text.generate` and the other ingest-phase functions queue on the platform's worker, and the wait counts against the endpoint's `syncTimeoutMs` (default 30 s). Raise it (up to 120 000) for a flow with a model step, or make the endpoint `async`. The timeline's `durationMs` includes the wait; `GET /v1/ai-calls?project={nodeId}` `latencyMs` is the model's own time, so the difference is queue.
+**A sync endpoint over `text.generate` can 504 while the model is fast.** `text.generate` and the other ingest-phase functions queue on the platform's worker, and the wait counts against the endpoint's `timeoutMs` (default 30 s). Raise it (up to 120 000) for a flow with a model step, or make the endpoint `async: true`. The timeline's `durationMs` includes the wait; `GET /v1/ai-calls?project={nodeId}` `latencyMs` is the model's own time, so the difference is queue.
 
 **A setting the resolved model does not take is discarded without an error** — `supportsTemperature` and `reasoningEfforts` on `GET /v1/ai-models` say what it takes. `reasoningEffort` takes `none`, `low`, `medium` or `high`; the catalog's `reasoningEfforts` are the vendor's own words and may list levels a step cannot set.

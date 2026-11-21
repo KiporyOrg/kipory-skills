@@ -24,7 +24,7 @@ To edit the configuration and send it back, read `GET /v1/projects/{nodeId}/docu
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project to snapshot. Required. |
-| `sections` | `string` | no | Comma-separated section names to return; omit for all nine. A name that is not a section is refused with 422. |
+| `sections` | `string` | no | Comma-separated section names to return: `project`, `schema`, `relations`, `events`, `flows`, `endpoints`, `triggers`, `schedules`, `sources`, `evals`, `tenancy`; omit for all. A name that is not a section is refused with 422. |
 | `since` | `string` | no | Return only the sections that changed after this version — pass back the `structureVersion` you already hold. A value equal to the current one returns no section content and is not an error. A value ABOVE it returns everything: the version moved backwards (a restore or rollback). Digits only; anything else is a 422. |
 
 **Response `200`**
@@ -35,14 +35,15 @@ To edit the configuration and send it back, read `GET /v1/projects/{nodeId}/docu
 | `tenancyVersion` | `string` | yes | Separate version for the `tenancy` section: a digest, not a counter, and it differs by caller. |
 | `capturedAt` | `string` | yes | When this snapshot was taken (ISO-8601). |
 | `sections` | `object` | yes | The current version of every section, including ones this response did not return. |
-| `project` | `object` | no | Project-level settings, route enablement and model bindings. Absent when unchanged since `?since=` or not requested. |
+| `project` | `object` | no | Project-level settings, route enablement, model bindings and the project's embeddings. Absent when unchanged since `?since=` or not requested. |
 | `schema` | `object` | no | Tables, types and vocabulary definitions. Absent when unchanged or not requested. |
 | `relations` | `object` | no | Relations and the table pairs each may connect. Absent when unchanged or not requested. |
-| `views` | `object` | no | Views and the shapes their rows take. Absent when unchanged or not requested. |
 | `events` | `object` | no | Event types, each carrying its namespace (`categoryKey`). Absent when unchanged or not requested. |
 | `flows` | `object` | no | Flows and their steps. Absent when unchanged or not requested. |
-| `surfaces` | `object` | no | Dynamic API endpoints and schedules — the things that expose or drive the project. Absent when unchanged or not requested. |
-| `vectors` | `object` | no | Embedding profiles and the collections they minted. Absent when unchanged or not requested. |
+| `endpoints` | `object` | no | The project's endpoints, and those that could not be read. Absent when unchanged or not requested. |
+| `triggers` | `object` | no | The project's triggers. Absent when unchanged or not requested. |
+| `schedules` | `object` | no | The project's schedules. Absent when unchanged or not requested. |
+| `sources` | `object` | no | The project's sources: what its triggers and records hold. Absent when unchanged or not requested. |
 | `evals` | `object` | no | Eval suites and cases. Absent when unchanged or not requested. |
 | `tenancy` | `object` | no | The project's identity and your slice of the ownership tree. Versioned separately by `tenancyVersion`. Absent when unchanged or not requested. |
 
@@ -77,7 +78,7 @@ Shape 2, with `project`, `version`, `sections`:
 | `type` | `"changed"` | yes | Always `changed`. One frame per version advance, no matter how many sections moved. |
 | `project` | `string` | yes | The project's node id, as on the `open` frame. |
 | `version` | `string` | yes | The version this change advanced to. |
-| `sections` | `string[]` | yes | Which parts of the configuration moved. Refetch naming only these. |
+| `sections` | `string[]` | yes | Which sections moved, as `?sections=` names them. Refetch naming only these. |
 
 Shape 3, with `reason`:
 

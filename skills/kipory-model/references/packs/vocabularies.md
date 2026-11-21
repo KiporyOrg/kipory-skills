@@ -5,6 +5,10 @@
 > **Source of truth for facts:** endpoint paths & request shapes → live `GET /v1/openapi.json`
 > (design plane); the `vocabulary.resolve` function config → live `GET /v1/functions`. This pack carries
 > judgment, not the field lists.
+>
+> **Format 12 names:** a vocabulary names its parent `parent` (it was `parentVocabularyKey`), in its reads, its writes and their answers, and a terms seed answers with the `vocabulary` it filled (it was `vocabularyKey`).
+
+> **Format 12 names:** a vocabulary's parent is `parent` on the row API too (it was parentVocabularyKey), and a seed's answer names the vocabulary it seeded `vocabulary`.
 
 ## What it is
 
@@ -188,8 +192,9 @@ declaring a parameter shape the platform has no default for stores nothing eithe
 supply the values.
 
 Scoped by the project's `OrgNode` id. Create takes the vocabulary key (camelCase, the name records
-and functions know it by), a label, a `cardinality` of `one` or `many`, and optionally a parent
-vocabulary key. A term attaches to the whole record: model a part inside a record as its own table
+and functions know it by), a label, a `cardinality` of `one` or `many`, and optionally `parent`,
+the key of the vocabulary it nests under — the same field on the row API and in the project
+document, where a `parent` left out is kept. A term attaches to the whole record: model a part inside a record as its own table
 with a relation.
 
 **The label and the key are editable; the structure is not.** Relabelling touches only the display
@@ -241,7 +246,7 @@ vocabulary's terms by hand with `PUT /v1/records/{id}/vocabularies/{vocabularyKe
 run, and a term of another vocabulary. The step that saves the terms fails, or, when the run's
 writes are saved together at the end, the run fails with nothing written and
 `GET /v1/runs/{runId}/change-set` reads `rejected`, `rejection.cause.kind: "one-term-vocabulary"`,
-with `vocabularyKey` and the `terms` by key.
+with `vocabulary` and the `terms` by key.
 
 **A resolve flow with no sink at all resolves nothing** — the values simply never land, because
 resolving itself succeeded and nothing failed. It is not silent at save, though: it warns there like
@@ -279,15 +284,15 @@ nothing, which is precisely why something has to say so out loud.
      API inside the opaque `functionConfig` blob, so no wire contract declares it by name. -->
 
 **And one more, on the extraction side:** a `text.generate` step's `with.vocabularyFields` — the list
-of `{ vocabularyKey, field }` pairs — is what the run reads. The
-`$vocabularyKey` markers on the type the step answers with are never read at run time, and no write
+of `{ vocabulary, field }` pairs — is what the run reads. The
+`$vocabulary` markers on the type the step answers with are never read at run time, and no write
 re-derives the list from them. Editing the type afterwards leaves the list behind: a marker you
 added is never extracted, a marker you removed is still extracted into a field the type no longer
 declares. The run succeeds either way. The flow's health warns
 `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED`, naming the vocabularies the type added and the ones the
 step still carries; the fix is to set the step's `with.vocabularyFields` to match the type's markers
 (`{set: <key>, field: "with.vocabularyFields", value: [...]}` on `POST /v1/flows/{id}/steps/edit`). Two save errors guard that write. Each pair's
-`field` must equal its `vocabularyKey` (`LLM_GENERATE_VOCABULARY_FIELD_MISMATCH` otherwise), and the
+`field` must equal its `vocabulary` (`LLM_GENERATE_VOCABULARY_FIELD_MISMATCH` otherwise), and the
 step needs an object `with.outputSchema` to answer in. Each extracted vocabulary value is written to
 its own field of the step's one value — the field of the type that carries the marker; there is no
 second output to name.
@@ -307,7 +312,7 @@ while a project is still being assembled.
   authoring-time refusal rather than a runtime one. Hence the order above: resolver flow first, bind
   it, then author the flow that uses it.
 - **Reserved keys are refused** with `VOCABULARY_KEY_INVALID` — the identity, content and metadata
-  names a record already owns, along with `vocabularies`, `terms`, `tableKey` and the
+  names a record already owns, along with `vocabularies`, `terms`, `table` and the
   timestamps. A vocabulary's `key` is a **field key** — camelCase, starting lower-case — because it
   becomes a JSON property a model reads. Choose it with care: it can be renamed later, but the
   rename breaks every outside caller that spells it.
@@ -384,14 +389,14 @@ happened. A preview run does not count — only values that actually landed.
 Ask the vocabularies read with `expand=wiring` and each vocabulary lists the flow steps that put
 values into it: the flow (`flowId`, `flowKey`, `flowLabel`), the step (`stepKey`, which with `flowId` is its
 address), and how — `extracted` (a `text.generate` step lists it in `vocabularyFields`),
-`proposed` (a `vocabulary.resolve` step lists it in `vocabularyKeys` with no value given for it, so
+`proposed` (a `vocabulary.resolve` step lists it in `vocabularies` with no value given for it, so
 its own model call proposes values) or `fed` (a `vocabulary.resolve` step is given its values in
 `deterministic`, with no model call). It is the same scan the platform's own wiring view reads, so a
 step whose settings do not parse contributes nothing, exactly as it would contribute nothing to a
 run.
 
 ⚠️ **Two flags on an `extracted` row are about drift between a step and its type.** `drift` is a
-sentence, set when the step's `vocabularyFields` no longer matches the `$vocabularyKey`
+sentence, set when the step's `vocabularyFields` no longer matches the `$vocabulary`
 markers on its response type — the same sentence the save-time warning carries. `declaredOnly` marks
 a row that exists only because the TYPE marks the vocabulary while the step's `vocabularyFields` does
 not name it: nothing reaches the vocabulary from that row until you add the pair to the step's
@@ -570,11 +575,11 @@ vocabulary and create another, which removes its terms and strips them off every
 - **What moves, in one transaction:**
   - every term, keeping its id, and every record's terms, which stay filed; child vocabularies that
     nest under it follow;
-  - every table's `uses.vocabularies` entry, and every `$vocabularyKey` marker on a type;
+  - every table's `uses.vocabularies` entry, and every `$vocabulary` marker on a type;
   - every function setting that names the vocabulary: `term.search`, `term.threshold-gate`,
     `vocabulary.resolve` and `vocabulary.aggregate`, `vocabularyFields` on `text.generate`,
     `vocabularyFilter` on `record.list` and `record.count`, and a `record.query` term clause;
-  - every view's term clause;
+  - every named query's term clause;
   - nothing is re-embedded; the term search index catches up once the change commits.
 - **What it never edits:** JSONata expressions and templates that spell the old key — `$.cuisine`
   reading a record, say, since a record read carries each vocabulary's terms under its key. A plan
@@ -593,10 +598,10 @@ vocabulary and create another, which removes its terms and strips them off every
 - **Refused, and nothing moves:** `RENAME_NAME_TAKEN` when another vocabulary holds the new key, a
   table surfacing this vocabulary has a field by that name (the term would hide the field), or
   every record already carries it (`id`, say).
-- **Endpoints and tables over a renamed type:** the rename's own rewrite of the `$vocabularyKey`
+- **Endpoints and tables over a renamed type:** the rename's own rewrite of the `$vocabulary`
   marker is no change, since the check reads each old side through the same rename, so the
   rename changes no caller's contract. The marker is not a label: re-pointing a field's
-  `$vocabularyKey` by hand is not classified, so it breaks each endpoint and table whose contract
+  `$vocabulary` by hand is not classified, so it breaks each endpoint and table whose contract
   holds the field. An endpoint serves its flow as it is now: it meets the new key on its next
   request with its `version` unmoved and is not in `touched`, and its contract history gains one
   `write` with verdict `safe` and `changes: []`, its contract under the new key. A flow-backed
@@ -655,7 +660,7 @@ The inverse rename is the undo.
   term whose canonical is gone), `orphan-parent` (a `parentId` naming a term the project does not
   hold), `unattached` (a parentless term on a vocabulary that nests) and `duplicate` (canonical
   terms of one vocabulary and one parent whose labels make the same key — one finding per colliding
-  group). ⛔ The checks always run over the WHOLE project; `vocabularyKey` narrows only which
+  group). ⛔ The checks always run over the WHOLE project; `vocabulary` narrows only which
   findings come back. ⚠️ Absent means you did not ask, and an empty list means the check ran and
   found nothing. Every kind is certain — there is no fuzzy near-duplicate pass, because the remedy
   is a merge and a merge has no undo.

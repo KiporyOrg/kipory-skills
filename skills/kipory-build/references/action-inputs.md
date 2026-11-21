@@ -17,11 +17,11 @@ A type is named **by its key**: `{ "kind": "ref", "ref": "BookCard" }`, in a doc
 | `{ "kind": "optional", "inner": <ref> }`         | may be absent                                         |
 | `{ "kind": "union", "members": [<ref>, <ref>] }` | one of several — on an input only, never an output    |
 | `{ "kind": "record", "valueType": <ref> }`       | a string-keyed map                                    |
-| `{ "kind": "recordRef", "tableKey": "<type>" }`  | one stored record's id                                |
+| `{ "kind": "recordRef", "table": "<type>" }`     | one stored record's id                                |
 
 The built-ins (`string`, `number`, `boolean`, `object`, `file`, …) and the platform's own types (`RecordRead`, `RecordPage`, `UserInfo`, `ProjectInfo`, …) are named by key like yours.
 
-**A flow's inputs and outputs are maps by name**, each `{ "typeName": "BookCard", "isList": true, "optional": true, "description": "…" }` with only `typeName` required. A list output says `isList: true`; a flow gives its outputs only through a `return` step.
+**A flow's inputs and outputs are maps by name**, each a type key: `BookCard`, `BookCard?` (optional), `BookCard[]` (a list), `BookCard[]?`; or the long form `{ "type": "BookCard", "list": true, "optional": true, "description": "…" }` with only `type` required. A flow gives its outputs only through a `return` step.
 
 **Only `text.generate` and `text.decide` declare a type for their answer**, in `with.outputSchema`; every other function types its own value. A list type's `maxItems` is held at run: a step whose declared answer is a list past it fails `OUTPUT_TYPE_MISMATCH`, naming the count and the bound.
 
@@ -64,13 +64,13 @@ Every setting that reads a value — a function's `ids`, `data`, `to`, `userId`,
 - **A one-item list is an expression**: `"ids": { "expr": "[bookId]" }` hands a list-taking setting one id — no transform.
 - **`default` and `$default(x, y)` fill only nothing; `$ifEmpty(x, y)` fills nothing or empty.**
 - **Each argument is checked at save** against what the setting expects (`ARGUMENT_TYPE_MISMATCH`); an object that is not exactly one of the forms is `ARGUMENT_MALFORMED`; a key the function does not take is `STEP_SETTING_UNKNOWN`, with a fix to the nearest one. An expression that fails at run fails the step, naming the setting.
-- **A setting that names a thing is a plain value**, not an argument: `tableKey`, a template's text, a vocabulary key, the sending `address`. A setting that names a field says `field` (`{ "field": "renewsOn", "op": "eq", "value": "day" }`), never `{path}`.
+- **A setting that names a thing is a plain value**, not an argument: `table`, a template's text, `vocabulary`, the mail's `sender`. A setting that names a field says `field` (`{ "field": "renewsOn", "op": "eq", "value": "day" }`), never `{path}`.
 
 `record.create` and `record.update` take the record's fields either whole or one by one — `data` (an argument naming the object) or `fields`, never both:
 
 ```json
 {
-  "tableKey": "review",
+  "table": "review",
   "fields": {
     "bookId": "book.id",
     "rating": 5,

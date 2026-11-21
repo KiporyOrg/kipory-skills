@@ -6,16 +6,16 @@ license: MIT
 
 # Search and answer over the project's own data
 
-Retrieval on Kipory has two halves, and only one of them is yours to build. The write half is **declared**: a table's `uses` names the fields it searches on and the embedding profile it searches with (`kipory-model`), and the platform splits, embeds and indexes every record. The read half is one step, `record.query`, which turns a phrase — or a record — into the records closest to it, with their fields and a score for each.
+Retrieval on Kipory has two halves, and only one of them is yours to build. The write half is **declared**: a table's `uses.search` names the fields it searches on and, when not the project's default, the embedding it searches with (`kipory-model`), and the platform splits, embeds and indexes every record. The read half is one step, `record.query`, which turns a phrase — or a record — into the records closest to it, with their fields and a score for each.
 
 **You name a table, never a place where vectors live.** There is no collection name, vector name or point to write in a search step.
 
 ## Before the first call
 
 - **The type has to be searchable already.** A table declares `search` in its `uses` — `kipory-model` owns that, and the indexing failure that leaves records unsearchable.
-- **Check the index before you build on it**, with no flow at all: `GET /v1/records?project={nodeId}&tableKey=<type>&mode=semantic&q=<text>` (`kipory-data`). An empty answer there is an indexing problem, not a flow problem.
-- **On a searchable table, `ready` means findable by meaning.** After the run that processed or wrote the record commits, it is indexed (an embedding call per part, so usually a short wait, longer while a large import is being indexed), and until then it reads `processing` everywhere: the records API, a flow's rows, a `statuses` filter, the processing stream. An edit of its content sends it back to `processing` until the new text is indexed. So wait for `ready`, then search: poll `GET /v1/records/{id}` every second or two until `status` reads `ready`, rather than sleeping a fixed time. A run still never finds by meaning what it wrote itself, and two records processed seconds apart may not find each other: a match-or-new decision over a burst can open two where one was meant; decide such pairs again later from a schedule. An embedding that fails is retried three times within about fifteen seconds; if it still fails, if the table's search model is switched off, or if nothing indexes the record within about fifteen minutes, it turns `ready` unsearchable, and its read says so (`indexState` `never` or `stale`, with `indexedAt`) until the next edit or the daily repair indexes it (`kipory-model`).
-- **`indexWhen` is a true/false field, not a condition.** The table's `search` statement may name one (`{ "family": …, "field": … }`, `kipory-model`); only a record whose field is exactly `true` is indexed, and one without the field is left out. To index some records and not others, write that field on them; a field of any other type is refused (`SEARCHABLE_INDEX_WHEN_NOT_BOOLEAN`), and there is no way to state a condition.
+- **Check the index before you build on it**, with no flow at all: `GET /v1/records?project={nodeId}&table=<type>&mode=semantic&q=<text>` (`kipory-data`). An empty answer there is an indexing problem, not a flow problem.
+- **On a searchable table, `ready` means findable by meaning.** After the run that processed or wrote the record commits, it is indexed (an embedding call per part, so usually a short wait, longer while a large import is being indexed), and until then it reads `processing` everywhere: the records API, a flow's rows, a `statuses` filter, the processing stream. An edit of its content sends it back to `processing` until the new text is indexed. So wait for `ready`, then search: poll `GET /v1/records/{id}` every second or two until `status` reads `ready`, rather than sleeping a fixed time. A run still never finds by meaning what it wrote itself, and two records processed seconds apart may not find each other: a match-or-new decision over a burst can open two where one was meant; decide such pairs again later from a schedule. An embedding that fails is retried three times within about fifteen seconds; if it still fails, if the table's embedding is switched off, or if nothing indexes the record within about fifteen minutes, it turns `ready` unsearchable, and its read says so (`indexState` `never` or `stale`, with `indexedAt`) until the next edit or the daily repair indexes it (`kipory-model`).
+- **`indexWhen` is a true/false field, not a condition.** The table's `uses.search` may name one (`indexWhen: <field>`, `kipory-model`); only a record whose field is exactly `true` is indexed, and one without the field is left out. To index some records and not others, write that field on them; a field of any other type is refused (`SEARCHABLE_INDEX_WHEN_NOT_BOOLEAN`), and there is no way to state a condition.
 - **Confirm the function's config live** with `GET /v1/functions/{key}` (here `record.query`). The shapes below are the catalog's, and the deployment's catalog wins.
 
 ## The chain, once
@@ -32,7 +32,7 @@ answer  → (text.rerank) → text.sanitize → text.generate
 
 ```json
 {
-  "tableKey": "article",
+  "table": "article",
   "clauses": [
     { "kind": "semantic", "text": "request.q", "topK": 20 },
     {
@@ -49,7 +49,7 @@ answer  → (text.rerank) → text.sanitize → text.generate
 - **It composes.** `field`, `term`, `link` and `stream` clauses beside the phrase narrow the answer first — each needs the use that routes it, so a `field` clause names a field with a `filter` use. While they leave at most 25 000 records, every one of those is scored and the closest `topK` come back; past that, the phrase is ranked first and the exact clauses filter the ranking, so the answer can be thinner than `topK`.
 - **It says how complete it is.** Read `bounded` before `records`: `false` means every matching record was in reach; otherwise the answer is a ranking of at most `bounded.bound` records and `bounded.reason` says why (`top-k`, `pushdown-cap`, `semantic-only` for a phrase with no exact clause beside it, or `peer-top-k` when the phrase ranks the far end of a link). A ranking does not page.
 - **It scopes itself.** A per-user type is read as the run's signed-in user (or `userId`); no filter of yours is needed.
-- **A profile that also indexes exact words blends keyword rank with meaning** in the order, with nothing to switch on.
+- **An embedding that also matches exact words (`matchExactWords: true`) blends keyword rank with meaning** in the order, with nothing to switch on.
 - **A search may fail without failing the run.** Put it in a `try`: when the search fails, `catch` runs with `error` saying why, and the run carries on — so a flow that also reads by name or by field still answers from those. Give `try.out` the records and `catch.out` an empty list (`{ literal: [] }`), and the steps after it read one list either way. Two kinds of failure are carried past. The flow's own: a clause value the query cannot use, a record to resemble that is not indexed yet, no user on a per-user table. And a failure of the embedding model: a phrase is embedded by a model, and that call can fail or time out. A failure of the platform's account with the model (out of credit, its key refused, or throttled) is carried past the same way. A failure of the platform itself is not — the index could not be read: the run fails and the platform runs it again.
 
 The whole clause grammar is in `kipory-model`'s `references/packs/tables-and-types.md`, "One question across the stores", and on `record.query`'s function page in `kipory-build`.
@@ -71,7 +71,7 @@ Every answer ranked by meaning carries `scores` beside `records`: one `{ id, sco
 }
 ```
 
-- **The score is a similarity, on one scale.** It is the cosine similarity between the query and the record's closest part, as the search model embeds them: higher is closer, and a poor match can be below zero. It means the same on every table, with or without keyword indexing, so a threshold you tune keeps its meaning.
+- **The score is a similarity, on one scale.** It is the cosine similarity between the query and the record's closest part, as the table's embedding embeds them: higher is closer, and a poor match can be below zero. It means the same on every table, with or without keyword indexing, so a threshold you tune keeps its meaning.
 - **It is the number the earlier vector search gave.** That step scored a record by its best part's cosine too, so a threshold tuned on it carries over unchanged: on one deployment the same 594 query–record pairs scored identically under both.
 - **It sits beside the records, not on them.** A row's own fields are spread at its top level, so a `score` key there could collide with a field of yours. To read a record with its score in a `value.transform`, look the score up by id: `$s := $filter(q.scores, function($x){ $x.id = $r.id })[0].score`.
 - **`minScore` on the clause leaves out records below it** (−1 to 1). It removes from the `topK` ranking and never reaches past it. `explanation` says how many it removed (`belowMinScore` on the clause's row), and when it removed all of them `emptiedBy` names the clause — so "nothing is close enough" is told apart from "nothing is indexed".
@@ -124,8 +124,8 @@ On a type indexed in parts, add `passage: true` to the clause and each entry of 
 | `references/like-a-record.md` | ranking the records closest to a given record                             |
 | `references/pitfalls.md`      | what will bite you when searching the project's own data                  |
 
-The embedding-profile routes belong to `kipory-model`, which owns the profile a type searches with; the per-function config tables belong to `kipory-build`, which owns the function catalog.
+The project's embeddings belong to `kipory-model`, which owns the embedding a table searches with; the per-function config tables belong to `kipory-build`, which owns the function catalog.
 
 ## Then
 
-`kipory-build` for the flow these steps live in. `kipory-model` when the answer is that the embedding profile or the table is wrong rather than the query. `kipory-data` to check an index, or search as an operator, over the records API with no flow. `kipory-gather` when the text to index comes from outside the project, and `kipory-extract` when it arrives as a PDF, an image or audio. `kipory-secrets` for the re-ranker's credential. `kipory-operate` for what a search or a re-rank cost. `kipory-prove` to pin retrieval quality with an eval suite before you tune anything, and `kipory-diagnose` to read what a search step actually emitted on a run that answered badly.
+`kipory-build` for the flow these steps live in. `kipory-model` when the answer is that the embedding or the table is wrong rather than the query. `kipory-data` to check an index, or search as an operator, over the records API with no flow. `kipory-gather` when the text to index comes from outside the project, and `kipory-extract` when it arrives as a PDF, an image or audio. `kipory-secrets` for the re-ranker's credential. `kipory-operate` for what a search or a re-rank cost. `kipory-prove` to pin retrieval quality with an eval suite before you tune anything, and `kipory-diagnose` to read what a search step actually emitted on a run that answered badly.

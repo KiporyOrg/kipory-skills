@@ -21,7 +21,7 @@ With a processing flow, the record is not queued: follow with Queue for processi
 | `fields` | object | no | — | The new record's fields, each a slot path, fixed value or expression. |
 | `fileIds` | union | no | — | The uploaded file ids to attach to the new record. ⚠️ Each file must be the record owner's or the project's, fully uploaded, and attached nowhere else. |
 | `onKeyTaken` | `refuse` \| `skip` | no | — | What to do when another record already holds the natural key. ⚠️ With `skip`, a key another record holds adds nothing and answers `keyTaken`; two payloads claiming one key fail. |
-| `tableKey` | string | yes | — | The table to create a record in. |
+| `table` | string | yes | — | The table to create a record in. |
 | `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ### `data` — one of
@@ -92,7 +92,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "item",
+  "table": "item",
   "data": "submission"
 }
 ```
@@ -111,7 +111,7 @@ Output:
 ```
 {
   "recordId": "ckwx0a1b2c3d",
-  "tableKey": "item"
+  "table": "item"
 }
 ```
 
@@ -125,7 +125,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "item",
+  "table": "item",
   "data": "submission"
 }
 ```
@@ -144,6 +144,6 @@ Output:
 ```
 {
   "recordId": "ckwx0a1b2c3d",
-  "tableKey": "item"
+  "table": "item"
 }
 ```

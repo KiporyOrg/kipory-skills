@@ -2,9 +2,9 @@
 
 # `record.query` — Query records
 
-Find records by their fields, terms, links, or meaning, all in one question.
+Find records by fields, terms, links or meaning, or read a table's query.
 
-Exact clauses narrow first; `semantic` ranks by meaning, over every table in `tableKeys`. Every answer says whether it is complete.
+Exact clauses narrow first; `semantic` ranks by meaning, over every table in `tables`. Every answer says whether it is complete.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -18,15 +18,16 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `clauses` | union[], at most 16 items | yes | — | Clauses every record must match; none matches every record the run reaches. ⚠️ A semantic clause returns at most topK records, with no further pages. |
+| `clauses` | union[], at most 16 items | no | `[]` | Clauses every record must match; none matches every record the run reaches. ⚠️ A semantic clause returns at most topK records, with no further pages. |
 | `cursor` | union | no | — | A prior answer's cursor; empty for the first page. ⚠️ Bound to another read's `nextCursor` after its last page, it answers an empty page; otherwise it reads page one. |
-| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size answer fails the step; with `tableKeys`, each row carries its own table's named fields. |
+| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size answer fails the step; with `tables`, each row carries its own table's named fields. |
 | `limit` | union | no | — | Rows per page, 1 to 100; otherwise 50. ⚠️ A run warns from half the slot limit, and a save when a page of large records would pass it. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `order` | union | no | — | `created` (newest first; `direction: asc`, oldest), `meaning`, or a filterable field. ⚠️ A field order leaves out records with no value in that field. |
 | `pages` | object | no | — | Read every page of an exact question, from `cursor` if set. ⚠️ Only an exact question reads every page; records left after the last page fail the step unless `onMore` is "stop". |
-| `tableKey` | string | no | — | The table to query; set exactly one of this and `tableKeys`. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
-| `tableKeys` | string[], 2 to 8 items | no | — | 2 to 8 tables ranked in one answer, in place of `tableKey`. ⚠️ Needs a `semantic` clause and one search model; tell the mixed rows apart by `scores[i].tableKey`, never by their fields. |
+| `query` | string | no | — | A table's query to read instead of clauses, as `<table>.<key>`. ⚠️ Its params come from flow inputs of the same names; its paging from `<step>After`, `<step>Before`, `<step>Limit`. |
+| `table` | string | no | — | The table to query; set exactly one of this and `tables`. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
+| `tables` | string[], 2 to 8 items | no | — | 2 to 8 tables ranked in one answer, in place of `table`. ⚠️ Needs a `semantic` clause and one search model; tell the mixed rows apart by `scores[i].table`, never by their fields. |
 | `userId` | union | no | — | The person whose records to query; empty means the signed-in user. ⚠️ An empty value fails the step; left out in a run with no person, it reads every person's records. |
 
 ### `clauses` — each item is one of
@@ -65,7 +66,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `term` | yes | — | An assignment of a vocabulary term, by slug. |
-| `vocabularyKey` | string | yes | — | A vocabulary the table lists in `uses.vocabularies`. |
+| `vocabulary` | string | yes | — | A vocabulary the table lists in `uses.vocabularies`. |
 | `slug` | union | yes | — | The term, by slug; an alias counts as its term. |
 
 `slug` — one of:
@@ -246,7 +247,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | `field` | string | no | — | A field with a `search` use to rank on. |
 | `text` | union | no | — | The phrase to resemble. |
 | `likeRecordId` | union | no | — | A record id to resemble instead of a phrase; excluded from results. |
-| `likeTableKey` | string | no | — | The table of the record to resemble, if not the queried one. |
+| `likeTable` | string | no | — | The table of the record to resemble, if not the queried one. |
 | `topK` | integer, 1 to 200 | no | — | How many to rank; default 50. |
 | `minScore` | number, -1 to 1 | no | — | Leave out records scoring below this, from −1 to 1. |
 | `passage` | boolean | no | — | `true` also returns the text of each record's best-matching part. |
@@ -486,12 +487,12 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "person",
+  "table": "person",
   "userId": "userInfo.userId",
   "clauses": [
     {
       "kind": "term",
-      "vocabularyKey": "language",
+      "vocabulary": "language",
       "slug": {
         "literal": "hebrew"
       }
@@ -554,7 +555,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "post",
+  "table": "post",
   "clauses": [
     {
       "kind": "field",
@@ -615,12 +616,12 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "person",
+  "table": "person",
   "userId": "userInfo.userId",
   "clauses": [
     {
       "kind": "term",
-      "vocabularyKey": "language",
+      "vocabulary": "language",
       "slug": {
         "literal": "hebrew"
       }
@@ -681,7 +682,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "outing",
+  "table": "outing",
   "clauses": [
     {
       "kind": "field",
@@ -739,7 +740,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "guide",
+  "table": "guide",
   "clauses": [
     {
       "kind": "link",
@@ -798,7 +799,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "person",
+  "table": "person",
   "clauses": [
     {
       "kind": "field",
@@ -849,7 +850,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "person",
+  "table": "person",
   "userId": "userInfo.userId",
   "clauses": [
     {

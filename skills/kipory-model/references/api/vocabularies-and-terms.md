@@ -24,14 +24,14 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/terms`
 
-List a project's terms — every vocabulary's, or one vocabulary's with `vocabularyKey` — archived ones and merge aliases included, each with the `version` its PATCH and merge take, one page at a time ordered by vocabulary, then label: walk on `after` / `before` with the cursors the response hands back. `expand=usage` adds how much points at each term and `deleteRefusal`, why `DELETE /v1/terms/{id}` would refuse it; `expand=findings` adds what is wrong with the vocabulary. Terms are not in `GET /v1/bootstrap`: a vocabulary grows with ingest, so it is read here, on demand. A vocabulary's authored terms as configuration: its `terms` in `GET /v1/projects/{nodeId}/document`.
+List a project's terms — every vocabulary's, or one vocabulary's with `vocabulary` — archived ones and merge aliases included, each with the `version` its PATCH and merge take, one page at a time ordered by vocabulary, then label: walk on `after` / `before` with the cursors the response hands back. `expand=usage` adds how much points at each term and `deleteRefusal`, why `DELETE /v1/terms/{id}` would refuse it; `expand=findings` adds what is wrong with the vocabulary. Terms are not in `GET /v1/bootstrap`: a vocabulary grows with ingest, so it is read here, on demand. A vocabulary's authored terms as configuration: its `terms` in `GET /v1/projects/{nodeId}/document`.
 
 **Query**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project whose terms to list. |
-| `vocabularyKey` | `string` | no | Key of a vocabulary: keep only terms belonging to it — one vocabulary's terms. Omit for every term in the project. |
+| `vocabulary` | `string` | no | Key of a vocabulary: keep only terms belonging to it — one vocabulary's terms. Omit for every term in the project. |
 | `expand` | `string` | no | Optional expansions, comma-separated. One or more of: usage, findings. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 | `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
 | `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
@@ -45,7 +45,7 @@ List a project's terms — every vocabulary's, or one vocabulary's with `vocabul
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
 | `paging` | `null` | yes | Always null: the list is walked by its cursors, with no page count. |
-| `findings` | `object[]` | no | `expand=findings` — what is wrong with the vocabulary, most severe kind first. Computed over EVERY term of the project, whatever page this is and whatever `vocabularyKey` narrows `terms` to — a parent or canonical term in another vocabulary is still held — and then narrowed to that vocabulary. Absent unless asked for; an empty list means the check ran and found nothing. |
+| `findings` | `object[]` | no | `expand=findings` — what is wrong with the vocabulary, most severe kind first. Computed over EVERY term of the project, whatever page this is and whatever `vocabulary` narrows `terms` to — a parent or canonical term in another vocabulary is still held — and then narrowed to that vocabulary. Absent unless asked for; an empty list means the check ran and found nothing. |
 
 Each item of `terms`:
 
@@ -53,7 +53,7 @@ Each item of `terms`:
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Term id — the address for every single-term verb. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `vocabularyKey` | `string` | yes | Key of the vocabulary this term is a value of. |
+| `vocabulary` | `string` | yes | Key of the vocabulary this term is a value of. |
 | `key` | `string` | yes | The term's key. IMMUTABLE — a rename changes `label`, never this. |
 | `label` | `string` | yes | Display label — the only field a rename changes. |
 | `labels` | `object` | yes | The term's label in other languages: a language tag (`he`, `pt-BR`) to text. `label` stays the default label; `$termLabel(term, lang)` picks from these. |
@@ -79,7 +79,7 @@ Each item of `findings`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `kind` | `"dangling-alias" \| "orphan-parent" \| "unattached" \| "duplicate"` | yes | `dangling-alias` — a merged term whose canonical term this project does not hold, so it redirects to nothing. `orphan-parent` — a term whose `parentId` names a term this project does not hold. `unattached` — a term in a vocabulary that nests under another, standing under no parent (no design write can produce it). `duplicate` — canonical terms of one vocabulary and one parent whose labels slugify to the same value, the platform's own label identity. |
-| `vocabularyKey` | `string` | yes | Key of the vocabulary the named terms belong to. |
+| `vocabulary` | `string` | yes | Key of the vocabulary the named terms belong to. |
 | `termIds` | `string[]` | yes | The terms this finding names. A `duplicate` finding is ONE colliding group — every id in it slugifies alike — so a vocabulary with two colliding pairs sends two findings. Every other kind is one finding per vocabulary. |
 
 ### `PATCH /v1/terms/{id}`
@@ -229,7 +229,7 @@ Each item of `vocabularies`:
 | `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
 | `termAttributes` | `object[]` | yes | The attributes this vocabulary's terms carry, such as a `group`. Each term's values are checked against it. Removing one removes its values from every term, and changing its type removes the values archived terms hold that no longer fit; both need ADMIN. |
-| `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
+| `parent` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
 | `matching` | `"exact" \| "semantic"` | yes | How this vocabulary finds a term you already have. `exact` matches the slugified value and nothing else. `semantic` searches the vocabulary's own terms by meaning, so `ML` can find `machine-learning`; it needs a resolver flow bound. |
 | `proposal` | `object \| null` | yes | Settings for how new terms are proposed during ingest. |
@@ -258,7 +258,7 @@ Create one vocabulary. With `validateOnly: true` it answers whether the vocabula
 | `label` | `string` | yes | Display text. Editable later with PATCH; the rest of a vocabulary's settings are fixed at creation. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
 | `termAttributes` | `object[]` | no | The attributes this vocabulary's terms carry, such as a `group`: each a key, a type (`text`, `number`, `boolean`) and whether every term must give it. Omit for none. |
-| `parentVocabularyKey` | `string \| null` | no | Key of a vocabulary to nest this one under. Omit or pass null for a top-level vocabulary. Permanent. |
+| `parent` | `string \| null` | no | Key of a vocabulary to nest this one under. Omit or pass null for a top-level vocabulary. Permanent. |
 | `mint` | `"none" \| "active" \| "candidate"` | no | Defaults to `active` when omitted. |
 | `matching` | `"exact" \| "semantic"` | no | Defaults to `semantic` when omitted. |
 | `proposal` | `object \| null` | no | How ingest may propose new terms for this vocabulary. Omit for the default behaviour. |
@@ -294,7 +294,7 @@ Each item of `diagnostics`:
 | `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
 | `termAttributes` | `object[]` | yes | The attributes this vocabulary's terms carry, such as a `group`. Each term's values are checked against it. Removing one removes its values from every term, and changing its type removes the values archived terms hold that no longer fit; both need ADMIN. |
-| `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
+| `parent` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
 | `matching` | `"exact" \| "semantic"` | yes | How this vocabulary finds a term you already have. `exact` matches the slugified value and nothing else. `semantic` searches the vocabulary's own terms by meaning, so `ML` can find `machine-learning`; it needs a resolver flow bound. |
 | `proposal` | `object \| null` | yes | Settings for how new terms are proposed during ingest. |
@@ -330,7 +330,7 @@ Each item of `wiring`:
 | `field` | `string \| null` | yes | For `extracted`: the response field that carries the vocabulary's value. Null for the other kinds. |
 | `slot` | `string \| null` | yes | For `fed`: the slot the candidates are read from. Null for the other kinds. |
 | `declaredOnly` | `boolean` | yes | True when the step's response TYPE marks this vocabulary but the step's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the step's `vocabularyFields` names it — nothing derives it from the type. Always false for `proposed` and `fed`. |
-| `drift` | `string \| null` | yes | Set when this `extracted` step's stored `vocabularyFields` no longer matches the `$vocabularyKey` markers on its response type: one sentence naming what differs. The same sentence the save-time `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED` warning carries. Null when they agree, when the type carries no markers, and for `proposed` and `fed`. |
+| `drift` | `string \| null` | yes | Set when this `extracted` step's stored `vocabularyFields` no longer matches the `$vocabulary` markers on its response type: one sentence naming what differs. The same sentence the save-time `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED` warning carries. Null when they agree, when the type carries no markers, and for `proposed` and `fed`. |
 
 ### `GET /v1/vocabularies/{id}`
 
@@ -358,7 +358,7 @@ Read one vocabulary by id, with the `version` its PATCH takes; `expand` adds its
 | `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
 | `termAttributes` | `object[]` | yes | The attributes this vocabulary's terms carry, such as a `group`. Each term's values are checked against it. Removing one removes its values from every term, and changing its type removes the values archived terms hold that no longer fit; both need ADMIN. |
-| `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
+| `parent` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
 | `matching` | `"exact" \| "semantic"` | yes | How this vocabulary finds a term you already have. `exact` matches the slugified value and nothing else. `semantic` searches the vocabulary's own terms by meaning, so `ML` can find `machine-learning`; it needs a resolver flow bound. |
 | `proposal` | `object \| null` | yes | Settings for how new terms are proposed during ingest. |
@@ -394,7 +394,7 @@ Each item of `wiring`:
 | `field` | `string \| null` | yes | For `extracted`: the response field that carries the vocabulary's value. Null for the other kinds. |
 | `slot` | `string \| null` | yes | For `fed`: the slot the candidates are read from. Null for the other kinds. |
 | `declaredOnly` | `boolean` | yes | True when the step's response TYPE marks this vocabulary but the step's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the step's `vocabularyFields` names it — nothing derives it from the type. Always false for `proposed` and `fed`. |
-| `drift` | `string \| null` | yes | Set when this `extracted` step's stored `vocabularyFields` no longer matches the `$vocabularyKey` markers on its response type: one sentence naming what differs. The same sentence the save-time `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED` warning carries. Null when they agree, when the type carries no markers, and for `proposed` and `fed`. |
+| `drift` | `string \| null` | yes | Set when this `extracted` step's stored `vocabularyFields` no longer matches the `$vocabulary` markers on its response type: one sentence naming what differs. The same sentence the save-time `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED` warning carries. Null when they agree, when the type carries no markers, and for `proposed` and `fed`. |
 
 ### `PATCH /v1/vocabularies/{id}`
 
@@ -427,7 +427,7 @@ Relabel a vocabulary, rename its key, declare the attributes its terms carry (`t
 
 One of 2 shapes:
 
-Shape 1, with `id`, `project`, `key`, `label`, `cardinality`, `termAttributes`, `parentVocabularyKey`, `mint`, `matching`, `proposal`, `resolverFlowId`, `createdBy`, `version`, `createdAt`, `updatedAt`, `lastResolvedAt`, `touched`:
+Shape 1, with `id`, `project`, `key`, `label`, `cardinality`, `termAttributes`, `parent`, `mint`, `matching`, `proposal`, `resolverFlowId`, `createdBy`, `version`, `createdAt`, `updatedAt`, `lastResolvedAt`, `touched`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -437,7 +437,7 @@ Shape 1, with `id`, `project`, `key`, `label`, `cardinality`, `termAttributes`, 
 | `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
 | `termAttributes` | `object[]` | yes | The attributes this vocabulary's terms carry, such as a `group`. Each term's values are checked against it. Removing one removes its values from every term, and changing its type removes the values archived terms hold that no longer fit; both need ADMIN. |
-| `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
+| `parent` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
 | `matching` | `"exact" \| "semantic"` | yes | How this vocabulary finds a term you already have. `exact` matches the slugified value and nothing else. `semantic` searches the vocabulary's own terms by meaning, so `ML` can find `machine-learning`; it needs a resolver flow bound. |
 | `proposal` | `object \| null` | yes | Settings for how new terms are proposed during ingest. |
@@ -477,7 +477,7 @@ Each item of `wiring`:
 | `field` | `string \| null` | yes | For `extracted`: the response field that carries the vocabulary's value. Null for the other kinds. |
 | `slot` | `string \| null` | yes | For `fed`: the slot the candidates are read from. Null for the other kinds. |
 | `declaredOnly` | `boolean` | yes | True when the step's response TYPE marks this vocabulary but the step's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the step's `vocabularyFields` names it — nothing derives it from the type. Always false for `proposed` and `fed`. |
-| `drift` | `string \| null` | yes | Set when this `extracted` step's stored `vocabularyFields` no longer matches the `$vocabularyKey` markers on its response type: one sentence naming what differs. The same sentence the save-time `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED` warning carries. Null when they agree, when the type carries no markers, and for `proposed` and `fed`. |
+| `drift` | `string \| null` | yes | Set when this `extracted` step's stored `vocabularyFields` no longer matches the `$vocabulary` markers on its response type: one sentence naming what differs. The same sentence the save-time `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED` warning carries. Null when they agree, when the type carries no markers, and for `proposed` and `fed`. |
 
 Each item of `contractChanges`:
 
@@ -503,7 +503,7 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "query" \| "selection" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
 | `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
 | `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
@@ -574,7 +574,7 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "query" \| "selection" \| "flow-input" \| "flow-output"` | yes | What is renamed. `flow-input` / `flow-output`: an input or an output of the flow at `path`, through `renameInputs` / `renameOutputs`. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
 | `from` | `string` | yes | The old key; for a field, its old path in the type; for a flow's input or output, its old name. |
 | `to` | `string` | yes | The new key; for a field, its new path; for a flow's input or output, its new name. |
@@ -680,11 +680,11 @@ Create terms under this vocabulary — one or up to 500 — operator-authored an
 
 One of 2 shapes:
 
-Shape 1, with `vocabularyKey`, `parentTermId`, `results`, `created`, `existed`, `qdrantUpsertFailures`:
+Shape 1, with `vocabulary`, `parentTermId`, `results`, `created`, `existed`, `qdrantUpsertFailures`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `vocabularyKey` | `string` | yes | The vocabulary the terms were seeded into. |
+| `vocabulary` | `string` | yes | The vocabulary the terms were seeded into. |
 | `parentTermId` | `string \| null` | yes | The parent they were nested under, or null for top-level. |
 | `results` | `object[]` | yes | One entry per submitted term, in the order you sent them. |
 | `created` | `integer` | yes | How many terms were newly inserted. |

@@ -1,9 +1,9 @@
 # Sharing a record with a person or a team
 
-<!-- field-ok: ownerId — a member of a flow's record row read through a share (423-record-sharing-gaps), not a wire field -->
-<!-- field-ok: sharedAt — a member of a flow's record row read through a share (423-record-sharing-gaps), not a wire field -->
+<!-- field-ok: ownerId — a member of a flow's record row read through a share, not a wire field -->
+<!-- field-ok: sharedAt — a member of a flow's record row read through a share, not a wire field -->
 
-A record of a person-owned table (`ownerScope: "user"`) is read only by the person who owns it. Turn
+A record of a person-owned table (`owner: user`) is read only by the person who owns it. Turn
 `sharing` on for the table and each record can also be shared: with another person of the project, or
 with a team. The record stays its owner's; sharing decides who else reaches it, and at which level.
 
@@ -32,13 +32,13 @@ in their place.
 
 ## The levels
 
-| Level    | What the person, or every member of the team, may do                   |
-| -------- | ---------------------------------------------------------------------- |
-| `read`   | read the record, wherever it is read: list, query, count, views, links |
-| `write`  | also update it, append to its streams, link and unlink it              |
-| `delete` | also delete it                                                         |
-| `manage` | also share it onward, take a share back and list its shares            |
-| `member` | on a team record only: the person joins the team                       |
+| Level    | What the person, or every member of the team, may do                           |
+| -------- | ------------------------------------------------------------------------------ |
+| `read`   | read the record, wherever it is read: list, query, count, named queries, links |
+| `write`  | also update it, append to its streams, link and unlink it                      |
+| `delete` | also delete it                                                                 |
+| `manage` | also share it onward, take a share back and list its shares                    |
+| `member` | on a team record only: the person joins the team                               |
 
 Of `read`, `write`, `delete` and `manage`, each includes the ones above it. A person or a team holds one level on a record: a second grant to
 them sets the level, lower or higher, and the share's time, in place of the first.
@@ -78,9 +78,9 @@ schedule, a trigger) may share with any team of the project.
 
 Every read of a sharing table as a person — `record.read`, `record.list`, `record.query`,
 `record.aggregate` and `record.count`, linked reads, a search (a `record.query` semantic clause), and a
-view endpoint called by that person — answers their own records and every record shared with them or with a team they are a
+query endpoint called by that person — answers their own records and every record shared with them or with a team they are a
 member of. Each record `record.read`, `record.list`, `record.query` (its search hits included), a linked read or
-a view without a shape answers them carries (a view with a shape answers its shape's properties only):
+a query without a selection answers them carries (a query with a selection answers its selection's properties only):
 
 - `access` — what they may do: `owner`, `read`, `write`, `delete` or `manage` (their best path, a
   team's share capped at their member level);
@@ -91,7 +91,7 @@ they do" — no lookup of your own. Branch on `access` to hide a button, to refu
 (`request.refuse` with 403), or to leave a field out of the answer. A read made for nobody (a schedule,
 a trigger) carries neither field.
 
-A share or a revoke counts on the next read: a view's ETag and a live view move with it. A search finds
+A share or a revoke counts on the next read: a query endpoint's ETag and a live query move with it. A search finds
 a newly shared record by meaning once its search index learns the new reader, normally seconds after
 the run that shared it. While many shares of one record keep landing, the index catches up a few times
 and then leaves the rest to the next reconcile: the daily one, unless a save that changes what the

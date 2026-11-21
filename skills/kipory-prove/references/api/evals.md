@@ -127,7 +127,7 @@ Each item of `assertions`:
 | --- | --- | --- | --- |
 | `kind` | `"no-missing-required-output"` | yes | Every output slot the flow declares as required was produced. The highest-value check: if this fails, a live invocation of the flow would fail too. |
 | `slot` | `string` | no | Output slot that must be present. |
-| `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared type. |
+| `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared jsonType. |
 | `stepKey` | `string` | no | Key of the step to check, in the suite's flow. Renaming the step's key moves this with it. |
 | `outcome` | `"applied" \| "answered-nothing" \| "not-run" \| "failed"` | no | Outcome that step must have reached: `applied` (it ran and gave a value), `answered-nothing` (it ran and gave nothing), `not-run` (it was reached and did not run) or `failed`. |
 | `status` | `integer` | no | The HTTP status a live call would answer, e.g. 422 for a refused input, 404 for a record not found, 409 for a conflict. |
@@ -172,7 +172,7 @@ Each item of `assertions`:
 | --- | --- | --- | --- |
 | `kind` | `"no-missing-required-output"` | yes | Every output slot the flow declares as required was produced. The highest-value check: if this fails, a live invocation of the flow would fail too. |
 | `slot` | `string` | no | Output slot that must be present. |
-| `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared type. |
+| `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared jsonType. |
 | `stepKey` | `string` | no | Key of the step to check, in the suite's flow. Renaming the step's key moves this with it. |
 | `outcome` | `"applied" \| "answered-nothing" \| "not-run" \| "failed"` | no | Outcome that step must have reached: `applied` (it ran and gave a value), `answered-nothing` (it ran and gave nothing), `not-run` (it was reached and did not run) or `failed`. |
 | `status` | `integer` | no | The HTTP status a live call would answer, e.g. 422 for a refused input, 404 for a record not found, 409 for a conflict. |
@@ -236,7 +236,7 @@ Each item of `assertions`:
 | --- | --- | --- | --- |
 | `kind` | `"no-missing-required-output"` | yes | Every output slot the flow declares as required was produced. The highest-value check: if this fails, a live invocation of the flow would fail too. |
 | `slot` | `string` | no | Output slot that must be present. |
-| `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared type. |
+| `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared jsonType. |
 | `stepKey` | `string` | no | Key of the step to check, in the suite's flow. Renaming the step's key moves this with it. |
 | `outcome` | `"applied" \| "answered-nothing" \| "not-run" \| "failed"` | no | Outcome that step must have reached: `applied` (it ran and gave a value), `answered-nothing` (it ran and gave nothing), `not-run` (it was reached and did not run) or `failed`. |
 | `status` | `integer` | no | The HTTP status a live call would answer, e.g. 422 for a refused input, 404 for a record not found, 409 for a conflict. |
@@ -741,7 +741,7 @@ Each item of `diagnostics`:
 
 ### `GET /v1/eval-suites/{id}/readiness`
 
-What a suite's configuration says a run will reach, before a credit is spent: the tables its flow's graph names and who owns their rows (`ownerScope`), so a suite that would read an empty per-user corpus can be fixed first. Derived from configuration, never from a run. Whether a run would start, and its warnings: `POST /v1/eval-suites/{id}/run` with `validateOnly: true`.
+What a suite's configuration says a run will reach, before a credit is spent: the tables its flow's graph names and who owns their rows (`owner`), so a suite that would read an empty per-user corpus can be fixed first. Derived from configuration, never from a run. Whether a run would start, and its warnings: `POST /v1/eval-suites/{id}/run` with `validateOnly: true`.
 
 **Path parameters**
 

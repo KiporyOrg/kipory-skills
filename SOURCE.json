@@ -1,7 +1,13 @@
 {
-  "source": "f06f7d8dbd282797d8d732e3b2b67bef69c08418",
+  "source": "0ac4f4434ce0a67c53c1f86b8b716ecd7087b1ac",
   "since": "2026-08-19",
   "history": [
+    {"sha":"0ac4f4434ce0","skills":"The project document is format 12: queries and selections live under their table, a `project` section and `requires` state the project's settings and needs, endpoints, triggers and schedules are flat, a trigger holds what it watches, exports are sparse, and every project has its own sending address (438) (#3793)"},
+    {"sha":"9d9082de5ea5"},
+    {"sha":"ebbe4b717bed"},
+    {"sha":"70aebd02e8d8"},
+    {"sha":"f2ea975dbde5"},
+    {"sha":"4ef9756fa2b4"},
     {"sha":"f06f7d8dbd28","skills":"A table's records reprocess together, a restart whose outputs changed stops before it runs, ability-type moves are judged like a release, and /v1/board-groups is gone (436 slice 4) (#3789)"},
     {"sha":"a85a2af335d1"},
     {"sha":"942163a767c6"},
@@ -995,12 +1001,6 @@
     {"sha":"f6b2970a907d"},
     {"sha":"7c2c2c7ec65a"},
     {"sha":"08f8436262c8"},
-    {"sha":"6eb138ce6199"},
-    {"sha":"05ed701d2746"},
-    {"sha":"b65c1f1347c5"},
-    {"sha":"30d27858964d"},
-    {"sha":"0118c4cef6db"},
-    {"sha":"018a6da01142"},
-    {"sha":"65513a97906f"}
+    {"sha":"6eb138ce6199"}
   ]
 }

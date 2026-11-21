@@ -4,7 +4,7 @@ Read this when you create a vocabulary, attach one to a table, or seed and edit 
 
 A vocabulary is not a field: its values are resolved by the processing flow into the term store, so the table-to-vocabulary association is a list on the table (`uses.vocabularies`), not a use of a field. A key that is not a vocabulary of the project is `USES_VOCABULARY_UNKNOWN`; one that is also a field name of the table is `USES_VOCABULARY_SHADOWS_FIELD`.
 
-**A vocabulary that is the parent of another must be `cardinality: one`** — a child term hangs under exactly one parent term, so the child vocabulary's create is refused `VOCABULARY_PARENT_CARDINALITY` otherwise, and a vocabulary's PATCH does not take `cardinality`. Decide it before seeding the parent's terms.
+**A vocabulary named as another's `parent` must be `cardinality: one`** — a child term hangs under exactly one parent term, so the child vocabulary's create is refused `VOCABULARY_PARENT_CARDINALITY` otherwise, and a vocabulary's PATCH does not take `cardinality`. Decide it before seeding the parent's terms.
 
 **Every term write embeds before it saves, whatever the vocabulary's `matching`.** `POST /v1/vocabularies/{id}/terms` and a relabelling `PATCH /v1/terms/{id}` embed the term's text on the platform's shared term model. When that model's provider refuses, **nothing is saved**, even on an `exact` vocabulary, and a `validateOnly` seed does not embed — so it can answer `ok` for a seed the real call refuses. `references/classification-runtime.md` has how to read that failure.
 

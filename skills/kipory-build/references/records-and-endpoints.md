@@ -2,19 +2,19 @@
 
 <!-- field-ok: runInfo — a provider value the platform fills, not a request field -->
 
-**A read is a view; a flow only when it computes.** A list or a lookup an endpoint answers, or a read several flows repeat, is declared once as a view and read with one `record.view` step — [views.md](views.md) (§11), with a complete worked document; its `GET` endpoint declares only its path. The shapes below are for what a view does not do.
+**A read is a query; a flow only when it computes.** A list or a lookup an endpoint answers, or a read several flows repeat, is declared once as a query under its table and read with one `record.query` step naming it — [queries.md](queries.md) (§11), with a complete worked document; its `GET` endpoint declares only its path. The shapes below are for what a query does not do.
 
 Two shapes for flows that read and write the project's records: §7 and §10. The other sections live on their own pages:
 
-| Section   | Page                            | Answers                                                                                                                                                                      |
-| --------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| §1, §3–§5 | `patterns.md`                   | a line of steps, a sub-flow and a run for each person, repeat until done, branch / `try` / `fail` / `parallel`                                                               |
-| §2, §6    | `fan-out.md`                    | the `each` and `parallel` blocks, a job longer than one run, run state across elements                                                                                       |
-| —         | `utilities.md`                  | the small functions most flows use (`value.first-non-empty`, `text.interpolate`, `list.concat`, `record.read`) and `value.transform`'s JSONata habits                        |
-| §7, §10   | `records-and-endpoints.md`      | a record's processing flow; a value rolled up from linked records                                                                                                            |
-| §8        | `endpoint-answers.md`           | what an endpoint can answer: the body shape, rows, a 404, a 422 with your message, a 403 for a key, optional query filters, a filter on a list field, natural-key collisions |
-| §9        | `record-query.md`               | `record.query`: a per-user feed, "due now", the clause grammar, and totals with `record.aggregate`                                                                           |
-| §11       | `views.md`, `view-endpoints.md` | views: a read declared once, its sets, params and shapes; then `record.view` in a flow, the view endpoint that pages itself, ETag, the preview                               |
+| Section   | Page                               | Answers                                                                                                                                                                      |
+| --------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §1, §3–§5 | `patterns.md`                      | a line of steps, a sub-flow and a run for each person, repeat until done, branch / `try` / `fail` / `parallel`                                                               |
+| §2, §6    | `fan-out.md`                       | the `each` and `parallel` blocks, a job longer than one run, run state across elements                                                                                       |
+| —         | `utilities.md`                     | the small functions most flows use (`value.first-non-empty`, `text.interpolate`, `list.concat`, `record.read`) and `value.transform`'s JSONata habits                        |
+| §7, §10   | `records-and-endpoints.md`         | a record's processing flow; a value rolled up from linked records                                                                                                            |
+| §8        | `endpoint-answers.md`              | what an endpoint can answer: the body shape, rows, a 404, a 422 with your message, a 403 for a key, optional query filters, a filter on a list field, natural-key collisions |
+| §9        | `record-query.md`                  | `record.query`: a per-user feed, "due now", the clause grammar, and totals with `record.aggregate`                                                                           |
+| §11       | `queries.md`, `query-endpoints.md` | queries: a read declared once, its sets, params and selections; then a named query in a flow, the query endpoint that pages itself, ETag, the preview                        |
 
 The section numbers are one sequence across these pages, so "§8" means the same section wherever it is cited. `models.md` holds which model function to use, `text.decide` questions, model bindings and prices.
 
@@ -24,7 +24,7 @@ The section numbers are one sequence across these pages, so "§8" means the same
 
 The contract the flow is held to:
 
-- **Its inputs are named after the record.** Each input reads the submitted field of the same name. Three more names come from the record row itself: `recordId` (string), `createdAt` (ISO timestamp) and `files` — the files attached to the record (`files: {typeName: file, isList: true}`). Binding the flow refuses a required input that is none of those three and not a required field of the table's type; a field the type leaves optional is an input with `optional: true`, and reading it as required is `STEP_INPUT_MAY_BE_ABSENT` until you guard it.
+- **Its inputs are named after the record.** Each input reads the submitted field of the same name. Three more names come from the record row itself: `recordId` (string), `createdAt` (ISO timestamp) and `files` — the files attached to the record (`files: file[]`). Binding the flow refuses a required input that is none of those three and not a required field of the table's type; a field the type leaves optional is an optional input (`string?`), and reading it as required is `STEP_INPUT_MAY_BE_ABSENT` until you guard it.
 - **It declares at least one output**, or binding it is refused with `TABLE_OUTPUT_EMPTY`. A flow that only files terms or writes elsewhere still needs one — return a small computed value.
 - **Records wait for it.** A table with a processing flow creates records pending. A record created through the records API is queued for processing on its own; a record a flow creates with `record.create` is not — that flow must run `record.enqueue-process` after it. A table with no processing flow creates records ready.
 - **A flow writes a record whole or field by field.** `record.create` and `record.update` take `data` — an argument naming the whole object (`data: shaped`) — or `fields`, one argument per table field: `{title: page.title, status: {literal: new}, tags: page.tags}`. Never both (`FIELDS_AND_DATA_BOTH`). The save checks each `fields` key against the table (`FIELDS_ENTRY_UNKNOWN`, with the nearest name) and each value's type against the field; an entry read `optional` that is nothing is left off the record.
@@ -33,22 +33,21 @@ The contract the flow is held to:
 In a document:
 
 ```yaml kipory:request=project-document
-kipory: 11
+kipory: 12
 types:
   Note:
-    definition:
-      type: object
-      properties:
-        title: { type: string }
-        body: { type: string }
-      required: [title, body]
+    type: object
+    properties:
+      title: { type: string }
+      body: { type: string }
+    required: [title, body]
 flows:
   summarise-note:
     label: Summarise note
     inputs:
-      body: { typeName: string }
+      body: string
     outputs:
-      summary: { typeName: string }
+      summary: string
     steps:
       - key: summary
         function: text.generate
@@ -58,13 +57,13 @@ flows:
 tables:
   note:
     type: Note
-    ownerScope: project
+    owner: project
     flow: summarise-note
 ```
 
-Plan it first ([document.md](document.md)): the plan judges the flow as it will stand. A record created with `POST /v1/records { project, tableKey: "note", data: { title, body } }` goes `pending`, then `ready` with `derived.summary`. Preview the flow on a stored record with `input: { kind: "record", recordId }`.
+Plan it first ([document.md](document.md)): the plan judges the flow as it will stand. A record created with `POST /v1/records { project, table: "note", data: { title, body } }` goes `pending`, then `ready` with `derived.summary`. Preview the flow on a stored record with `input: { kind: "record", recordId }`.
 
-**File in, searchable text out.** The most common processing flow: the record carries one uploaded file, a PDF or a text file, and the flow returns one `body` to index (`uses` `{ "source": { "family": "processed", "field": "body" }, "uses": [{ "kind": "search" }] }` on the table). Inputs `files: {typeName: file, isList: true}`, output `body: {typeName: string}`; one `if` picks the reader by the file's type, and every path ends:
+**File in, searchable text out.** The most common processing flow: the record carries one uploaded file, a PDF or a text file, and the flow returns one `body` to index (`uses: { search: [{ field: body, family: processed }] }` on the table). Inputs `files: file[]`, output `body: string`; one `if` picks the reader by the file's type, and every path ends:
 
 ```yaml
 steps:

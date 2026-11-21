@@ -131,7 +131,7 @@ async or streaming — plus the auth that reaches it.
 ### 5 — Classification and linking
 
 Do records need classifying against a vocabulary (**vocabularies**, resolved to terms), or linking
-to each other with typed links (**relations** and their pairings)? Both are frequently "none" —
+to each other with typed links (**relations**, each stated from a table's field to a table)? Both are frequently "none" —
 say so explicitly.
 
 → Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`) · Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`)
@@ -142,7 +142,8 @@ What starts a flow when nobody calls it? Three answers, and each is a row:
 
 - on a clock — a **schedule** bound to a flow;
 - when an event is recorded in the project — a **trigger** on that event;
-- when something arrives from outside — a **source**, which writes events, and a trigger on them.
+- when something arrives from outside — a trigger that **watches** it; the thing watched is a
+  **source**, which writes events, and the trigger holds it.
   `GET /v1/sources/providers` says which providers this deployment accepts
   (`availability: available`); today that is a watched Telegram channel. An inbound webhook is not
   a source yet: receive it on an endpoint (step 4), which works only if the sender can send
@@ -181,11 +182,12 @@ One row per object to be built:
 | ---- | --------- | ---- | ----------- | ----- |
 
 - **Step** — which of the eight produced it.
-- **Primitive** — table, type, embedding profile, flow, step, endpoint, schedule,
-  trigger, source, vocabulary, relation, event, project-config namespace, secret, task-model
-  binding, eval suite, eval case.
+- **Primitive** — table, type, query, selection, embedding, flow, step, endpoint, schedule,
+  trigger (and what it watches), vocabulary, relation, event, project-config namespace, secret,
+  task-model binding, eval suite, eval case.
   ⚠️ Four of those are easy to leave out of a sheet and expensive to discover later: a
-  table declared searchable needs an **embedding profile** to name, a flow calling a paid
+  table that must be searched with a model other than the default needs an **embedding** of its
+  own to name, a flow calling a paid
   web vendor, or any outside API through `url.fetch` or `url.send`, may need a **secret**, a
   threshold you will want to tune belongs in a **project-config namespace** rather than baked into a
   flow, and the **eval cases** of step 8 are the only part of a plan that survives a later rewrite.

@@ -23,7 +23,7 @@ steps:
             steps:
               - key: created
                 function: record.create
-                with: { tableKey: product, data: row }
+                with: { table: product, data: row }
             out: { id: created.id }
           - key: answer
             return:

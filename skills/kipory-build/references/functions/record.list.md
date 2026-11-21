@@ -37,7 +37,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | `sort` | `createdAt` \| `updatedAt` | no | `"createdAt"` | Order by when a row was created (default) or last changed. |
 | `sortField` | string | no | — | Order by one of the table's queryable fields instead of `sort`. ⚠️ The field must be a date; rows without a value are left out. |
 | `statuses` | string[] of `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` \| `DELETING` \| `MERGED`, at least 1 item | no | — | Keep only rows with these statuses; omit it for every status. |
-| `tableKey` | string | yes | — | The table to list. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
+| `table` | string | yes | — | The table to list. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
 | `userId` | union | no | — | The person whose records to read; empty reads as the run. ⚠️ Left empty in a run with no person, the step reads every person's records. |
 | `vocabularyFilter` | object[], at least 1 item | no | — | Keep only rows tagged with all of these vocabulary terms. ⚠️ A nested term slug matches under every parent unless `parentSlug` is set. |
 | `whose` | `all` \| `own` \| `shared` | no | `"all"` | Sharing tables: `all` (default), `own`, or `shared` (newest share first). |
@@ -304,7 +304,7 @@ each entry › `linked` › each entry › `when` — one of:
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `vocabularyKey` | string | yes | — | The vocabulary, by key. |
+| `vocabulary` | string | yes | — | The vocabulary, by key. |
 | `slug` | string | yes | — | The term a row must carry, by slug. |
 | `parentSlug` | string | no | — | The parent term's slug, to narrow a nested term to one branch. |
 
@@ -322,7 +322,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "item",
+  "table": "item",
   "userId": "userInfo.userId",
   "limit": 50
 }
@@ -357,7 +357,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "item",
+  "table": "item",
   "userId": "userInfo.userId",
   "cursor": "pageCursor",
   "limit": 50
@@ -390,7 +390,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "item",
+  "table": "item",
   "userId": "userInfo.userId",
   "fields": [
     "title",
@@ -432,7 +432,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "book",
+  "table": "book",
   "userId": "userInfo.userId",
   "fields": [
     "title"
@@ -479,7 +479,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "item",
+  "table": "item",
   "userId": "userInfo.userId"
 }
 ```

@@ -8,14 +8,14 @@ license: MIT
 
 A project's records are normally written by **flows**: a record comes into being when a step such as `record.create` runs — inside a dynamic endpoint your product's users call, a schedule, or a processing flow. That is still the path that scales, and the one your product should use.
 
-The design API also writes records directly, at one prefix, `/v1/records`: `POST /v1/records` creates one by hand (or upserts it by natural key), `POST /v1/records/bulk` writes up to 500 in one change set, and `GET /v1/records/{id}`, `PATCH`, `DELETE`, `POST …/reprocess` and `PUT …/vocabularies/{vocabularyKey}` read, correct, end, re-run and re-file an existing one. Alongside those it gives you the **read side** (list, search, one hop of links, the processing stream), the **file handshake**, curated links, and the ingest report. The fact most people get wrong: a key-driven run writes the **project's shared pool** — a table whose owner scope is per-user refuses a key with a 403, because a key carries no user.
+The design API also writes records directly, at one prefix, `/v1/records`: `POST /v1/records` creates one by hand (or upserts it by natural key), `POST /v1/records/bulk` writes up to 500 in one change set, and `GET /v1/records/{id}`, `PATCH`, `DELETE`, `POST …/reprocess` and `PUT …/vocabularies/{vocabularyKey}` read, correct, end, re-run and re-file an existing one. Alongside those it gives you the **read side** (list, search, one hop of links, the processing stream), the **file handshake**, curated links, and the ingest report. The fact most people get wrong: a key-driven run writes the **project's shared pool** — a table whose `owner` is `user` refuses a key with a 403, because a key carries no user.
 
 Every route here answers on the **api host** with your key. A list, create, query or bulk names the project by its **node id** as `project` (`?project=` on a GET, `project` in a body); a route addressed by a record's or a file's id needs no project at all — the row carries it.
 
 ## Before the first call
 
 - Read `references/api/records.md`, `references/api/files.md` and `references/api/ingest.md` for every field. The list read has a large query surface and it is `strict`: an undeclared query key is a 422, not ignored.
-- Know which table you are asking about. `GET /v1/records?project=<node>` picks the table holding the most records when you omit `tableKey`, and says so in `contract.chosenByDefault`.
+- Know which table you are asking about. `GET /v1/records?project=<node>` picks the table holding the most records when you omit `table`, and says so in `contract.chosenByDefault`.
 - Know the role each call needs. Reads are VIEWER. Creating, patching, bulk-writing, re-filing and reprocessing a record, stating or retracting a link, and uploading, attaching or detaching a project file are EDITOR — and a record write that queues processing, like a reprocess, is charged as any live run is. Deleting a record or a project's file, and the cache bust, are ADMIN.
 - If the project is retired, a key granted at the project itself answers 401 on every call. A key granted above it, or a signed-in person, still reads, and every write below answers 409.
 
@@ -24,15 +24,15 @@ Every route here answers on the **api host** with your key. A list, create, quer
 **Look at what is there.**
 
 ```
-GET /v1/records?project=<node>&tableKey=<type>&limit=50           one page, newest first — `tableKey`, the same name the bodies use
-GET /v1/records?project=<node>&tableKey=<type>&q=<text>            natural key + declared text fields, case-insensitive
-GET /v1/records?project=<node>&tableKey=<type>&mode=semantic&q=<text>   a bounded ranking, no pages
+GET /v1/records?project=<node>&table=<type>&limit=50           one page, newest first — `table`, the same name the bodies use
+GET /v1/records?project=<node>&table=<type>&q=<text>            natural key + declared text fields, case-insensitive
+GET /v1/records?project=<node>&table=<type>&mode=semantic&q=<text>   a bounded ranking, no pages
 GET /v1/records?project=<node>&id=<id>&id=<id>                     name records by id (up to 100), any type; missing ids are absent
-GET /v1/records?project=<node>&tableKey=<type>&key=<naturalKey>    the one record with exactly that natural key
-GET /v1/records?project=<node>&tableKey=<type>&fields=<a>&fields=<b>   each row also carries those fields' values, in `values`
+GET /v1/records?project=<node>&table=<type>&key=<naturalKey>    the one record with exactly that natural key
+GET /v1/records?project=<node>&table=<type>&fields=<a>&fields=<b>   each row also carries those fields' values, in `values`
 GET /v1/records/{id}                                               one record whole: its `data`, its `version`, its type's contract
-POST /v1/records/query  { project, tableKey, clauses?, order?, limit?, linked? }   fields, terms, links, streams and one phrase in one question; each record with its linked records
-POST /v1/views/{key}/preview?project=<node>  { asUserId?, params?, after?, before?, limit? }   one page of a named view as that member reads it, with its item schema; writes and charges nothing
+POST /v1/records/query  { project, table, clauses?, order?, limit?, linked? }   fields, terms, links, streams and one phrase in one question; each record with its linked records
+POST /v1/tables/{id}/queries/{key}/preview?project=<node>  { asUserId?, params?, after?, before?, limit? }   one page of a table's named query as that member reads it, with its item schema; writes and charges nothing
 ```
 
 **Reading records** — `fields=` projections, `field=` and `term=` filters, the query body's `linked` records, stream events and `key=` matching: `references/reading-records.md`.
@@ -53,7 +53,7 @@ GET    /v1/links?project=<node>&relation=<key>              every link in the pr
 **Correct or backfill existing records.** One record is a `PATCH`; many are one bulk:
 
 ```
-GET   /v1/records?project=<node>&tableKey=<type>&limit=100    ids and versions (every row carries `version`; follow `nextCursor`)
+GET   /v1/records?project=<node>&table=<type>&limit=100    ids and versions (every row carries `version`; follow `nextCursor`)
 PATCH /v1/records/{id}     { "version": <version>, "merge": { "phone": "…" } }       one record
 POST  /v1/records/bulk     { "project": "<node>", "items": [ { "id", "version", "merge": { "phone": "…" } }, … ] }   up to 500
 ```
@@ -65,7 +65,7 @@ POST  /v1/records/bulk     { "project": "<node>", "items": [ { "id", "version", 
 
 ⭐ **Adding a required field to a table with records is four calls**: widen the type with the field optional (`kipory-evolve`), list the ids and versions, one bulk `merge` setting the field on each, then make it required.
 
-**Delete a record.** `DELETE /v1/records/{id}` (ADMIN, irreversible) removes the record and everything derived from it — terms, links, files it produced, vector points — and answers `{ id, deleted: true, outcome }`: `removed`, or `draining` when a run was over it (it goes at that run's next step). `?validateOnly=true` answers what it would do and deletes nothing; there is no `confirm` flag. The bulk route takes creates and updates only, so to clear a table, page `GET /v1/records?project=<node>&tableKey=<type>` and delete each id.
+**Delete a record.** `DELETE /v1/records/{id}` (ADMIN, irreversible) removes the record and everything derived from it — terms, links, files it produced, vector points — and answers `{ id, deleted: true, outcome }`: `removed`, or `draining` when a run was over it (it goes at that run's next step). `?validateOnly=true` answers what it would do and deletes nothing; there is no `confirm` flag. The bulk route takes creates and updates only, so to clear a table, page `GET /v1/records?project=<node>&table=<type>` and delete each id.
 
 **Run a record's processing flow again.**
 

@@ -5,6 +5,8 @@
 > **Source of truth for facts:** endpoint paths & request shapes → live `GET /v1/openapi.json`.
 > The declaration half rides on the table, so its wire form is the table's. This pack
 > carries judgment, not field lists.
+>
+> **Format 12 names:** a relation's declaration names its holding table `table` (it was `tableKey`).
 
 ## Read this first
 
@@ -40,35 +42,53 @@ Three things are authored and one is derived:
 
 - **A relation** is the definition of a kind of link: a key, a label, a direction, a producer,
   optionally a cardinality, and optionally a type for the link's properties.
-- **A pairing** declares that a relation applies between two specific tables. The triple of
-  relation, from and to _is_ the row — which is why there is nothing to update on one.
-- **A `link` use on the table** names, on a field, **which relation its reference feeds** —
-  `{ "kind": "link", "relation": "<relation key>" }` in the table's `uses`, with `element.ref` when
-  the field is a list of objects. The table's `relations` document is derived from those uses (and
-  from `uses.join`) and is read-only. This is the part that actually makes links.
+- **The ends** say which pairs of tables a relation connects. A relation states one pair as
+  `from` and `to`; several go in `between: [{ from, to }, …]` instead, never both — on the
+  relation's routes and in the project document alike. A pair is just relation, from table and to
+  table, so there is nothing to update on one: you add or remove pairs by restating the ends.
+- **The source field** names **which field's reference feeds the relation**. In the project
+  document it is the relation's own `from: <table>.<field>` — or
+  `from: { field: <table>.<field>, onTargetDelete, unresolved, scope, element: { ref, filters } }`
+  when it needs options, `element.ref` when the field is a list of objects. The table's link use,
+  its read-only `relations` section and `producer: field` are all derived from it (a join relation
+  is declared by `join` in its table's `uses`). This is the part that actually makes links.
 - **The link itself** is derived for a `field` relation — you never write one directly. `field` is
   the only producer whose links you never author: a `curated` link is asserted directly, and a
   `join-record` relation writes no link at all, because the join records ARE the links.
 
-⭐ **A relation plus a pairing produces nothing.** Until a table declares a field feeding it, the
+```yaml
+relations:
+  grown-by:
+    label: Grown by
+    description: The farm a box's produce came from.
+    from: box.farmId # the field whose reference makes the link
+    to: farm
+    cardinality: many-to-one
+  tagged:
+    label: Tagged
+    description: Stated by hand.
+    producer: curated
+    from: note # curated, or made of join records: names tables only
+    to: topic
+```
+
+⭐ **A relation with ends but no source field produces nothing.** Until a table declares a field feeding it, the
 relation is legal, listed, and doing nothing. That state is _reported_ rather than refused — the
 previous generation of this system had a silent version of exactly this, and a whole set of
 relations could look healthy while producing no links at all.
 
-⛔ **A relation with NO pairing is a different case, and it is refused outright**: it would be a
+⛔ **A relation with NO ends is a different case, and it is refused outright**: it would be a
 definition that applies to no tables and can connect nothing. Three rules keep it out:
 
-- `POST /v1/relations` **requires** at least one pairing. The relation and its first pair are
-  written in one transaction, so nothing is lost by requiring it.
-- `DELETE /v1/relation-pairings/{id}` **refuses the last one** with `409
-RELATION_NO_PAIRINGS`. Delete the relation if that is what you meant.
-- Declaring a field that feeds a relation with no pairing is refused rather than warned.
+- `POST /v1/relations` **requires** its ends (`from` and `to`, or `between`). The relation and its
+  pairs are written in one transaction, so nothing is lost by requiring them.
+- `PATCH /v1/relations/{id}` restating the ends **cannot drop the last pair**: `409
+RELATION_NO_ENDS`. Delete the relation if that is what you meant.
+- Declaring a field that feeds a relation with no ends is refused rather than warned.
 
-⭐ **A relation that is nonetheless unpaired is still editable.** The refusal is on the CREATE,
-not on every write: `PATCH /v1/relations/{id}` carries no `pairings` field, so refusing it
-would name something the request could not have contained — and would lock the row out of having
-its label or its properties type changed. Adding a pairing is the repair, and it is never
-blocked.
+⭐ **A relation that nonetheless has no ends is still editable.** A PATCH that omits `from`, `to`
+and `between` keeps the ends as they are, so a label or properties-type edit is never refused for
+the missing pair. Restating the ends is the repair, and it is never blocked.
 
 ## The model in one paragraph
 
@@ -138,7 +158,7 @@ route rather than from a flow.
 - **Against a vocabulary.** Use a vocabulary (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`) to classify a record against a set
   of _terms_. Use a relation when the other end is a **first-class record** — article to author,
   claim to source.
-- **Directed or symmetric.** Directed makes a pairing's endpoints an ordered pair. Symmetric makes
+- **Directed or symmetric.** Directed makes each pair's `from` and `to` an ordered pair. Symmetric makes
   them unordered, and the write sorts them so one unordered link has exactly one spelling.
 
 ⛔ **A symmetric relation may not name a "one" side.** `many-to-one` is refused on one
@@ -170,31 +190,46 @@ the relation directed if one end really is the "one".
 ## The sequence
 
 ```
-POST  /v1/relations        the kind, its pairings AND its declaration — one call
+POST  /v1/relations        the kind, its ends AND its declaration — one call
   … write records as usual; their links are derived by the write …
 GET   /v1/records/{id}/links/{relationKey}   walk one hop
 ```
 
-Creating a relation is deliberately wide: it seeds its pairings atomically, and **at least one is
-required**, so a relation is never born without one; a seed pair states `fromTableKey` and
-`toTableKey` — tables by **key**, e.g.
-`"pairings": [{ "fromTableKey": "recipe", "toTableKey": "ingredient" }]` — the same two
-fields a pair added later carries. The key is lower-case kebab; it can be renamed while links
-exist (see [Renaming a relation](#renaming-a-relation)). A pair added later is
-its own resource, `POST /v1/relation-pairings` with `relationKey`, `fromTableKey` and `toTableKey`;
-`GET /v1/relation-pairings?project=…&tableKey=…` lists the pairs touching one table.
-Pairings have **no update** — re-target by deleting and recreating. ⚠️ But that recipe stops working
-the moment links exist: a pairing carrying live links is refused outright
-(`RELATION_PAIRING_PINNED_BY_LINKS`), and that is ANY pairing, not just the last one, because
-removing it would strand the links sitting on it. Remove those links first, or delete the relation.
-(Separately, the LAST pairing can never be deleted at all.) A `symmetric` relation that declares the
-same two tables both ways round refuses either ordering too while links stand on the pair. Ask
-before you press: a read of ONE relation, `GET /v1/relations/{id}?expand=pairings`, gives each pair
-its `id` and `deleteRefusal` — either 409 in the delete's own words, or null — from the function the
-delete throws from. The list gives each pair its `id` but no `deleteRefusal`: judging every pair
-there means counting every live link in the project. The live links are counted when you read, so a
-link written in between can still make the delete refuse, with that same sentence. Both resources
-are scoped by the project's `OrgNode` id.
+Creating a relation is deliberately wide: it writes its ends atomically, and **they are
+required**, so a relation is never born connecting nothing. The ends name tables by **key** —
+`"from": "recipe", "to": "ingredient"` for one pair, `"between": [{ "from": "recipe", "to":
+"ingredient" }, { "from": "menu", "to": "ingredient" }]` for several — and `from` may name the
+feeding field instead (`"from": "recipe.ingredientIds"`). There is no `pairings` key on the body.
+The key is lower-case kebab; it can be renamed while links exist (see
+[Renaming a relation](#renaming-a-relation)).
+
+**What a read carries.** `expand=ends` on a relation read adds `ends`, one entry per pair of tables,
+and the create's echo always carries it:
+
+```json
+"ends": [
+  { "from": "recipe", "to": "ingredient", "id": "…",
+    "deleteRefusal": { "code": "RELATION_END_PINNED_BY_LINKS", "message": "…" } }
+]
+```
+
+`from` and `to` are table keys (on a `symmetric` relation the two are interchangeable); `id` is the
+pair's own id; `deleteRefusal` is why removing that pair would be refused right now — one of the
+refusals below, in the words the write would answer with — or `null`. It is present on a read of
+ONE relation (`GET /v1/relations/{id}?expand=ends`, the create's echo, an update's echo that passes
+`expand=ends`) and absent on the list, `GET /v1/relations?project=…&expand=ends`, because judging
+every pair there means counting every live link in the project. The live links are counted when
+you read, so a link written in between can still make the removal refuse, with that same sentence.
+⚠️ `expand=pairings` is refused 422 — `pairings` is now `ends`.
+
+**Adding or removing a pair.** Restate the ends whole: `PATCH /v1/relations/{id}` with the new
+`from` and `to`, or `between` (with your `version`), or the relation's ends in the project document. A
+pair you leave out is removed; a pair you add is written. Removing a pair needs ADMIN, and is
+refused while it stands in the way: live links on it (`RELATION_END_PINNED_BY_LINKS` — ANY pair,
+not just the last, because removing it would strand those links; remove them first, or delete the
+relation), the relation's last pair (`RELATION_NO_ENDS`), or a table still declaring through it
+(`RELATION_INVALID`). A `symmetric` relation that declares the same two tables both ways round
+refuses either ordering too while links stand on the pair. There is no separate pairs resource.
 
 ### `declaration` — the producer's own half, in the same transaction
 
@@ -204,13 +239,13 @@ inside the relation's own transaction. **Three** arms, and which one is legal fo
 
 ```jsonc
 // producer: "field" — name a field the type already has
-{ "declaration": { "tableKey": "post", "produces": { "source": { "family": "submission", "field": "sourceId" } } } }
+{ "declaration": { "table": "post", "produces": { "source": { "family": "submission", "field": "sourceId" } } } }
 
 // producer: "field" — have the field WRITTEN for you, in the same transaction
-{ "declaration": { "tableKey": "post", "generate": { "field": "sources" } } }
+{ "declaration": { "table": "post", "generate": { "field": "sources" } } }
 
 // producer: "join-record"
-{ "declaration": { "tableKey": "subscription",
+{ "declaration": { "table": "subscription",
                    "joins": { "from": { "family": "submission", "field": "spaceId" },
                               "to":   { "family": "submission", "field": "sourceId" } } } }
 ```
@@ -221,7 +256,7 @@ record stores. There is no `derived` family; a reference naming it is refused.
 ⭐ **`generate` is the link bringing its own field.** The other `produces` arm names a property that
 already exists, which made one link two jobs: model a reference field on the table, then come back
 and point a relation at it. This arm inverts it — the property is composed and written beside the
-relation and its pairing, so the whole link lands in one call.
+relation and its ends, so the whole link lands in one call.
 
 The generated property is exactly what a `recordRef` compiles to, as a list:
 
@@ -234,7 +269,7 @@ The generated property is exactly what a `recordRef` compiles to, as a list:
       "ref": {
         "type": "string",
         "minLength": 1,
-        "x-record-ref": "<the pairing's `toTableKey`>",
+        "x-record-ref": "<the pair's `to` table>",
       },
     },
     "required": ["ref"],
@@ -262,11 +297,11 @@ and a field-level permission is not built.
 ⛔ **No `readOnly: true` is written beside it**, and the type registry refuses a keyword that names
 no reader. To tell that a link owns a field, read `x-owned-by-link`.
 
-⛔ **`generate` requires exactly ONE pairing, and the holder must be that pair's `fromTableKey`.**
+⛔ **`generate` requires exactly ONE pair of tables, and the holder must be that pair's `from` table.**
 The annotation `x-record-ref` holds a single string and every reader of it checks presence rather
 than value, so a two-target generated field would carry an annotation that is a lie for half its
 rows with nothing to catch it. Both refusals are `TABLE_RELATIONS_INVALID`. Model the field
-yourself and use the `produces` arm when a relation needs several pairs.
+yourself and name it as `from: <table>.<field>` when a relation needs several pairs.
 
 ⛔ **The name goes through the platform's own field-name rule.** A type's property
 names become API resource keys, so they must be letter-led alphanumeric (`^[a-zA-Z][a-zA-Z0-9]*$`)
@@ -298,15 +333,15 @@ another relation's link is refused (`TABLE_RELATIONS_INVALID`) rather than splic
 is no value that honours both, so it cannot degrade to a warning.
 
 ⚠️ **Omitting it is legal, and for a `join-record` relation it is a trap.** A `field` relation with
-no declaration produces nothing and says so; you can add one later with
-`PATCH /v1/tables/{id}` — a `link` use naming the relation on the field, or `join` on the table, in
-the table's `uses` (see the tables pack (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)). A **join relation
+no declaration produces nothing and says so; you can add one later in the project document — the
+relation's `from: <table>.<field>`, or `join` in the join table's `uses` (see the
+tables pack (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)). A **join relation
 has no link rows to fall back on** — until its table declares `joins`, every traversal resolves
-nothing, while the relation is listed and its pairing is right. Send the declaration with the
+nothing, while the relation is listed and its ends are right. Send the declaration with the
 create.
 
-⭐ **A `link` use TYPES the field.** When the relation's pairings name exactly one target for the
-declaring table, saving the use stamps `x-record-ref` with that target onto the field's schema
+⭐ **A source field is TYPED by the relation.** When the relation's ends name exactly one target for the
+declaring table, saving it stamps `x-record-ref` with that target onto the field's schema
 property — so a plain string that holds ids becomes a typed reference by being used as one, and
 `RELATION_SOURCE_FIELD_UNTYPED` stops applying. A marker already there naming a DIFFERENT table is
 refused (`USES_MARKER_DISAGREES`) rather than overwritten; a relation with several targets leaves
@@ -326,7 +361,7 @@ from the target of a relation back to its sources is `?direction=incoming`. It a
 limit, whether to include expired links, and an ordering by one of the relation's declared link
 properties. Each link names its peer by id — `peerRecordId`, beside its `direction` and `origin` —
 and carries none of the peer's fields: read the peers in one call with
-`GET /v1/records?project=<node>&id=<peerRecordId>&id=…` (up to 100 ids), adding `tableKey` and
+`GET /v1/records?project=<node>&id=<peerRecordId>&id=…` (up to 100 ids), adding `table` and
 `fields=<name>` when you need fields that are not the table's columns.
 
 Three behaviours worth knowing before you debug an empty answer:
@@ -345,8 +380,8 @@ rather than assuming the sort you asked for happened.
 
 ### Filtering on the data a link carries: the `where` clause, the `count` request
 
-A `link` use on a list of objects may name `element.filters` — the sibling properties to carry on
-the link AND to filter on (the tables pack has the declaration side). Each named property is
+A source field that is a list of objects may name `element.filters` on the relation's `from` — the
+sibling properties to carry on the link AND to filter on. Each named property is
 stamped into an indexed link column, and two clauses read those columns:
 
 - `?where=<prop>:<op>:<value>` — repeatable; several clauses AND. Ops: `eq`, `ne`, `in`, `lt`,
@@ -410,10 +445,9 @@ responsible only for what it claims.
 create runs, writes nothing, and answers **200** with a verdict either way (a created relation is
 the 201). Every other write of this family takes the same flag and answers the same verdict:
 `PATCH /v1/relations/{id}` (the link rules over every declaration of the relation, and a changed
-`producer` as `RELATION_PRODUCER_IMMUTABLE`; the `version` lock is the write's, not the dry run's),
-`POST /v1/relation-pairings` (a pair already standing, a dangling table, a second pair on a
-`join-record` relation), `DELETE /v1/relation-pairings/{id}?validateOnly=true` (the pair's
-`deleteRefusal`, answered now), and `DELETE /v1/relations/{id}?validateOnly=true` (which adds
+`producer` as `RELATION_PRODUCER_IMMUTABLE`; restated ends are judged too — a dangling table, a
+second pair on a `join-record` relation, and a removed pair's `deleteRefusal`, answered now; the
+`version` lock is the write's, not the dry run's), and `DELETE /v1/relations/{id}?validateOnly=true` (which adds
 `consequences`, below; a `consequences` entry is one of the kinds the project-document pack lists,
 `rename` among them):
 
@@ -448,7 +482,7 @@ always did.
 
 ⭐ **The `readiness` under `derived` is why this is worth a round trip.** It is the same verdict
 `expand=readiness` returns for a link that exists, computed against your draft — so you can see that
-a link will land `inert` (no pairing, no producing field, a properties type nothing ticks) _before_
+a link will land `inert` (no ends, no producing field, a properties type nothing ticks) _before_
 creating it, rather than by noticing a count that never leaves zero. It is not the resource: there
 is no id and no version, because nothing was created. ⚠️ A draft has no links to count, so the
 forecast cannot say `unproven`: a healthy draft reads `ready` here, and the same relation reads
@@ -458,7 +492,7 @@ as proof of links.
 It is a flag on the real route rather than a sibling `/validate`, deliberately. One route is one set
 of rules, so a check that passes and a save that refuses cannot come apart.
 
-The findings and consequences these answers carry come from one list the whole design API shares, and it grows: the plan consequences `fields-unset` and `recompute` (a table's computed fields computed again for its stored records, at no charge) were added, then `links-removed`: a link field dropped or pointed at another field removes its stored links, and the line counts the records whose processing read them — not run again; reprocess one on purpose with `POST /v1/records/{id}/reprocess`. A relation or pairing change that a table's computed field reads is judged with it: refused with `TABLE_COMPUTED_INVALID` when it breaks one. Decide on a finding by its `severity`, not by a fixed list of codes.
+The findings and consequences these answers carry come from one list the whole design API shares, and it grows: the plan consequences `fields-unset` and `recompute` (a table's computed fields computed again for its stored records, at no charge) were added, then `links-removed`: a link field dropped or pointed at another field removes its stored links, and the line counts the records whose processing read them — not run again; reprocess one on purpose with `POST /v1/records/{id}/reprocess`. A change to a relation or its ends that a table's computed field reads is judged with it: refused with `TABLE_COMPUTED_INVALID` when it breaks one. Decide on a finding by its `severity`, not by a fixed list of codes.
 
 ## What the platform refuses
 
@@ -476,9 +510,9 @@ The findings and consequences these answers carry come from one list the whole d
   current value is fine; any other value is refused.
   Delete the relation and declare a new one.
 - **A declaration may only point at a field-producer relation** (`RELATION_PRODUCER_MISMATCH`), and
-  only at a relation the project has (`RELATION_NOT_FOUND`; from a `link` use,
+  only at a relation the project has (`RELATION_NOT_FOUND`; from a table's derived link use,
   `USES_RELATION_UNKNOWN` inside a `TABLE_USES_INVALID` refusal).
-- **A `link` on a field that cannot hold a record id** — a number, a date, a list of objects
+- **A source field that cannot hold a record id** — a number, a date, a list of objects
   with no string property — is refused at the vocabulary (`USES_ILLEGAL_FOR_SHAPE`), with the remedy
   in the response.
 - **Cardinality only where a producer can enforce it** (`RELATION_CARDINALITY_NOT_APPLICABLE`) — a
@@ -498,7 +532,7 @@ The findings and consequences these answers carry come from one list the whole d
   the write instead of reported after it. A create whose declaration ticks element properties
   while `propertiesDataTypeId` is empty is refused, in the save and the `validateOnly` dry run; and
   every PATCH of a relation left in that state is refused (`RELATION_INVALID`) until the patch
-  names a properties type or the declaring table's `uses` stops carrying the values.
+  names a properties type or the source field stops carrying the values.
 - **A declaration that could connect nothing**, judged the same way on the relation create, on the
   relation's PATCH and on the table's own save: a join table that is one of the relation's ends
   (`RELATION_JOIN_TYPE_IS_AN_END`), both join ends read from one field
@@ -516,14 +550,14 @@ The findings and consequences these answers carry come from one list the whole d
   its properties type), so a label-only patch of a relation standing on a defective declaration is
   refused too — a `RELATION_INVALID` 422 whose issues sit under `tables.<type>.relations…`,
   each message naming the table that declares it, because the fix is usually there. The same
-  judgement, over the state the write leaves behind, runs on the three other writes that move a
-  link: `POST /v1/relation-pairings` (with the new pair in), `DELETE /v1/relation-pairings/{id}`
-  (with the pair gone — a field still pointing at the table that pair connected, or a declaring
-  table left on no pair's source side, `RELATION_SOURCE_TYPE_UNPAIRED`), and a PATCH of the
+  judgement, over the state the write leaves behind, runs on the other writes that move a link: a
+  PATCH restating the ends (with a new pair in, or with a pair gone — a field still pointing at
+  the table that pair connected, or a declaring table left on no pair's source side,
+  `RELATION_SOURCE_TYPE_UNPAIRED`), and a PATCH of the
   relation's properties type (a `required` value no declaration carries, a closed root, a re-typed
   property — and its `validateOnly` dry run says so). Each answers the same `RELATION_INVALID` 422.
-  The delete's refusal is published before you press it: `expand=pairings` on the relation's read
-  carries it as that pair's `deleteRefusal` (`code: RELATION_INVALID`), in the delete's own words.
+  A removal's refusal is published before you send it: `expand=ends` on the relation's read
+  carries it as that pair's `deleteRefusal` (`code: RELATION_INVALID`), in the write's own words.
   When the relation create's dry run finds a fault in one of the table's OTHER links, it is
   addressed under that table (`tables.<type>.relations…`), not under the create's
   `declaration`; and an edit of a table's type refused over a link names the table that declares it.
@@ -534,8 +568,8 @@ The findings and consequences these answers carry come from one list the whole d
   codes and the same flat reach, and lands on the row whose write owed it. Moving one half alone is
   refused exactly as the row write would refuse it.
 - **A declaration on a table the relation does not connect** (`RELATION_SOURCE_TYPE_UNPAIRED`). The
-  declaring table must be on the SOURCE side of one of the relation's pairings — `fromTableKey` for
-  a directed relation, either end for a symmetric one, whose pairing is unordered. Otherwise every
+  declaring table must be on the SOURCE side of one of the relation's ends — `from` for
+  a directed relation, either end for a symmetric one, whose pairs are unordered. Otherwise every
   link the field could produce is one the write path drops as an undeclared pair, so the declaration
   could only ever produce nothing.
 
@@ -559,14 +593,14 @@ relation and create another, which deletes its links.
   document stated by its `id` under the new key (`cooked-by` → `made-by`). A `validateOnly: true` PATCH rehearses the rename and answers the same `renames[]`, writing nothing. Each entry's `kind` says what it renames (`relation` here; a document that also renames a flow's input or output lists `flow-input` / `flow-output` entries beside it).
 - **What moves, in one transaction:**
   - every link, keeping its id — links are stored by relation id, so no link restamp is owed; the
-    relation's pairings follow;
-  - every view's `link` clause and `linked` read, and every shape's linked property;
+    relation's ends follow;
+  - every query's `link` clause and `linked` read, and every selection's linked property;
   - every configuration position that names the relation: `relationKey` on the record links,
     link-assert, link-retract and link-counts steps, `linkFilters[].relationKey` on the record
     list and count steps, and `clauses[].relation` on a `record.query`;
-  - every table's `uses` link entry (`{ "kind": "link", "relation": … }`), `Table.relations`
-    (`produces[].relationKey`, `joins.relationKey`), a generated link field's `x-owned-by-link`,
-    and checkpoints and snapshots.
+  - every table's derived link use and `relations` (`produces[].relationKey`,
+    `joins.relationKey`), a generated link field's `x-owned-by-link`, and checkpoints and
+    snapshots.
 - **What it never edits:** JSONata expressions and templates that spell the old key. A plan lists
   each in `renames[].candidates`; settle each by changing it in the same document or naming its
   step in `keepExpressions` (the PATCH body takes it too).
@@ -598,19 +632,18 @@ processed fields are its flow's outputs as they are now. The generated field is 
 saves for an EDITOR and the row is listed in `contractChanges`. A change that would break a caller is refused, writing
 nothing: 403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN, and for an admin 409
 `CONTRACT_BREAK_NOT_ACCEPTED` until the body's `acceptBreaks: {endpoints, tables}` names each
-breaking one by key (the 409's fix sets it). `POST /v1/relations`, `PATCH /v1/relations/{id}` and `POST /v1/relation-pairings`
+breaking one by key (the 409's fix sets it). `POST /v1/relations` and `PATCH /v1/relations/{id}`
 take `acceptBreaks`; their answers carry `contractChanges` (`[]` when no contract changed), and
 their `validateOnly` dry runs answer the same report plus `permissions.mayAcceptBreaks`. A name
 in `acceptBreaks` the project does not have is a 422 (a dry-run finding at
 `acceptBreaks.endpoints[0]`); one the write does not break comes back in
 `acceptBreaksNotNeeded`.
 
-A pair decides which tables a view's linked read through the relation reaches, so adding or
-removing one can change what an endpoint answering that view answers. Adding one is judged like
-the writes above. `DELETE /v1/relation-pairings/{id}` takes no `acceptBreaks`: a removal that breaks
-such an endpoint's callers is refused 409 `CONTRACT_BREAK_NOT_ACCEPTED`; remove the pair in the
-project document instead, with `acceptBreaks` naming the endpoint
-(Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)).
+A pair decides which tables a query's linked read through the relation reaches, so adding or
+removing one can change what an endpoint answering that query answers. Restating the ends is judged
+like the writes above: a removal that breaks such an endpoint's callers is refused 409
+`CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks` names the endpoint, on the PATCH or in the
+project document (Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)).
 
 ### Renaming a property a relation's links carry
 
@@ -662,8 +695,8 @@ refused while the relation's link restamp is still running.
   changed the first time a second occurrence arrived would break every reader exactly when the
   data got interesting.
 - **Records written _before_ the declaration get their links after the save, on their own.** A
-  save that declares a producer — a table PATCH whose `uses` gains or re-points a `link`, a relation
-  created with a `declaration`, a new pairing, a document that does any of these — builds that
+  save that declares a producer — a relation whose `from` gains or re-points a source field, a relation
+  created with a `declaration`, a new pair in its ends, a document that does any of these — builds that
   relation's links for the records the table already holds, in the background, seconds to minutes
   after the save answers. New writes need nothing. ⚠️ It is not insert-only — it reconciles that one
   relation, so re-pointing a declaration at a different field **removes** the old field's links,
@@ -674,10 +707,9 @@ refused while the relation's link restamp is still running.
 - **The minimum-confidence value is inert.** No producer emits confidence, so nothing reads it.
   <!-- absent: relations-min-confidence-inert -->
 - ⛔ **There is no way to hide a relation, and no way to pause one.** Every relation the project has
-  is readable. To stop a relation producing, drop the `link` use that feeds it from the table's
-  `uses`; to remove it and its links, delete the relation.
-- **Link properties are declared from `uses`, and the budget is the RELATION's.** A `link` on a list
-  of objects names the element's `ref` and, in `element.filters`, the sibling properties to carry
+  is readable. To stop a relation producing, drop the source field that feeds it; to remove it and its links, delete the relation.
+- **Link properties are declared on the source field, and the budget is the RELATION's.** A source
+  field that is a list of objects names the element's `ref` and, in `element.filters`, the sibling properties to carry
   and filter on. Fourteen columns per relation — 8 text, 2 number, 2 date-time, 2 boolean — are
   shared by every table filtering on that relation, so a second table declaring filters on the same
   relation spends the first table's budget. A property already on a column keeps it when another
@@ -687,13 +719,20 @@ refused while the relation's link restamp is still running.
   `stampedLinkFilters`) and a runner rewrites the rows in batches. Until it converges, your `where`
   clauses resolve against the map the rows are stamped for, not the one you just saved — coherent,
   and stale.
-- **Deleting a relation cascades** to its links _and_ its pairings, and tells you how many of each.
+- **Deleting a relation cascades** to its links _and_ its ends, and tells you how many of each:
+  `deletedCounts.links` and `deletedCounts.ends` (pairs of tables its ends connected).
   Ask first with `DELETE /v1/relations/{id}?validateOnly=true`: it rehearses the delete,
   rolls it back, and answers a verdict whose `consequences` carry the `links-deleted` count — the
   same count a document plan reports — and whose `leavesBehind` names any flow the delete breaks,
   with the broken step's `outlinePath` in that flow's outline.
-  Deleting a pairing cascades nothing — but the **last** pairing cannot be deleted at all, because a
-  relation that applies to no tables can connect nothing. Delete the relation instead.
+  Removing a pair from the ends cascades nothing — but the **last** pair cannot be removed at all,
+  because a relation that applies to no tables can connect nothing. Delete the relation instead.
+
+**Every refusal speaks of ends.** A relation's refusals and answers name its ends (its `from` and `to`,
+or its `between` list) and the field its `from` names — never a pairing, and so do the codes
+(`RELATION_NO_ENDS`, `LINKED_NO_END`, `RELATION_END_PINNED_BY_LINKS`, …): branch on the code, act on
+the sentence. A plan has no separate resource for a relation's pairs: changing the ends is a change on the
+relation's own row (`relations.<key>`).
 
 ## Counting links — two numbers, and picking the wrong one is silent
 
@@ -758,7 +797,7 @@ each order's customer and its five latest line items:
 
 ```json
 {
-  "tableKey": "order",
+  "table": "order",
   "limit": 50,
   "pages": { "max": 10 },
   "linked": {
@@ -846,9 +885,9 @@ and an `items` member (a list, `[]` when none), each item carrying its own `prod
   under `linked` or `linkedMore`: the key is ABSENT, not an empty list (an empty list means "read,
   none found"). Any other value (`"yes"`, `1`) fails the step, `LINKED_WHEN_NOT_BOOLEAN`, naming
   the linked read. The save
-  counts a linked read with `when` in the worst case below as if it were read. A view's linked read
+  counts a linked read with `when` in the worst case below as if it were read. A query's linked read
   takes `when` too, as `true`, `false` or `{"param": "withStories"}` naming a boolean param of the
-  view (an optional param left out leaves it out); `POST /v1/records/query` takes none.
+  query (an optional param left out leaves it out); `POST /v1/records/query` takes none.
 
 - **Two levels, at most 8 linked reads in one map.** A level-2 linked read takes no `linked`. A relation whose
   links are records of a join table is not followed (`LINKED_JOIN_RECORD`): link from the join
@@ -890,7 +929,7 @@ Do not promise these:
   clause of a query takes a `peer` list of `field`, `term` and at most one `semantic` clause on the
   record at the far end, one hop — see the query section of
   Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`). OR across clauses is a query's `any`
-  alone: a link read's `where`, a linked read and a view take none.
+  alone: a link read's `where`, a linked read and a named query take none.
 
 ## Related
 

@@ -61,8 +61,8 @@ Input:
 
 ```
 [
-  { "outcome": "match", "vocabularyKey": "category", "termId": "trm_7h2" },
-  { "outcome": "create-new", "vocabularyKey": "type", "proposedSlug": "receipt",
+  { "outcome": "match", "vocabulary": "category", "termId": "trm_7h2" },
+  { "outcome": "create-new", "vocabulary": "type", "proposedSlug": "receipt",
     "proposedLabel": "Receipt", "parentTermId": null }
 ]
 ```

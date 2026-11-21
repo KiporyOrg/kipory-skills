@@ -61,7 +61,7 @@ page and bringing linked records, which the three reads share, comes first below
   pages are read: ordered by update time, by a field that is not a date with a `filter` use, or by
   a date processing fills (`READ_PAGES_SORT_NOT_DATE`); `max: 1` reads no second page, so it takes
   any order; and on a `record.query` with a phrase, a phrase on a `peer`, or
-  `tableKeys`.
+  `tables`.
 - Saving refuses a greater-than or less-than on a text field in `record.list` and `record.count`
   (`RECORD_FILTER_TEXT_RANGE`): a range on text compares only values up to 2,000 bytes, and only
   `record.query` says how many it left out (`longTextSkipped` on its clause row). `eq` and `in`
@@ -77,7 +77,7 @@ page and bringing linked records, which the three reads share, comes first below
 
 ```json
 {
-  "tableKey": "book",
+  "table": "book",
   "limit": 50,
   "pages": { "max": 20 },
   "linked": {
@@ -134,7 +134,7 @@ Two things that follow from the run's principal:
 
 ## Counting
 
-`record.count` answers a number and reads no record. It takes a `tableKey` and the same
+`record.count` answers a number and reads no record. It takes a `table` and the same
 narrowing a list does: `fieldFilters` (each entry's `value` a path, a `{literal}` or an
 `{expr}`), `vocabularyFilter`, `linkFilters`, `statuses`, `createdAfter` and `createdBefore`.
 
@@ -174,7 +174,7 @@ stands (written, revived or already there), `refused` otherwise, with `reason` o
 ## Appending to a stream
 
 `record.append` adds events to a record's stream field — a field the table's `uses` gives a
-`stream` use. Config: `tableKey`, `field`, `recordId`, and `event` holding one event
+`stream` use. Config: `table`, `field`, `recordId`, and `event` holding one event
 object or a list. It answers `appended` when at least one event was new and `unchanged` when
 every one already existed, so a retry converges.
 
@@ -231,7 +231,7 @@ must be an active member of the project (`PERSON_NOT_IN_PROJECT` otherwise, with
 whatever the reason). In a run that acts for a person it may name only that person
 (`PERSON_NOT_THE_RUNS`). Without it, each writer behaves as above.
 
-A delete also follows each reference's delete rule (`onTargetDelete` on the `link` use): records
+A delete also follows each reference's delete rule (`onTargetDelete` on the relation that states the link): records
 naming a deleted one are deleted too (`delete`), lose the reference (`clear`), or stop the delete
 (`refuse`) — then the step fails with `RECORD_REFERENCED` and nothing is deleted. Over HTTP,
 `DELETE /v1/records/{id}?validateOnly=true` says what a delete would do first.
@@ -265,7 +265,7 @@ key's call. In a run that acts for a signed-in user, a read or a write whose `us
 but that user fails `PERSON_NOT_THE_RUNS`, so a value the caller sends cannot open another user's
 records.
 
-<!-- field-ok: ownerId — a member of a flow's record row read through a share (423-record-sharing-gaps), not a wire field -->
+<!-- field-ok: ownerId — a member of a flow's record row read through a share, not a wire field -->
 
 **On a table that shares, a person reaches more.** A read answers their own records and every
 record shared with them or a team of theirs, each carrying `access` (what they may do) and

@@ -4,6 +4,8 @@
 
 > **Source of truth for facts:** endpoint paths & request shapes → live `GET /v1/openapi.json`.
 > This pack carries judgment.
+>
+> **Format 12 names:** a trigger's runs and the failed-runs list report a refused write's table as `table` (it was `tableKey`).
 
 ## What it is
 
@@ -20,7 +22,7 @@ skipped, blocked — is written down in its runs, and any decision can be replay
 
 <!-- field-ok: userInfo — a run-ambient value seeded by the engine, not a wire field a caller sends -->
 
-<!-- field-ok: ownerId — a member of a person-owned table's row in a flow (437-person-owned-tables), not a wire field -->
+<!-- field-ok: ownerId — a member of a person-owned table's row in a flow, not a wire field -->
 
 **A fire has no end user.** `userInfo` is nothing in the run, so it acts for nobody: it reads and
 changes every person's records of a person-owned table (each row names its person as `ownerId`),
@@ -56,7 +58,7 @@ has already decided can be replayed, but a trigger never sees an event it was no
   the emitter names the reactor. A trigger decouples them: the emitting flow raises `post/created`
   and knows nothing about who reacts; three triggers can react to one event, each with its own
   filter and flow, each failing independently.
-- **Against an endpoint's `events.subscribe`:** that streams events to a connected client. A
+- **Against an endpoint's `subscribe`:** that streams events to a connected client. A
   trigger runs a flow on the platform whether or not anyone is connected.
 
 ## The sequence
@@ -76,30 +78,36 @@ GET  /v1/project-events?project=…        the log itself, newest first, cursor-
 Scoped by `project`. Create takes a **key** (the same charset and immutability as a schedule's or
 an endpoint's — see schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`)), the `categoryKey` and `eventKey`
 of the event type it listens to, an optional `filter`, the flow (`flowId`), and the inputs keyed by
-the flow's input names; optionally a display `label` and an
-`overlapPolicy` of `skip` or `allow` — ⚠️ omitting the policy means the source provider's
-`overlapDefault` for a trigger on a source (capability pack `sources` — `GET /v1/capability-packs/sources`) (`allow` for Telegram), and `skip` for a
-trigger on your own events.
+the flow's input names; optionally a display `label`, a `watch` and an
+`overlapPolicy` of `skip` or `allow` — ⚠️ omitting the policy means the provider's
+`overlapDefault` for a trigger on a source (capability pack `sources` — `GET /v1/capability-packs/sources`)'s event (`allow` for Telegram), and `skip`
+for a trigger on your own events.
+
+In the project document a trigger is a row of the top-level `triggers` map, and its selector is
+one value, `event: <category>/<key>`:
+
+```yaml
+triggers:
+  on-post:
+    event: post/created
+    flow: notify-followers
+```
 
 ## A trigger on a source
 
-A trigger may point at a source (capability pack `sources` — `GET /v1/capability-packs/sources`) — a Telegram channel the platform watches, and
-later a webhook, a Postgres table or an Apify actor — by sending `sourceId` on create. Then the
-selector must be the provider's own vocabulary (`telegram` / `message` for Telegram; the source
-seeded it into the registry), and the trigger hears **that source's events and no other's**. The
-match is structural: the dispatcher compares the trigger's source with the event's, so you never
-write "channel is @x" as a filter clause, and a source renamed or re-pointed never leaves a stale
-clause behind. `sourceId` is permanent; a trigger on another source is a new trigger. A trigger
-without a source listens to every event of its type, whoever wrote it — which is what a trigger on
-your own flows' events is.
+A trigger on a provider's event — `telegram/message` for a Telegram channel the platform watches,
+and later a webhook, a Postgres table or an Apify actor — states what it watches under `watch`, one
+entry per thing watched, in the provider's own settings: `watch: [{ channel: "@harbourdaily" }]`.
+The trigger HOLDS each one: the platform makes the project's source (capability pack `sources` — `GET /v1/capability-packs/sources`) for a channel the
+first time anything holds it, and nobody writes a source by hand. The trigger hears the events of
+what it watches; the match is structural — the dispatcher compares the event's source with the
+trigger's holds — so you never write "channel is @x" as a filter clause. `watch` may be edited; a
+channel the trigger no longer states is let go, and stops being read once nothing else holds it.
+A disabled trigger, or one the platform paused, keeps its hold.
 
-**Watching a channel the project does not watch yet** is one write, not two: send `newSource` —
-`provider`, `config`, and optionally `key` and `label`, the body a source create takes — instead of
-`sourceId`. The source and the trigger are created in one transaction, so a trigger the platform
-refuses (a blank input, a filter, a taken key) leaves no source behind, and a `validateOnly: true`
-create judges both halves — the source exactly as `POST /v1/sources` would, then the trigger against
-it — and keeps neither. A channel the project already watches is refused as the source create
-refuses it; point `sourceId` at that source instead. Sending both `sourceId` and `newSource` is a 422.
+A trigger on a provider's event with **no** `watch` hears every source of that provider the
+project watches — whoever holds it, a trigger or a record a flow's `source.watch` step made. A
+trigger on your own flows' events watches nothing and listens to every event of its type.
 
 Every recorded event says who wrote it: `source` on the log is `run` for a flow's own emission,
 or the provider (`telegram`, `webhook`, `postgres`, `apify`) for a source's.
@@ -170,7 +178,8 @@ re-judge it, so the rest of the trigger can still be edited.
   and not blank (`""`, `null` or `[]`; 422 `FLOW_INPUT_BLANK`, one issue per input).
 - **A filter nested deeper than 16 levels**, or one that is not a condition at all, is a 422 on
   `filter`.
-- **`sourceId` and `newSource` together** — a trigger listens to one source.
+- **A `watch` its provider refuses** — a provider not available yet, or settings its schema
+  rejects (422 naming the field), or one past the project's watch cap (409 `SOURCE_WATCH_CAP`).
 - **Every PATCH — switching `enabled` included — requires the version you last read.**
 - **A replay of an event this trigger never decided** is a 422. The decision row is what you are
   re-running; there is no backfill through the back door. A replay is also refused while the

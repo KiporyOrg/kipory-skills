@@ -24,6 +24,8 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `GET` | [`/v1/projects/{nodeId}/connections`](#get-v1-projects-nodeid-connections) |  |
 | `GET` | [`/v1/projects/{nodeId}/history`](#get-v1-projects-nodeid-history) |  |
 | `GET` | [`/v1/projects/{nodeId}/history/{structureVersion}`](#get-v1-projects-nodeid-history-structureversion) |  |
+| `GET` | [`/v1/projects/{nodeId}/mail`](#get-v1-projects-nodeid-mail) |  |
+| `PUT` | [`/v1/projects/{nodeId}/mail`](#put-v1-projects-nodeid-mail) |  |
 | `GET` | [`/v1/projects/{nodeId}/map`](#get-v1-projects-nodeid-map) |  |
 | `POST` | [`/v1/projects/{nodeId}/purge`](#post-v1-projects-nodeid-purge) |  |
 | `GET` | [`/v1/projects/{nodeId}/references`](#get-v1-projects-nodeid-references) |  |
@@ -430,7 +432,7 @@ Each item of `elements`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `ref` | `string` | yes | `<kind>:<id>` — the element's reference, spelled as the element descriptions spell it (`table:`, `event-type:`), so the two reads join on it. An opaque identifier: read an element's kind from `kind`, never from the prefix. |
-| `kind` | `"flow" \| "step" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type" \| "view"` | yes | What kind of element. |
+| `kind` | `"flow" \| "step" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type" \| "query"` | yes | What kind of element. |
 | `label` | `string` | yes | The element's display text. A step's own key; its flow is `flowRef`. |
 | `flowRef` | `string \| null` | yes | Steps only: the reference of the flow the step is part of. |
 | `order` | `integer \| null` | yes | Steps only: the step's position in its flow, 1-based. |
@@ -575,6 +577,87 @@ Each item of `changes`:
 | `priorState` | `"versioned" \| "not-applicable" \| "created" \| "deleted"` | yes | Why `fromVersion`/`toVersion` are absent when they are. `versioned` — both present. `not-applicable` — this kind carries no version column at all. `created` / `deleted` — one end of the pair does not exist. ⛔ A client MUST render these differently. |
 | `fromVersion` | `integer \| null` | yes | The version this change replaced. NULL unless `priorState` says otherwise. |
 | `toVersion` | `integer \| null` | yes | The version this change produced. NULL unless `priorState` says otherwise. |
+
+### `GET /v1/projects/{nodeId}/mail`
+
+The project's mail settings: its default sending address (named after its host, what `email.send` sends from when a step names no `sender`; not editable), its named senders (`project.mail.senders`, what a step's `sender` names), and every switched-on address it may send as — its own and its organizations'. Change the senders with `PUT` on this path, or `project.mail.senders` in `POST /v1/projects/{nodeId}/document`. Addresses themselves are `GET /v1/managed-email-addresses`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | Node id of the project. |
+| `defaultAddress` | `string \| null` | yes | The address `email.send` sends from when a step names no `sender`, named after the project's host. Null when the project has none. Not editable. |
+| `senders` | `object[]` | yes | The project's named senders (`project.mail.senders`). |
+| `sendable` | `object[]` | yes | Every switched-on address this project may send as, and so may name as a sender: its own and its organizations'. |
+| `version` | `string` | yes | The senders' version. Send it back as `version` on `PUT` on this path. |
+
+Each item of `senders`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `name` | `string` | yes | The name `email.send`'s `sender` setting uses. |
+| `address` | `string` | yes | The address it stands for. |
+| `source` | `"set-here"` | yes | Senders are set per project. |
+
+Each item of `sendable`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `address` | `string` | yes | `local@domain`. |
+| `ownerNodeId` | `string` | yes | The node that owns it. |
+| `source` | `"set-here" \| "organization"` | yes | `set-here`: this project owns it; `organization`: an organization above it does. |
+| `isDefault` | `boolean` | yes | Whether it is the default address. |
+
+### `PUT /v1/projects/{nodeId}/mail`
+
+Replace the project's named senders, whole (`{senders, version}`), and answer what `GET` on this path answers. Each address must be one the project may send as (`sendable`), else 422 naming the sender; a save made since your read is 409 `VERSION_CONFLICT`. The same list is `project.mail.senders` in `POST /v1/projects/{nodeId}/document`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `senders` | `object` | yes | Every sender, whole: `{ <name>: <address> }`. A name left out is removed. Each address must be one this project may send as (`sendable`). |
+| `version` | `string` | yes | The `version` your last read answered; a save made since answers 409 `VERSION_CONFLICT`. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | Node id of the project. |
+| `defaultAddress` | `string \| null` | yes | The address `email.send` sends from when a step names no `sender`, named after the project's host. Null when the project has none. Not editable. |
+| `senders` | `object[]` | yes | The project's named senders (`project.mail.senders`). |
+| `sendable` | `object[]` | yes | Every switched-on address this project may send as, and so may name as a sender: its own and its organizations'. |
+| `version` | `string` | yes | The senders' version. Send it back as `version` on `PUT` on this path. |
+
+Each item of `senders`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `name` | `string` | yes | The name `email.send`'s `sender` setting uses. |
+| `address` | `string` | yes | The address it stands for. |
+| `source` | `"set-here"` | yes | Senders are set per project. |
+
+Each item of `sendable`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `address` | `string` | yes | `local@domain`. |
+| `ownerNodeId` | `string` | yes | The node that owns it. |
+| `source` | `"set-here" \| "organization"` | yes | `set-here`: this project owns it; `organization`: an organization above it does. |
+| `isDefault` | `boolean` | yes | Whether it is the default address. |
 
 ### `GET /v1/projects/{nodeId}/map`
 
@@ -735,7 +818,7 @@ Each item of `refusedRows`:
 
 ### `GET /v1/projects/{nodeId}/settings`
 
-The project's spend ceilings — per end user, design-time, and the public spend cap that bounds what calls to its public endpoints may cost per UTC day — the warning threshold, its member-wallet settings (whether members hold their own wallets, and the joining and periodic grants), the describer switch, its test-user settings (how many test users it may hold, and whether a start for everyone reaches them), what design-time work has cost in the current window, and what public calls have cost today. Change them with `PATCH` on this path.
+The project's spend ceilings — per end user, design-time, and the public spend cap that bounds what calls to its public endpoints may cost per UTC day — the warning threshold, its member-wallet settings (whether members hold their own wallets, and the joining and periodic grants), the describer switch, its test-user settings (how many test users it may hold, and whether a start for everyone reaches them), what design-time work has cost in the current window, what public calls have cost today, and, asked with `include=embeddings`, the project's embeddings (`embeddings`: one per key, the default, the tables on each, and what the engine would create as the default). Change the settings with `PATCH` on this path; the embeddings with `/v1/embeddings` or `POST /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
@@ -743,29 +826,33 @@ The project's spend ceilings — per end user, design-time, and the public spend
 | --- | --- | --- | --- |
 | `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
 
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `include` | `"embeddings"` | no | `embeddings` adds `embeddings`: the project's embeddings, the default, the tables on each and the engine default. It reads every embedding and table, so ask for it on purpose. |
+
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `perUserSpendCapCredits` | `integer \| null` | yes | How much ONE end user may spend per `perUserSpendCapPeriod`, in credits. ⚠️ Null means NO ceiling, not 'the default' — unlike most nullable settings. A ceiling of zero is `0`, and the two are opposite outcomes. |
-| `perUserSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window the per-user ceiling is measured over. Never null — defaults to `day`. |
+| `userLimit` | `object \| null` | yes | How much one end user may spend per window (`project.credits.userLimit`). Null: no limit. |
 | `designSpendCapCredits` | `integer \| null` | yes | The ceiling on DESIGN-TIME spend — authoring and previewing, as opposed to what your end users cost. Null means no ceiling; `0` blocks all design-time work outright. |
-| `publicSpendCapCredits` | `integer \| null` | yes | The ceiling on what calls to the project's PUBLIC endpoints may spend per UTC day, in credits. A public endpoint (`auth: "none"` on its contract) is called by anyone with no credential and paid from the project's wallet; this bounds that. Null means it has not been set, and while it is null no endpoint can be saved public. `0` is a real ceiling: every public call answers 402 `PUBLIC_ENDPOINT_UNAVAILABLE`, which makes it the one switch for all of the project's public traffic. The window is always the UTC day; there is no period to choose. |
+| `publicEndpointsLimit` | `object \| null` | yes | What calls to the project's public endpoints (`auth: "none"`) may spend per UTC day (`project.credits.publicEndpointsLimit`). Null: no daily limit; public calls are then bounded by their rate limits and the wallet alone. |
 | `designSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window the design-time ceiling is measured over. Never null — defaults to `day`. |
 | `spendCapWarnPercent` | `integer \| null` | yes | Warn the project's operators when design-time spend passes this share of the build ceiling (`designSpendCapCredits`), in whole percent. Null = no warning. It watches the build ceiling only — the per-user ceiling raises no warning. The ceilings refuse at 100% regardless. |
-| `memberWallets` | `boolean` | yes | Whether each member of the project holds their own wallet in it. On: a signed-in member's usage is paid from their wallet and refused when it is empty, and the per-user ceiling above is not applied to them. Off: every member's usage is paid from the wallet the project is paid from. |
-| `memberJoinGrantCredits` | `integer \| null` | yes | Credits moved into a member's wallet once, when they join, out of the wallet the project is paid from. Null means no joining grant. Paid only to members who join after member wallets were turned on. |
-| `memberPeriodicGrantCredits` | `integer \| null` | yes | Credits moved into each member's wallet every `memberGrantPeriod`. Null means no periodic grant. What is left of one period's grant returns to the paying wallet when the next period begins. |
-| `memberGrantPeriod` | `"day" \| "week" \| "month"` | yes | How often the periodic grant is made, on UTC calendar boundaries. What is left of one period's grant expires when the next begins. |
+| `memberWallets` | `object \| null` | yes | Whether each member holds their own wallet in the project, and the grants made to it (`project.credits.memberWallets`). On: a signed-in member's usage is paid from their wallet and refused when it is empty, and `userLimit` is not applied to them. Null: off, every member's usage is paid from the wallet the project is paid from. |
 | `testUserLimit` | `integer \| null` | yes | How many test users the project may hold, 1–100. Null means the default, 20. Making one past it is refused 422 `TEST_USER_LIMIT`; a lower number deletes nobody and refuses new ones until fewer remain. |
 | `testUsersInStarts` | `boolean` | yes | Whether a `flow.start-per-person` over the whole project (`people.kind: "project"`) also starts a run for each of the project's test users, paid by the project as every started run is. Off (the default): it starts real people only and says how many test users it left out. Turn it on while you test with test users, and off (or delete them) before real people use the project. |
 | `describerEnabled` | `boolean` | yes | Whether the platform keeps this project's element descriptions current (`GET /v1/descriptions`). Off keeps what exists and adds nothing. The platform pays for descriptions. Defaults on. |
 | `designSpend` | `object \| null` | yes | What design-time work has already cost in the current `designSpendCapPeriod` window — the figure the design ceiling is enforced against, measured whether or not a ceiling is set. Null when the measurement could not be read this time; the settings themselves are still current. |
-| `publicSpend` | `object \| null` | yes | What calls to the project's public endpoints have cost since 00:00 UTC today — the figure `publicSpendCapCredits` is enforced against, measured whether or not a cap is set. Null when the measurement could not be read this time; the settings themselves are still current. |
+| `publicSpend` | `object \| null` | yes | What calls to the project's public endpoints have cost since 00:00 UTC today — the figure `publicEndpointsLimit` is enforced against, measured whether or not a cap is set. Null when the measurement could not be read this time; the settings themselves are still current. |
+| `sources` | `object` | yes | For each `project.credits` setting, whether this project set it (`set-here`) or the platform default stands (`platform-default`: no limit, wallets off, no grant). |
+| `embeddings` | `object \| null` | no | The project's embeddings (`project.ai.embeddings`), answered only when asked with `include=embeddings`. Null when they could not be read this time; the settings themselves are still current. |
 
 ### `PATCH /v1/projects/{nodeId}/settings`
 
-Change the project's spend ceilings, warning threshold, member-wallet settings, describer switch, or test-user settings (`testUserLimit`, how many test users it may hold; `testUsersInStarts`, whether a start for everyone reaches them); absent keys stay as they are. Answers what `GET` on this path answers. `publicSpendCapCredits` must be set before any endpoint can be saved public (`contractConfig.auth` on `/v1/api-endpoints`); clearing it while one is public is 422 with the issue code `PUBLIC_SPEND_CAP_REQUIRED`, and `0` refuses every public call. A change to a member-wallet setting is applied to the members' wallets moments after the save, by a queued run: turning `memberWallets` off returns every member's balance to the wallet the project is paid from and closes the wallets; one member's grant is `POST …/members/{userId}/credits`. The descriptions the describer writes are `GET /v1/descriptions?project=`.
+Change the project's credits settings as `project.credits` names them (`userLimit`, `publicEndpointsLimit`, `memberWallets`, each stated whole, null for off), the design-time ceiling and its warning threshold, the describer switch, or the test-user settings (`testUserLimit`, how many test users it may hold; `testUsersInStarts`, whether a start for everyone reaches them); absent keys stay as they are. Answers what `GET` on this path answers, without `embeddings`. `publicEndpointsLimit` is the most calls to public endpoints (`auth: none` on `/v1/api-endpoints`) may spend per UTC day: null is no daily limit, and `credits: 0` refuses every public call. A stated `memberWallets` is applied to the members' wallets moments after the save, by a queued run: null returns every member's balance to the wallet the project is paid from and closes the wallets; one member's grant is `POST …/members/{userId}/credits`. The same settings in a document: `POST /v1/projects/{nodeId}/document`. The descriptions the describer writes are `GET /v1/descriptions?project=`.
 
 **Path parameters**
 
@@ -777,16 +864,12 @@ Change the project's spend ceilings, warning threshold, member-wallet settings, 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `perUserSpendCapCredits` | `integer \| null` | no | Absent leaves it unchanged. ⚠️ Null REMOVES the ceiling entirely (unlimited); `0` blocks every billable action. The two look similar in a form and are opposites. |
-| `perUserSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | no | The window a spend ceiling is measured over. The calendar windows clear themselves as the clock moves. ⚠️ `lifetime` never clears — it is a quota rather than a budget, so an active user eventually reaches it and is blocked permanently. |
+| `userLimit` | `object \| null` | no | Absent leaves it unchanged. Stated, it is whole: credits and window. ⚠️ Null REMOVES the limit (unlimited); `{ credits: 0 }` blocks every billable action. The two look similar in a form and are opposites. |
 | `designSpendCapCredits` | `integer \| null` | no | Absent leaves it unchanged. Null removes the design-time ceiling; `0` blocks all design-time work. |
 | `designSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | no | The window a spend ceiling is measured over. The calendar windows clear themselves as the clock moves. ⚠️ `lifetime` never clears — it is a quota rather than a budget, so an active user eventually reaches it and is blocked permanently. |
-| `publicSpendCapCredits` | `integer \| null` | no | Absent leaves it unchanged. A number sets the most that calls to public endpoints may spend per UTC day; `0` refuses every public call. Null clears it, and is refused with 422 and the issue code `PUBLIC_SPEND_CAP_REQUIRED` while any endpoint of the project is public — make those endpoints private first, or set `0`. |
+| `publicEndpointsLimit` | `object \| null` | no | Absent leaves it unchanged. `{ credits, per: day }` sets the most that calls to public endpoints may spend per UTC day; `credits: 0` refuses every public call. Null clears it: public calls then have no daily limit. |
 | `spendCapWarnPercent` | `integer \| null` | no | Absent leaves it unchanged; null turns the warning off. Whole percent of a ceiling, 1–100. |
-| `memberWallets` | `boolean` | no | Absent leaves it unchanged. Turning it off returns every member wallet's balance to the wallet the project is paid from and closes the wallets; the two grant settings keep their values. |
-| `memberJoinGrantCredits` | `integer \| null` | no | Absent leaves it unchanged; null stops the joining grant. At least 1. |
-| `memberPeriodicGrantCredits` | `integer \| null` | no | Absent leaves it unchanged; null stops the periodic grant. At least 1. |
-| `memberGrantPeriod` | `"day" \| "week" \| "month"` | no | How often the periodic grant is made, on UTC calendar boundaries. What is left of one period's grant expires when the next begins. |
+| `memberWallets` | `object \| null` | no | Absent leaves it unchanged. Stated, the wallets are on and the grants are whole: a grant left out is none. Null turns them off: every member wallet's balance returns to the wallet the project is paid from and the wallets close; the grants are kept for when they are turned on again. |
 | `describerEnabled` | `boolean` | no | Absent leaves it unchanged. Turn the platform's describer on or off for this project — what `GET /v1/descriptions` reads. |
 | `testUserLimit` | `integer \| null` | no | Absent leaves it unchanged; null returns to the default, 20. How many test users the project may hold, 1–100. |
 | `testUsersInStarts` | `boolean` | no | Absent leaves it unchanged. On: a start for everyone in the project also reaches its test users. |
@@ -795,21 +878,19 @@ Change the project's spend ceilings, warning threshold, member-wallet settings, 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `perUserSpendCapCredits` | `integer \| null` | yes | How much ONE end user may spend per `perUserSpendCapPeriod`, in credits. ⚠️ Null means NO ceiling, not 'the default' — unlike most nullable settings. A ceiling of zero is `0`, and the two are opposite outcomes. |
-| `perUserSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window the per-user ceiling is measured over. Never null — defaults to `day`. |
+| `userLimit` | `object \| null` | yes | How much one end user may spend per window (`project.credits.userLimit`). Null: no limit. |
 | `designSpendCapCredits` | `integer \| null` | yes | The ceiling on DESIGN-TIME spend — authoring and previewing, as opposed to what your end users cost. Null means no ceiling; `0` blocks all design-time work outright. |
-| `publicSpendCapCredits` | `integer \| null` | yes | The ceiling on what calls to the project's PUBLIC endpoints may spend per UTC day, in credits. A public endpoint (`auth: "none"` on its contract) is called by anyone with no credential and paid from the project's wallet; this bounds that. Null means it has not been set, and while it is null no endpoint can be saved public. `0` is a real ceiling: every public call answers 402 `PUBLIC_ENDPOINT_UNAVAILABLE`, which makes it the one switch for all of the project's public traffic. The window is always the UTC day; there is no period to choose. |
+| `publicEndpointsLimit` | `object \| null` | yes | What calls to the project's public endpoints (`auth: "none"`) may spend per UTC day (`project.credits.publicEndpointsLimit`). Null: no daily limit; public calls are then bounded by their rate limits and the wallet alone. |
 | `designSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window the design-time ceiling is measured over. Never null — defaults to `day`. |
 | `spendCapWarnPercent` | `integer \| null` | yes | Warn the project's operators when design-time spend passes this share of the build ceiling (`designSpendCapCredits`), in whole percent. Null = no warning. It watches the build ceiling only — the per-user ceiling raises no warning. The ceilings refuse at 100% regardless. |
-| `memberWallets` | `boolean` | yes | Whether each member of the project holds their own wallet in it. On: a signed-in member's usage is paid from their wallet and refused when it is empty, and the per-user ceiling above is not applied to them. Off: every member's usage is paid from the wallet the project is paid from. |
-| `memberJoinGrantCredits` | `integer \| null` | yes | Credits moved into a member's wallet once, when they join, out of the wallet the project is paid from. Null means no joining grant. Paid only to members who join after member wallets were turned on. |
-| `memberPeriodicGrantCredits` | `integer \| null` | yes | Credits moved into each member's wallet every `memberGrantPeriod`. Null means no periodic grant. What is left of one period's grant returns to the paying wallet when the next period begins. |
-| `memberGrantPeriod` | `"day" \| "week" \| "month"` | yes | How often the periodic grant is made, on UTC calendar boundaries. What is left of one period's grant expires when the next begins. |
+| `memberWallets` | `object \| null` | yes | Whether each member holds their own wallet in the project, and the grants made to it (`project.credits.memberWallets`). On: a signed-in member's usage is paid from their wallet and refused when it is empty, and `userLimit` is not applied to them. Null: off, every member's usage is paid from the wallet the project is paid from. |
 | `testUserLimit` | `integer \| null` | yes | How many test users the project may hold, 1–100. Null means the default, 20. Making one past it is refused 422 `TEST_USER_LIMIT`; a lower number deletes nobody and refuses new ones until fewer remain. |
 | `testUsersInStarts` | `boolean` | yes | Whether a `flow.start-per-person` over the whole project (`people.kind: "project"`) also starts a run for each of the project's test users, paid by the project as every started run is. Off (the default): it starts real people only and says how many test users it left out. Turn it on while you test with test users, and off (or delete them) before real people use the project. |
 | `describerEnabled` | `boolean` | yes | Whether the platform keeps this project's element descriptions current (`GET /v1/descriptions`). Off keeps what exists and adds nothing. The platform pays for descriptions. Defaults on. |
 | `designSpend` | `object \| null` | yes | What design-time work has already cost in the current `designSpendCapPeriod` window — the figure the design ceiling is enforced against, measured whether or not a ceiling is set. Null when the measurement could not be read this time; the settings themselves are still current. |
-| `publicSpend` | `object \| null` | yes | What calls to the project's public endpoints have cost since 00:00 UTC today — the figure `publicSpendCapCredits` is enforced against, measured whether or not a cap is set. Null when the measurement could not be read this time; the settings themselves are still current. |
+| `publicSpend` | `object \| null` | yes | What calls to the project's public endpoints have cost since 00:00 UTC today — the figure `publicEndpointsLimit` is enforced against, measured whether or not a cap is set. Null when the measurement could not be read this time; the settings themselves are still current. |
+| `sources` | `object` | yes | For each `project.credits` setting, whether this project set it (`set-here`) or the platform default stands (`platform-default`: no limit, wallets off, no grant). |
+| `embeddings` | `object \| null` | no | The project's embeddings (`project.ai.embeddings`), answered only when asked with `include=embeddings`. Null when they could not be read this time; the settings themselves are still current. |
 
 ### `GET /v1/projects/address-availability`
 

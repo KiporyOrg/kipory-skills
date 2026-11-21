@@ -87,14 +87,14 @@ Returns text, or a structured value when the step declares an output shape. Wire
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `recordRef` | yes | — | One stored record, given by its id. |
-| `tableKey` | string | yes | — | Which table the id refers to. |
+| `table` | string | yes | — | Which table the id refers to. |
 
 ### `vocabularyFields` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `field` | string | yes | — | The field of the answer that holds the vocabulary's value. |
-| `vocabularyKey` | string | yes | — | The vocabulary, by key. |
+| `vocabulary` | string | yes | — | The vocabulary, by key. |
 
 ## Worked example
 

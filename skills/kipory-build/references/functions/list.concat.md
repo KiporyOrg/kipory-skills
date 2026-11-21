@@ -128,11 +128,11 @@ Input:
 
 ```
 {
-  "categoryResolution": { "outcome": "match", "vocabularyKey": "category", "termId": "t_cat_video" },
-  "typeResolution":     { "outcome": "match", "vocabularyKey": "type",     "termId": "t_type_tutorial" },
+  "categoryResolution": { "outcome": "match", "vocabulary": "category", "termId": "t_cat_video" },
+  "typeResolution":     { "outcome": "match", "vocabulary": "type",     "termId": "t_type_tutorial" },
   "tagResolutions": [
-    { "outcome": "match", "vocabularyKey": "tag", "termId": "t_tag_react" },
-    { "outcome": "match", "vocabularyKey": "tag", "termId": "t_tag_hooks" }
+    { "outcome": "match", "vocabulary": "tag", "termId": "t_tag_react" },
+    { "outcome": "match", "vocabulary": "tag", "termId": "t_tag_hooks" }
   ]
 }
 ```
@@ -141,9 +141,9 @@ Output:
 
 ```
 [
-  { "outcome": "match", "vocabularyKey": "category", "termId": "t_cat_video" },
-  { "outcome": "match", "vocabularyKey": "type",     "termId": "t_type_tutorial" },
-  { "outcome": "match", "vocabularyKey": "tag",      "termId": "t_tag_react" },
-  { "outcome": "match", "vocabularyKey": "tag",      "termId": "t_tag_hooks" }
+  { "outcome": "match", "vocabulary": "category", "termId": "t_cat_video" },
+  { "outcome": "match", "vocabulary": "type",     "termId": "t_type_tutorial" },
+  { "outcome": "match", "vocabulary": "tag",      "termId": "t_tag_react" },
+  { "outcome": "match", "vocabulary": "tag",      "termId": "t_tag_hooks" }
 ]
 ```

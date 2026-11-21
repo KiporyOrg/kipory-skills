@@ -11,8 +11,8 @@ Five capabilities that only matter once something works, and one fact most peopl
 ## Before the first call
 
 - Fetch the pack for the capability you touch: `references/packs/schedules.md`, `triggers.md`, `events.md`, `project-config.md`, `credits.md`. For anything about cost, start at `references/spend-reads.md`; it points to `references/spend.md` and `references/balance.md`.
-- `GET /v1/bootstrap?project={nodeId}&sections=surfaces,events,project` returns every schedule, every trigger, every event type (each with its namespace), the route enablement and the config namespaces in one call.
-- Writes here are EDITOR; deletes, and the project settings that hold the spend ceiling, are ADMIN.
+- `GET /v1/bootstrap?project={nodeId}&sections=schedules,triggers,events,project` returns every schedule, every trigger, every event type (each with its namespace), the route enablement and the config namespaces in one call.
+- Writes here are EDITOR; deletes and the spend-ceiling settings, ADMIN. All of it can be written in the document (`kipory-build`).
 
 ## Schedules
 
@@ -20,7 +20,7 @@ Five capabilities that only matter once something works, and one fact most peopl
 <!-- field-ok: no-end-user — an enum VALUE of the preview's principal, not a property -->
 
 ```
-POST   /v1/schedules                       { project, key, flowId, inputs, cronPattern, tz, startsAt?, endsAt?, maxRuns?, overlapPolicy? }
+POST   /v1/schedules                       { project, key, flowId, inputs, cron, tz, startsAt?, endsAt?, maxRuns?, overlapPolicy? }
 GET    /v1/schedules?project={nodeId}&expand=lastRun,drift,flowLabel
 PATCH  /v1/schedules/{id}                   { version, … } — inputs REPLACE; key is immutable and not a body field
 PATCH  /v1/schedules/{id}                   { version, enabled } — switch it off, or on (recomputes the next run from now)
@@ -45,7 +45,7 @@ Each occurrence in `runs` carries its `outcome` — `fired`, `skipped`, `blocked
 ## Triggers
 
 ```
-POST /v1/triggers                          { project, key, categoryKey, eventKey, flowId, inputs, sourceId? | newSource?, filter?, overlapPolicy?, label? }
+POST /v1/triggers                          { project, key, categoryKey, eventKey, flowId, inputs, watch?, filter?, overlapPolicy?, label? }
 GET  /v1/triggers?project={nodeId}&expand=lastRun,drift,flowLabel
 PATCH /v1/triggers/{id}                    { version, … } — inputs REPLACE; key is immutable and not a body field
 PATCH /v1/triggers/{id}                    { version, enabled } — switch it off, or on (reacts from now; nothing is caught up)
@@ -60,7 +60,7 @@ GET  /v1/project-events?project={nodeId}   the durable event log itself, newest 
 A trigger fires a flow every time a matching event is **recorded** in the project's event log.
 
 - **What it can listen to.** Only a **durable**, non-`run`-scoped event type is logged, and a trigger listens only to an **active** type, so the write refuses a selector on a draft, retired, run-scoped or non-durable type and names the thing to change.
-- **A trigger on a source's events names the source.** `sourceId` binds the trigger to one source (a Telegram channel), and `categoryKey` / `eventKey` must then be that provider's; `newSource` creates the source in the same write. Send one or neither, never both (422); neither means an event the project's own flows emit. `kipory-channels` owns the source.
+- **A trigger states what it watches, and holds it**: `watch: [{ channel: "@technews" }]`, the event that provider's. Nobody writes a source (`/v1/sources` reads them). A disabled or paused trigger keeps its hold. No `watch`: every source of that provider the project watches. `kipory-channels` owns the provider.
 - **What the flow receives.** The envelope arrives in a reserved `event` input — its `projectId`, `source` and a project-scoped `subject` carry the project's one id, the same one `projectInfo.projectId` holds and every route takes — and `{ triggerId, key, triggerRunId, replay }` in a reserved `trigger` input. Neither belongs in `inputs`; everything else the flow declares does. Declare both with the builtin `object` type and read the payload as `event.data.<field>`.
 - **A `filter` is a condition over two values**, `event` (the envelope) and `data` (its payload); an event it rejects is recorded as `filtered`, never dropped.
 
@@ -79,7 +79,7 @@ GET  /v1/event-types?project={nodeId}[&categoryKey=]
 
 Every type write — `POST`, `PATCH { version, … }`, `DELETE` — takes `validateOnly` (in the body; `?validateOnly=true` on a DELETE) and answers a 200 verdict instead of writing: a taken key, a refused namespace, a seeded row's delete and the scope/payload rules come back as findings.
 
-A type's `defaultScope` is `run`, `record`, `user` or `project`: a signal scoped to one run and one on the bus are different things — pick by who needs to hear it. The payload type is optional; omit it and the event is a bare signal. When you give one, `payloadDataTypeId` must be a type of this project — a builtin such as the `string` type a flow's slot hands back is refused as unknown; wrap a scalar in an object type. A flow emits with an `event.emit` step; a client subscribes through an `events.subscribe` endpoint (`kipory-expose`) or watches the project-wide `GET /v1/activity/stream`, whose `changed` frames name only which domain moved — never an event, id or payload — so it is a cue to re-read, not a feed; another flow reacts through a trigger, which needs the type to be `durable`.
+A type's `defaultScope` is `run`, `record`, `user` or `project`: a signal scoped to one run and one on the bus are different things — pick by who needs to hear it. The payload type is optional; omit it and the event is a bare signal. When you give one, `payloadDataTypeId` must be a type of this project — a builtin such as the `string` type a flow's slot hands back is refused as unknown; wrap a scalar in an object type. A flow emits with an `event.emit` step; a client subscribes through a `subscribe` endpoint (`kipory-expose`) or watches the project-wide `GET /v1/activity/stream`, whose `changed` frames name only which domain moved — never an event, id or payload — so it is a cue to re-read, not a feed; another flow reacts through a trigger, which needs the type to be `durable`.
 
 ## Project config
 
@@ -89,7 +89,7 @@ POST   /v1/project-config                        upsert on (project, namespace):
 DELETE /v1/project-config/{id}[?validateOnly=true]
 ```
 
-Reach for this instead of editing a flow whenever the thing being changed is a threshold, a cadence or a weight. The `namespace` binds a type whose field defaults are overlaid, per top-level field, with your `data` (at most 32 KiB); `effective` is computed on every read, never stored, so editing a default in the type takes effect at once. The type reference is soft: deleting it leaves reads working and refuses the next write.
+Reach for this instead of editing a flow whenever the thing being changed is a threshold, a cadence or a weight. In the document: `project.config.<namespace>: { type, values }`. The `namespace` binds a type whose field defaults are overlaid, per top-level field, with your `data` (at most 32 KiB); `effective` is computed on every read, never stored, so editing a default in the type takes effect at once. The type reference is soft: deleting it leaves reads working and refuses the next write.
 
 **`data` is the whole override map.** A POST replaces every override stored in the namespace with the `data` it carries: sending only the key you changed deletes every other override and answers 200. Read the row, merge locally, send the full map.
 

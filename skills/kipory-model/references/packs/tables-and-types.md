@@ -14,14 +14,15 @@
   the table's derived fields.
 
 Both are addressed by their `key`. A table's key is a **table name** — letters and digits,
-starting with a letter — and it is the value its records carry as `tableKey`; it is renameable
+starting with a letter — and it is the value its records carry as `table`; it is renameable
 at any time, and its records move with it (below). A type's key is an address key (below) and
 renameable at any time.
 
 They are separate resources on purpose: types are authored once and reused, while a table
 is a thin descriptor pointing at one.
 
-**One type refers to another by id.** Inside a `definition`, the reference is JSON Schema's
+**One type refers to another by id.** Inside a type's schema (its `definition` on the row API; in a
+project document the type row IS the schema), the reference is JSON Schema's
 `$ref` in one form only: `{ "$ref": "#/$defs/<dataTypeId>" }` — the referenced type's **id**, on the
 row API and inside a project document alike. A key there is refused
 `SCHEMA_DEFINITION_INVALID_JSON_SCHEMA`. A new type has no id until it is written, so two new
@@ -61,13 +62,31 @@ endpoint or table.
 A table always points at a type, and a type is nobody's: any table, event
 payload, relation, config namespace, profile or flow input or output may use it. To make a type and
 a table of that type in one step, state both in a
-project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the type under `types`, the table under `tables`
-with `type` naming the type's key. To edit a table's type together with the table (its `uses`,
+project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the type under `types` (the row is its JSON Schema:
+`Note: { type: object, properties: {…} }`; its one note is the row's `description`, up to 4,000
+characters, the text an endpoint's published schema and a model's output schema show), the table
+under `tables` with `type` naming the type's key. To edit a table's type together with the table (its `uses`,
 its flow), send `definition` on `PATCH /v1/tables/{id}`, or state the type and the table in
 one document. Either way every other row that uses the type is judged by the edit, as on
 `PATCH /v1/types/{id}`. A registry PATCH that lands answers the row and its `touched`
 list — every event type and table whose version moved with it — as the table and
 flow PATCHes do.
+
+A type has one description. Write it as the schema's `description` in a document, or as
+`description` on `/v1/types`; the platform keeps it beside the schema, never inside the stored
+definition, so editing it changes no definition and re-checks no endpoint contract. A new or
+changed description is at most 4,000 characters; a longer one saved earlier stays readable and
+exports unchanged, and only a change to it has to fit. Every endpoint schema and every model
+output schema that uses the type shows it.
+
+A table also holds its named reads: `queries` (a read declared once — clauses, params, order,
+paging — and read by a `record.query` step with `query:`) and
+`selections` (which fields and linked records a row carries, named by a query's `select`). In a
+document they sit under the table, `tables.<key>.queries` and `tables.<key>.selections`, with no
+`table:` inside; another table's is named `<table>.<key>`. Row by row they are
+`/v1/tables/{id}/queries` and `/v1/tables/{id}/selections`. Deleting the table deletes them, and is
+refused while another table's query or selection, a step or an endpoint still names one. See
+the project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`).
 
 Both are scoped by `project`. Reads take useful expansions: the synthesised derived output fields,
 the table's records by the shape they hold (`expand=shape`, on `GET /v1/tables/{id}` only), and the type-reference graph.
@@ -108,7 +127,7 @@ server's verdict, from the same gates the save runs. There is a sibling flag,
 `profileEligible`, answering the same kind of question for the end-user profile.
 
 A third, **`vocabularyExtractable`**, answers a question the save never asks: would a
-`$vocabularyKey` marker on one of this type's fields be READ? Only where a
+`$vocabulary` marker on one of this type's fields be READ? Only where a
 `text.generate` step answers with exactly this type (its `with.outputSchema`) does a marker become
 that step's vocabulary extraction. Anywhere else — including a step answering with a
 _list_ of the type — a marker saves cleanly and extracts nothing, because the
@@ -222,8 +241,8 @@ record), then make it required. An import is one bulk of creates with `onKeyTake
 
 ## Owner scope — whose records are these?
 
-Declared on the table as `ownerScope` — `user` or `project`, spelled as a record's own
-`ownerScope` — and every generic reader, writer and processor branches on it. The stored
+Declared on the table as `owner` — `user` or `project`, spelled as a record's own
+`owner` — and every generic reader, writer and processor branches on it. The stored
 spelling (`USER`, `PROJECT`) is refused on the wire.
 
 - **User-scoped** (person-owned): records belong to one person. A person's run reads and
@@ -246,11 +265,11 @@ delete or manage (`record.grant`, `record.revoke`, `record.grants`; a team is a 
 joins with a `member` grant and a member level, one level deep). Every read of the table as a
 person then answers their own records and those shared with them or a team of theirs, each with
 its `access` and `ownerId`, and a share too low for an act answers 403. The table may not declare a
-field named `access`, `ownerId` or `sharedAt` (`TABLE_FIELD_RESERVED_BY_SHARING`). <!-- field-ok: ownerId — a member of a record row read through a share (423-record-sharing-gaps), not a wire field --> <!-- field-ok: sharedAt — a member of a record row read through a share (423-record-sharing-gaps), not a wire field --> Unlike the scope it can be turned on with records in place,
+field named `access`, `ownerId` or `sharedAt` (`TABLE_FIELD_RESERVED_BY_SHARING`). <!-- field-ok: ownerId — a member of a record row read through a share, not a wire field --> <!-- field-ok: sharedAt — a member of a record row read through a share, not a wire field --> Unlike the scope it can be turned on with records in place,
 and off again (the grants go inert). A project table refuses it
-(`TABLE_SHARING_NEEDS_PERSON_OWNER`), and so does a `project`-scope view over a sharing table.
+(`TABLE_SHARING_NEEDS_PERSON_OWNER`), and so does a `project`-scope query over a sharing table.
 
-⛔ **`ownerScope` is therefore REQUIRED on `POST /v1/tables`.** A body without it is refused:
+⛔ **`owner` is therefore REQUIRED on `POST /v1/tables`.** A body without it is refused:
 a default would make this permanent decision on your behalf, and you could not undo it after the
 first write.
 
@@ -282,79 +301,63 @@ Billing lands on the project's payer.
 ## One statement of what each field is for: `uses`
 
 A table carries ONE storage declaration, `uses`, and everything the platform stores about
-its fields is derived from it. Per field, a list of what the field is **for**:
+its fields is derived from it. It is grouped by use — under each use, the fields that are **for** it:
 
-- `filter` — an indexed column; the field can be filtered on, in the record store and the vector
-  index alike (the derived `queryable` list, in this order). A `processed` field takes one too:
+- `filter` — indexed columns; each field can be filtered on, in the record store and the vector
+  index alike (the derived `queryable` list). A `processed` field takes one too:
   its column holds the record's stored flow output — what the last finished run wrote, or a flow's
   later `record.update` of it, with a field a rerun leaves out kept — so a value the flow computes
   can be filtered, ordered and counted on with no copy into the submitted data. A submitted and a
   processed field of one name cannot both be filters, and a flow change that drops or retypes a
   filtered output is refused until the filter goes.
-- `search` — the meaning index; `{ "kind": "search" }`, the field's text is embedded and a
-  `semantic` clause can rank on it by naming the field (the derived `searchable` document).
-- `link` — the link store; `{ "kind": "link", "relation", "element"? }`, the field holds a record
-  id, or is a list of objects whose `element.ref` does (the derived `relations` document).
-  `element.filters` names the sibling properties to carry on the link and filter on — see
-  "Filtering on the data a link carries" below.
-- `stream` — the stream store; `{ "kind": "stream", "at", "filters"?, "retainDays"? }`, the field is
+- `search` — the meaning index; each field's text is embedded and a `semantic` clause can rank on
+  it by naming the field (the derived `searchable` document).
+- `stream` — the stream store; `{ <field>: { at, filters?, retainDays? } }`, the field is
   a list of timed events that grows without bound, appended never assigned — see "A list that grows
   without bound" below.
-- `key` — the natural-key index; the field identifies the record (the derived `naturalKey`).
+- `key` — the natural-key index; the one field that identifies the record (the derived `naturalKey`).
 
-There is no `file` use: a field whose type is File is what uploads, storage and processing go by.
+There is no `link` use: a field that holds a record id is stated once, on the relation
+(`from: <table>.<field>`, with `onTargetDelete`, `unresolved` and `element` there), and the table's
+link (the derived `relations` document) follows from it — see Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`).
+There is no `file` use either: a field whose type is File is what uploads, storage and processing go by.
 A statement naming one fails request validation (`422 VALIDATION_FAILED`), not a
 `TABLE_USES_INVALID` issue.
 
-And three statements about the **table**, beside the fields: `search` (the embedding profile, with
-optional overrides of `chunking`, `indexWhen` and `isolationGroup` — required iff a field is
-marked `search`; `indexWhen` names one true/false field, `{ "family", "field" }`, and only a record
+`search` is either a list of fields or an object carrying them with the table's search settings:
+`{ fields, embedding?, chunking?, indexWhen?, isolationGroup? }` — the embedding to index with
+(left out, the project's default; see Embeddings (capability pack `embeddings` — `GET /v1/capability-packs/embeddings`)), with optional
+overrides of `chunking`, spelled as an embedding's: `whole` or `{ tokens, overlap }`, on the
+row API and in the document alike; a search naming an embedding the project lacks is reported
+`SEARCHABLE_EMBEDDING_UNKNOWN` in the table's diagnostics. `indexWhen` names one true/false field, and only a record
 whose field is exactly `true` is indexed (there is no condition form), and a record without the
-field is left out), `join` (this table IS a link — `{ relationKey, from, to }`, the relation by its
-key), and `vocabularies` (the ordered vocabulary keys the table
+field is left out. Beside the fields: `join` (this table IS a link — `{ relationKey, from, to }`, the
+relation by its key), and `vocabularies` (the ordered vocabulary keys the table
 surfaces — a vocabulary is not a field, so it is not a use of one; see "Which vocabularies a table
 surfaces").
 
-```jsonc
-{
-  "uses": {
-    "fields": [
-      {
-        "source": { "family": "submission", "field": "externalId" },
-        "uses": ["key", "filter"],
-      },
-      {
-        "source": { "family": "submission", "field": "body" },
-        "uses": [{ "kind": "search" }],
-      },
-      {
-        "source": { "family": "submission", "field": "publishedAt" },
-        "uses": ["filter"],
-      },
-      {
-        "source": { "family": "submission", "field": "sourceId" },
-        "uses": [{ "kind": "link", "relation": "published-by" }],
-      },
-    ],
-    "search": { "profileId": "prof_…" },
-    "vocabularies": ["topic", "language"],
-  },
-}
+```yaml
+uses:
+  key: externalId
+  filter: [externalId, publishedAt, sourceId]
+  search: { fields: [body], embedding: default }
+  vocabularies: [topic, language]
 ```
 
-A field's source `family` says which half of the table's contract it comes from: `submission` — the
-record's submitted data — or `processed` — an output of the processing flow bound to the table, the
-way a searchable `body` extracted from an uploaded file is named (`{ "family": "processed",
-"field": "body" }`, where `body` is that flow's output). The grammar also has `system`
-(platform-maintained fields); a reference the table cannot supply is refused at save, never left to
-produce nothing. `search`, `link` and `filter` take either family; `key` takes `submission` only.
+A field is named bare when it is the record's submitted data. A field from the other half of the
+table's contract is `{ field, family }`: `processed` — an output of the processing flow bound to the
+table, the way a searchable `body` extracted from an uploaded file is named (`{ field: body, family:
+processed }`, where `body` is that flow's output) — or `computed`, a field of the table's
+`computed`. The grammar also has `system` (platform-maintained fields); a reference the table cannot
+supply is refused at save, never left to produce nothing. `search` and `filter` take any family;
+`key` takes submitted data only.
 
 ⛔ **`searchable` as well as `queryable` and `relations` are READ-ONLY on the wire.** They are derived from
-`uses` and reported beside it; a create or patch body naming any of them is a `422` from the strict
-schema, and there is no merge form of anything — `uses` is **sent whole**. Order matters for exactly
-one use: `filter` fields are assigned storage slots by position, so reordering two of them moves
-their values to different columns and re-stamps every record. A patch that omits `uses` keeps the
-stored statement.
+`uses` and the relations, and reported beside it; a create or patch body naming any of them is a `422`
+from the strict schema, and there is no merge form of anything — `uses` is **sent whole**. The order
+of `filter` means nothing: a filter field keeps its storage slot, so reordering it is no change.
+The order of `search` decides the table's default search field (the first), and `vocabularies` is
+surfaced in its listed order. A patch that omits `uses` keeps the stored statement.
 
 ⭐ **The read tells you where each use landed: `GET /v1/tables/{id}?expand=uses`.**
 `usesRouting` carries `supported` — the use kinds THIS deployment has a reader for — then per field,
@@ -370,23 +373,23 @@ today, so the list is the deployment's statement, not a promise.
 that way — an object cannot be filtered, a number or a file cannot be a key), `USES_TWO_KEYS`,
 `USES_KEY_NOT_SUBMITTED` (a `key` on a field that is not submitted data, such as a flow output),
 `USES_SEARCH_NO_TEXT`, `USES_SEARCH_SETTINGS` (a `search` use with no `search` settings, or the
-reverse), `USES_SEARCH_FIELDS_OVER_LIMIT` (more fields marked `search` than the profile's
+reverse), `USES_SEARCH_FIELDS_OVER_LIMIT` (more fields marked `search` than the embedding's
 `searchFieldsPerTable`; the issue carries `limit` and `marked`), `USES_VOCABULARY_UNKNOWN`, `USES_VOCABULARY_SHADOWS_FIELD` (a surfaced vocabulary's key is
 also a field name of the table), `USES_RELATION_UNKNOWN`, `USES_MARKER_DISAGREES` (the type already
-marks the field as a reference to a different table), and for `element.filters` on a `link`:
+marks the field as a reference to a different table), and for `element.filters` on a relation's `from`:
 `LINK_FILTER_NOT_FILTERABLE`, `LINK_FILTER_BUDGET_EXCEEDED`, `LINK_FILTER_TYPE_CONFLICT` (below).
 Nothing is written on a refusal — not the statement, not a projection, not a marker.
 
 ## Making a table searchable
 
-Marking a text field `search` and naming an embedding profile (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`) in
-`uses.search` is the **only** way a table is indexed for search by meaning. A `search` use is
-`{ "kind": "search" }` and nothing else: it takes no `role`, and sending one is refused as an
-unknown member. Each field marked `search` is indexed on its own, and a `semantic` clause ranks on
+Listing a text field under `uses.search` — with an embedding (capability pack `embeddings` — `GET /v1/capability-packs/embeddings`) named in
+`uses.search.embedding`, or none for the project's default — is the **only** way a table is
+indexed for search by meaning. A `search` entry is the field and nothing else: it takes no `role`,
+and sending one is refused as an unknown member. Each field listed under `search` is indexed on its own, and a `semantic` clause ranks on
 one of them by naming it in `field`. A clause that names no `field` ranks on the table's default
 search field — the first field marked `search` when the table was first saved, kept until that field
 is unmarked — which the table read shows as `searchable.defaultField`. Name `field` on any table
-with more than one `search` field. A table may mark as many as its profile's
+with more than one `search` field. A table may mark as many as its embedding's
 `searchFieldsPerTable`; one more is refused `USES_SEARCH_FIELDS_OVER_LIMIT`. A clause names a field
 by name alone, so two `search` fields that share a name across families are refused
 `USES_SEARCH_FIELD_NAME_SHARED`.
@@ -397,12 +400,12 @@ changes the table's index declaration, and every record of the table is embedded
 `search` fields, not only the one you changed — and billed. Send the save with `validateOnly: true`
 first: `derived.effects.reembed: true` says the save would do it.
 
-The `searchable` document you read back is derived from that: the profile, how the text is chunked
-(the profile's `defaultChunking`, unless `uses.search.chunking` overrides it), and which fields
+The `searchable` document you read back is derived from that: the embedding, how the text is chunked
+(the embedding's `chunking`, unless `uses.search.chunking` overrides it), and which fields
 travel with each entry (every `filter` field, and only those). `?expand=uses` says per `search`
 field whether it is `indexed` and its `chunking`. Neither names where a field is stored.
 
-Nothing physical happens when you save. The index is **derived** from the project, the profile and
+Nothing physical happens when you save. The index is **derived** from the project, the embedding and
 its generation, the owner scope and the isolation group, then built in the background. Nobody
 names it.
 
@@ -423,8 +426,8 @@ Three consequences that catch people out, and only the last two are _silent_:
   removes them later.
 
 ⚠️ **Moving the derived searchable declaration re-embeds every existing record, and re-embedding
-costs credits.** Marking or unmarking a field `search`, changing the profile, or
-changing the chunking — on the table, OR on the profile's default that this table inherits — makes
+costs credits.** Marking or unmarking a field `search`, changing the embedding, or
+changing the chunking — on the table, OR on the embedding's default that this table inherits — makes
 every stored record's points stale, and the background reconcile re-runs each record's projection,
 embedding calls included. The save itself is instant; the spend arrives record by record as the
 re-embed drains. Three changes that look adjacent are **not** in that set: adding or removing a
@@ -436,7 +439,7 @@ reprocessed, not as this save's own bill. The trigger is the **diff of the deriv
 the edit: re-sending the same `uses` derives the same document and enqueues nothing.
 
 **The cost is estimable before you save, from measurements:
-`GET /v1/tables/{id}?expand=embedding`** carries the profile's model, its current rate in
+`GET /v1/tables/{id}?expand=embedding`** carries the embedding's model, its current rate in
 `creditsPerMillionTokens`, and `avgTokensPerRecord` — averaged over the project's recent
 embedding calls narrowed to this table's records (`measuredCalls` says how many the average stands
 on). Multiply by your record count for the estimate — an upper bound: a price rule carrying an
@@ -477,12 +480,12 @@ perfectly embeddable.
 
 What you send is the whole `uses` statement, and the three derived documents are computed from it
 in the same transaction. There is no merge form and nothing to drop by accident: chunking lives on
-the profile, and a field's every purpose is stated in one place. Read `uses`, change it, send it back with the `version` you read.
+the embedding, and a field's every purpose is stated in one place. Read `uses`, change it, send it back with the `version` you read.
 
 ## Making fields filterable
 
 The `filter` use marks a field records of this table may be **filtered** on; the derived `queryable`
-list is those fields, in the order you stated them. It is independent of `search`, and that is the
+list is those fields; their order means nothing. It is independent of `search`, and that is the
 point: filtering has nothing to do with embeddings, so **a table with no vectors at all can still
 mark fields `filter`.**
 
@@ -510,7 +513,7 @@ Things to know before you declare one:
   and nothing is re-embedded. Until a record's rewrite lands, a filter on the new field that is
   pushed into the vector store does not match that record — `expand=vectorProgress` counts the
   records still waiting, the same way it counts a re-embed. The only billed change on a searchable
-  table is moving the searchable declaration itself (a searched field, the chunking, or the profile); see "Making a
+  table is moving the searchable declaration itself (a searched field, the chunking, or the embedding); see "Making a
   table searchable".
 - **The window is readable: `GET /v1/tables/{id}?expand=restamp`.** The section carries
   `pending` (the restamp has not converged yet), `startedAt` (when the pending run began, null
@@ -538,10 +541,9 @@ Things to know before you declare one:
   hold more than one kind of value are refused when you save, with the reason. Project the value
   you actually want to filter on into its own field.
 - **You do not choose the storage.** The platform assigns each `filter` field a slot when you save
-  — by family and position in your `uses.fields` — and records it on the derived declaration.
+  and records it on the derived declaration; a field keeps its slot across later saves.
   `expand=uses` shows the column. Send the field; leave
-  the slot alone, and know that **reordering two `filter` fields moves their values** and re-stamps
-  the table.
+  the slot alone — reordering `filter` is no change and moves nothing.
 - **Dropping `filter` from a field removes the filter, not the data.** Records keep their values,
   so putting it back costs nothing.
 - **On a searchable table every `filter` field also travels on each point.** The derivation makes
@@ -574,7 +576,7 @@ your data means by a date rather than by when the row arrived. Two things to kno
 - **Only date fields in a listing step.** Its continuation token carries a date, so that is what
   its page can resume from. A timestamp stored as a plain string is a text field until its type
   declares the `date-time` or `date` format — declare it and sorting works. To order by a number, a
-  true/false or a text field, ask a query or a view: its `order` takes any field with a `filter`
+  true/false or a text field, ask a query (inline or one of the table's `queries`): its `order` takes any field with a `filter`
   use, and its cursor carries the value (see the order of the answer, below).
 - ⚠️ **Records with no value for that field are left out of the page.** The field's index only
   covers records that have a value, and including the rest would mean sorting every record of the
@@ -602,20 +604,18 @@ means by it. A feed item ingested today can have been published last year.
 
 ### Filtering on the data a link carries
 
-A `link` on a list of objects can say which of the element's OTHER properties travel onto the link
-and can be filtered on there: `element.filters`.
+A relation produced by a list of objects can say, on its `from`, which of the element's OTHER
+properties travel onto the link and can be filtered on there: `element.filters`.
 
-```jsonc
-{
-  "source": { "family": "processed", "field": "citations" },
-  "uses": [
-    {
-      "kind": "link",
-      "relation": "cites",
-      "element": { "ref": "source", "filters": ["quote", "spanStart"] },
-    },
-  ],
-}
+```yaml
+relations:
+  cites:
+    label: Cites
+    description: The sources an answer cites.
+    from:
+      field: answer.citations
+      element: { ref: source, filters: [quote, spanStart] }
+    to: source
 ```
 
 Each named property is carried on the link and stamped into an indexed link column. The relations
@@ -642,7 +642,7 @@ column }`, read-only there; `GET /v1/tables/{id}?expand=uses` routes the use as
   `stampedLinkFilters`), a runner rewrites the rows in batches, and link reads resolve against the
   previous map until it converges. A filter you just declared is not queryable until then.
 
-All three refusals arrive inside `TABLE_USES_INVALID.details.issues` with a remedy each.
+All three refusals arrive with a remedy each, on the write that states the relation.
 
 ### A list that grows without bound: `stream`
 
@@ -650,18 +650,10 @@ A field that is a list of objects each carrying a time — every action of a per
 device — is a `stream`: its elements leave the record row and become rows of their own,
 time-partitioned store, appended and never assigned, read only inside a time bound.
 
-```jsonc
-{
-  "source": { "family": "submission", "field": "actions" },
-  "uses": [
-    {
-      "kind": "stream",
-      "at": "at",
-      "filters": ["action", "target"],
-      "retainDays": 90,
-    },
-  ],
-}
+```yaml
+uses:
+  stream:
+    actions: { at: at, filters: [action, target], retainDays: 90 }
 ```
 
 - **`at` is the event's own time and is required.** It must be a datetime property of the element
@@ -713,16 +705,16 @@ records that satisfy ALL of its clauses — a conjunction, never an OR — with 
 answer that say how complete it is. One grammar, two places to state it: the `with` of a
 `record.query` step inside a flow, and the body of `POST /v1/records/query` (with `project`) from
 outside one. A body, not query-string parameters, because clauses nest. The records list
-(`GET /v1/records?project=&tableKey=`) speaks the same operator words in its `field=name:op:value`
+(`GET /v1/records?project=&table=`) speaks the same operator words in its `field=name:op:value`
 conditions — `eq`, `gt`, `gte`, `lt`, `lte`. The examples here are request bodies, where every value
-is fixed as written; in a step a fixed text is `{ "literal": "…" }` and a bare text is a path to a value
-(below).
+is fixed as written; in a step the table is `table`, a fixed text is `{ "literal": "…" }` and a bare
+text is a path to a value (below).
 
 ```json
 {
-  "tableKey": "person",
+  "table": "person",
   "clauses": [
-    { "kind": "term", "vocabularyKey": "language", "slug": "hebrew" },
+    { "kind": "term", "vocabulary": "language", "slug": "hebrew" },
     {
       "kind": "link",
       "relation": "friend-of",
@@ -751,7 +743,7 @@ Each kind of clause is answered by the store its use routed the field to, so eac
   takes a list of up to 1 000 (an OR inside the clause), and `not-in` the same list for the records
   holding none of its values. `not-in` keeps a record with no value in the field: an exclusion removes
   only what it names. `field: "id"` compares the record's own id, with `eq`, `in` or `not-in`, and
-  needs no use. `not-in` is taken by the route's body, a view's clauses and a `record.query` step's
+  needs no use. `not-in` is taken by the route's body, a named query's clauses and a `record.query` step's
   config alike. `contains` matches text anywhere in a text field, ignoring case, `%` and `_`
   literal; the text is at least 3 characters with a word in them (`"50%"` and `"a-b"` are found,
   signs alone like `"%%%"` are refused: the index has nothing to find them by, so the minimum is a
@@ -759,17 +751,17 @@ Each kind of clause is answered by the store its use routed the field to, so eac
 - **`any`** is an OR of 2 to 8 `field`, `term`, `link` or `stream` clauses, one level deep: a record
   matching any one of them is in the answer. Each alternative needs what it would need alone, and
   counts toward the query's 16 clauses. It holds no `semantic` clause, no `any`, and no stream
-  clause a record with no event satisfies. A view takes no `any` (`VIEW_ANY_UNSUPPORTED`).
+  clause a record with no event satisfies. A table's named query takes no `any` (`QUERY_ANY_UNSUPPORTED`).
 - **`term`** needs the vocabulary in `uses.vocabularies`. The `slug` may be an alias; it resolves
   one hop to its canonical term, as every term read does. It matches **active** terms only: a record
   filed under a candidate term is not found by a `term` clause, or by the list's `term=` condition,
   until the term is admitted (`PATCH /v1/terms/{id}`). Each answered row's term carries the term's
   `labels` and `attributes` when it has them.
-- **`link`** needs a `link` use for the `relation`, on the field that points. `direction` is
+- **`link`** needs the `relation` stated `from` the field that points (the table's link use is derived from it). `direction` is
   `outgoing` unless you say `incoming` or `either` (a symmetric link matches on either side
   whatever you ask). Asked `outgoing`, the link is on a field of the queried table. Asked `incoming`
   or `either`, a link on a field of a table that points AT the queried one routes it too: with
-  `in-story` declared on `post.storyId`, query `story` with `direction: "incoming"` — `story`
+  `in-story` stated `from: post.storyId`, query `story` with `direction: "incoming"` — `story`
   declares no link and keeps no list of its posts. The default direction from `story` is refused
   `QUERY_CLAUSE_UNROUTED`, and the refusal says to ask `incoming`. `where` speaks the link's
   `element.filters`; `count` is a comparison on matching links (omitted: at least one);
@@ -797,11 +789,11 @@ the table does not have is refused when the flow is saved. In the body of
 name that is not one is 422 `RECORD_PROJECTION_UNKNOWN_FIELD`. The list changes nothing else:
 the same records, order, cursor, `scores` and passages. Name the fields whenever the table has
 long ones — a step's value has one size limit, and a page of whole records can pass it. With
-`tableKeys`, a name is one any of the tables has, and each row carries the ones its own table has.
+`tables`, a name is one any of the tables has, and each row carries the ones its own table has.
 The records list takes `fields=` too, with a different job: a row there already carries its
 columns, and each name adds that field's value to the row's `values` — any top-level field the
 table declares, submitted or produced by its flow, column or not; a field the record holds no value
-for is left out. It needs `tableKey`, takes up to 32 names, works beside `id=`, and refuses a name the table
+for is left out. It needs `table`, takes up to 32 names, works beside `id=`, and refuses a name the table
 does not declare (a dotted path included), or a stream field, with the same 422. To read a few fields of many records,
 this is one request a page instead of one `GET /v1/records/{id}` a record.
 
@@ -809,7 +801,7 @@ this is one request a page instead of one `GET /v1/records/{id}` a record.
 `scores` beside `records`: one `{ id, score }` per returned record, in the records' order. The
 score is the similarity of the record's closest part to the query — higher is closer, a poor
 match can be below zero, and it is on the same scale for every type, whether or not the type's
-profile also indexes exact words. It sits beside the rows and not on them, because a row's own
+embedding also indexes exact words. It sits beside the rows and not on them, because a row's own
 fields are spread at its top level. On the clause:
 
 - `minScore` (−1 to 1) leaves out records scoring below it. It removes from the `topK` ranking and
@@ -820,25 +812,25 @@ fields are spread at its top level. On the clause:
   indexed carries `passageStale: true` instead.
 - `likeRecordId` names a record to resemble in place of a
   phrase: the answer ranks the records closest to it, leaves it out, and calls no model.
-  `likeTableKey` names the record's type when it is not the queried one; both must use the same
-  embedding profile, or the save is refused `QUERY_LIKE_TABLE_MODEL_MISMATCH`. A record with no
+  `likeTable` names the record's type when it is not the queried one; both must use the same
+  embedding, or the save is refused `QUERY_LIKE_TABLE_MODEL_MISMATCH`. A record with no
   index entry yet fails the query `QUERY_LIKE_RECORD_NOT_INDEXED` rather than answering empty; one
   that does not exist, or is not the caller's, answers `QUERY_LIKE_RECORD_NOT_FOUND`. A clause
   resembles a phrase or a record, never both (`QUERY_SEMANTIC_SOURCE_AMBIGUOUS`), and `passage`
   cannot be combined with a record (`QUERY_PASSAGE_WITH_LIKE_RECORD`).
 
-To rank several tables in one answer, name `tableKeys` (2 to 8 tables) in place of `tableKey`:
+To rank several tables in one answer, name `tables` (2 to 8 tables) in place of `table`:
 
 ```json
 {
-  "tableKeys": ["article", "faq"],
+  "tables": ["article", "faq"],
   "clauses": [{ "kind": "semantic", "text": "reset my password", "topK": 20 }]
 }
 ```
 
 The answer is the 20 closest records of both tables together, and each entry of `scores` carries
-the `tableKey` of its record; rows of different tables carry different fields. The tables must use
-the same embedding profile (`QUERY_TABLES_MODEL_MISMATCH`), every clause must be answerable by each
+the `table` of its record; rows of different tables carry different fields. The tables must use
+the same embedding (`QUERY_TABLES_MODEL_MISMATCH`), every clause must be answerable by each
 table (`QUERY_CLAUSE_UNROUTED` names the table that cannot), and the query must hold a `semantic`
 clause (`QUERY_TABLES_NEED_SEMANTIC`). It is ordered by meaning and has no cursor. `topK` is one
 total: no table is guaranteed a place.
@@ -920,7 +912,7 @@ at save is the same either way.
 
 ```json
 {
-  "tableKey": "outing",
+  "table": "outing",
   "clauses": [
     {
       "kind": "field",
@@ -946,9 +938,9 @@ typed, among the guides they follow" is one step.
   of a value that may be nothing on some path is refused `STEP_INPUT_MAY_BE_ABSENT`, with a fix that
   guards the step with `if` + `has`. At run, a required value that is missing fails the step
   (`STEP_INPUT_ABSENT`) — a query with one condition missing is a wider question, and it is never
-  asked. There is no optional clause in an inline query: an optional filter is a view's `optional`
-  param, whose clause is left out when no value comes, in one `record.view` step
-  (the project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)).
+  asked. There is no optional clause in an inline query: an optional filter is a table query's
+  `optional` param, whose clause is left out when no value comes, read by a `record.query` step with
+  `query:` (the project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)).
 - **An empty list is a value, not nothing.** Under `in` it matches nothing, so the answer is empty
   with `emptiedBy` naming that clause, and the step runs. Inside an `any` it drops only its own
   alternative; under `not-in` it removes nothing.
@@ -965,7 +957,7 @@ typed, among the guides they follow" is one step.
   number where text is needed. A warning: the flow saves, and the run would refuse the value.
 - `record.list` and `record.count` hold their filters to the same rule: a missing required value
   fails the step, a wrong one fails it (`FILTER_VALUE_INVALID`), an empty list matches nothing. A
-  filter is never dropped: an optional one is a view's `optional` param, read with `record.view`.
+  filter is never dropped: an optional one is a table query's `optional` param, read by `record.query` with `query:`.
 - The request body of the route takes written values only.
 
 **Two honesty fields, never omitted.** Read them before you read `records`:
@@ -1023,7 +1015,7 @@ records it is linked to, under `linked.<name>`:
 ```json
 {
   "project": "<node id>",
-  "tableKey": "book",
+  "table": "book",
   "linked": {
     "author": {
       "relation": "written-by",
@@ -1054,7 +1046,7 @@ records it is linked to, under `linked.<name>`:
   and on a flow's `record.query` (`record.read` and `record.list` carry them).
 - The route has no save step, so a linked read the project's relations cannot answer is refused before
   anything is read: 422 `VALIDATION_FAILED` with the rule in the `reason` of its `details` —
-  `LINKED_RELATION_UNKNOWN`, `LINKED_NO_PAIRING`, `LINKED_PEER_TABLE_UNCLEAR`, `LINKED_LIST_NEEDS_LIMIT`,
+  `LINKED_RELATION_UNKNOWN`, `LINKED_NO_END`, `LINKED_PEER_TABLE_UNCLEAR`, `LINKED_LIST_NEEDS_LIMIT`,
   `LINKED_ONE_TAKES_NO_LIST_OPTIONS`, `LINKED_SORT_NOT_DATE`, `LINKED_PEER_TABLE_NOT_AT_END`,
   `LINKED_JOIN_RECORD`, `LINKED_TOO_MANY_ROWS` (for each linked read, the records it hangs off times
   its `limit`, summed over every linked read at both levels, passes the most linked records one read
@@ -1063,21 +1055,22 @@ records it is linked to, under `linked.<name>`:
 - `GET /v1/records` takes no `linked`, its rows carry no `linked` / `linkedMore`, and neither route
   takes `pages` — both are 422 as unknown members.
 
-**Not built — do not promise these.** OR across clauses anywhere but a query's `any` — a view, a
+**Not built — do not promise these.** OR across clauses anywhere but an inline query's `any` — a table's named query, a
 linked read's `where` and the listing functions take none (OR one field's values with `in`). A second
 hop through `peer`. Ordering by how closely a LINKED record matches, or by any value on a linked
 record. A similarity cut-off on a ranking. An answer carrying records of two tables, except a
-ranking by meaning across `tableKeys`. A query
+ranking by meaning across `tables`. A query
 language — the grammar is this JSON, in a step's `with` or a request body. A value for WHICH field,
 operator or link a clause asks about — only the value compared against can come from the run. A
 cached answer — every query reads the stores as they are now.
 
 A step's clauses are saved with its flow (`PUT /v1/flows/{id}/steps`, `POST /v1/flows/{id}/steps/edit`, or a project document), which refuses an unrouted clause with 422 and names the field and the use that would route it.
 
-## References: what a `link` use says about the record it names
+## References: what a relation's `from` says about the record it names
 
-A `link` use on a reference field may state three things (all optional; the table read with
-`expand=uses` shows each resolved, with whether it is the default):
+A relation's `from` on a reference field (`from: { field: <table>.<field>, … }`) may state three
+things (all optional; the table read with `expand=uses` shows each resolved, with whether it is the
+default):
 
 - **`onTargetDelete`** — what deleting the named record does to the records holding the reference:
   `delete` (they are deleted too, their own references acting in turn), `clear` (the reference is
@@ -1218,7 +1211,7 @@ is yours to change in the same save.
   a `filter`, `key` or `stream` use, or retyped into one that use is not allowed on. The
   message names the table and the use; remove the use on that table first, or keep the field.
   Only what the edit itself breaks is refused.
-- **A definition that contradicts itself or carries a `$vocabularyKey` marker no extraction can
+- **A definition that contradicts itself or carries a `$vocabulary` marker no extraction can
   honour.** `SCHEMA_DEFINITION_MALFORMED_CONSTRAINT`: a range no value satisfies, a negative or
   fractional count bound, an `enum` member listed twice, two `oneOf` / `anyOf` branches pinning one
   `const`, or an empty `pattern` — every one found is named, with its path.
@@ -1227,7 +1220,7 @@ is yours to change in the same save.
   whose type is not a string or a list of strings. ⚠️ Both are **flat**: the save judges the whole
   definition it would store, touched or not, so a type that already carries one takes no save — not
   even a rename or a description edit — until it is fixed. The message names the path and the fix
-  (for a nested marker: move the field to the top level, or remove its `$vocabularyKey`). Create,
+  (for a nested marker: move the field to the top level, or remove its `$vocabulary`). Create,
   PATCH and their `validateOnly` dry runs all say it; a stored type carrying one goes on deriving
   what it derived before.
 - **A `"null"` arm nothing reads** (`SCHEMA_DEFINITION_DEAD_NULL_ARM`): a field whose `type`
@@ -1241,8 +1234,8 @@ is yours to change in the same save.
   project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`).
 - **A table's own chunking that cannot advance.** `uses.search.chunking` with an `overlap` not
   smaller than its `tokens` is refused 422 on `uses.search.chunking.overlap`, code
-  `TABLE_CHUNKING_INVALID` on the finding — the same rule a profile's `defaultChunking` meets
-  (embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`)). ⚠️ Flat: it is judged on the `uses` the save
+  `TABLE_CHUNKING_INVALID` on the finding — the same rule an embedding's `chunking` meets
+  (embeddings (capability pack `embeddings` — `GET /v1/capability-packs/embeddings`)). ⚠️ Flat: it is judged on the `uses` the save
   would store, sent or not, so a table already carrying one takes no save — a description edit
   included — until the numbers are fixed.
 - **A table delete's `validateOnly=true`** rehearses the delete and rolls it back: `ok` is
@@ -1333,7 +1326,7 @@ vocabulary's (which also carries `assignedTerms`); anything else in the query is
   nothing on those records, and the plan does not warn about a read it can place on a required field. Both reads
   change nothing: fill the field with `PATCH /v1/records/{id}`, or stop marking it required. Each scans the
   records, so ask on purpose.
-- **Re-pointing a table that already has records** — a new `dataTypeId` or `ownerScope`
+- **Re-pointing a table that already has records** — a new `dataTypeId` or `owner`
   (`TABLE_PINNED_BY_RECORDS`). Renaming it is not refused; see below.
 - **A stale version on either update**, and the `version` you last read is REQUIRED rather than
   optional. The update runs in a transaction, so a rejected write rolls back the whole rename
@@ -1344,7 +1337,7 @@ vocabulary's (which also carries `assignedTerms`); anything else in the query is
 A field keeps its values when you rename it. State the rename; never remove the field and add
 another, which is a removal and is refused while records hold it.
 
-- **How:** `renameFields` maps each old field path to its new name, beside the definition as it
+- **How:** `renameFields` maps each old field path to its new name, beside the type's schema as it
   reads after the rename. Send it on the type's `PATCH /v1/types/{id}`, or on the type's row in a
   <!-- pack-lint: ignore-next -->
   project document. The new name is one name: the field stays under its parent (`source.url` →
@@ -1356,13 +1349,13 @@ another, which is a removal and is refused while records hold it.
   - the table's `uses` and everything derived from it, without a re-stamp;
   - every setting that names the field in a declared place, such as a list's filter;
   - conditions, arguments, trigger filters, endpoint retry paths, eval inputs and checkpoints;
-  - every view and shape that names the field: in a clause, as a set's `field`, in the `order`,
-    among the `fields`, in a shape's `properties`.
+  - every query and selection that names the field: in a clause, as a set's `field`, in the `order`,
+    among the `fields`, in a selection's `properties`.
 - **What it edits only where you say:** JSONata expressions and prompt templates. A plan lists each occurrence
   of the old name in `renames[].candidates`, with its span and a proposed text. Settle each one in
   the same document: change the text, keep it by naming its step in `keepExpressions`
   (`["<flowKey>.<stepKey>"]`, `"<suiteKey>.<caseKey>"` for an eval assertion, or
-  `"<tableKey>.<field>"` for a computed field's formula), or have the platform write the proposed
+  `"<table>.<field>"` for a computed field's formula), or have the platform write the proposed
   text by naming its step in `rewriteExpressions` (`["<flowKey>.<stepKey>"]`, steps only, each
   named as its candidate's `path` lists it: a step the same document re-keys keeps the key the
   plan listed). Read
@@ -1411,17 +1404,17 @@ and create another, which is refused while it holds records.
   stated by its `id` under the new key (`dish` → `recipe`).
 - **What moves, in one transaction:**
   - every record, keeping its id, with its stream events, pending vector deletions, its shares
-    and the links its fields produce; relation pairings and vocabulary bindings follow;
-  - every configuration position that names the table, such as a step's `with.tableKey` or a
-    `record.query` semantic clause's `likeTableKey`;
+    and the links its fields produce; relations' `from` and `to` and vocabulary bindings follow;
+  - every configuration position that names the table, such as a step's `with.table` or a
+    `record.query` semantic clause's `likeTable`;
   - every `x-record-ref` in another type, every `recordRef` in step, flow and table schemas, and
     checkpoints and snapshots;
-  - every view's and shape's `table`.
+  - its queries and selections, and every `<table>.<key>` that names one of them.
 - **What it never edits:** JSONata expressions and templates that spell the old key. A plan lists
   each in `renames[].candidates`; settle each by changing it in the same document or naming its
   step in `keepExpressions`.
 - **What breaks:** `renames[].exposures` lists it. A caller asking `/v1/records` for
-  `tableKey=<old>` gets the answer for a table that never existed — there is no alias and no
+  `table=<old>` gets the answer for a table that never existed — there is no alias and no
   redirect. The project's OpenAPI component `<Old>Record` becomes `<New>Record`, and the table's
   app page moves address.
 - **Who and when:** renaming needs ADMIN; an EDITOR's PATCH carrying `key` is refused `403`, and a
@@ -1443,14 +1436,14 @@ stored**. So an editor that has staged a different type, or a different processi
 holding a contract that no longer describes what it is about to save — and any declaration it
 offers against that contract is being written against the wrong vocabulary.
 
-⭐ **Each field also says whether a LINK may be declared on it, and what it points at.**
+⭐ **Each field also says whether a relation may be stated `from` it, and what it points at.**
 `relationSource` carries `flat` (the field itself is a reference) or `element` (it is a list of
 objects whose properties are), each with `typed` — whether the reference names its target — and
 `targetTableKeys`, the keys of the tables it names.
 
 ⚠️ **`typed` and `targetTableKeys` answer different questions, and only the second can be checked
-against the link you are making.** A declaration whose source points at `article` on a relation
-paired `article → note` **saves**: the save asks whether the field IS a reference and never what it
+against the link you are making.** A relation stated `from` a field that points at `article`, with
+`to: note`, **saves**: the save asks whether the field IS a reference and never what it
 points AT. Every link it then produces is refused at write time as `UNDECLARED_PAIR` and reported
 rather than raised, so the relation reads `0 links` and nothing says why. `targetTableKeys` is what
 lets an editor say so before the save instead of after it.
@@ -1584,7 +1577,7 @@ changes nothing at all, which is otherwise indistinguishable from a save that ch
 you intended.
 
 **`derived.effects.reembed` is the one that spends credits.** `reindex` says a reconcile is QUEUED,
-and a queued reconcile can find nothing to embed — a slot moved on a profile whose model resolves
+and a queued reconcile can find nothing to embed — a slot moved on an embedding whose model resolves
 to no collection finds nothing at all, and a filter change finds only payloads to rewrite.
 `reembed` resolves the stored and the saved declaration the way the reconcile sweep does, asks its
 own divergence classifier whether a record indexed under the first is out of date under the second,
@@ -1625,12 +1618,12 @@ second is refused rather than converged: converging would discard the incoming p
 would discard the stored one. An edit to an existing record goes through `record.update`.
 
 ```
-PATCH /v1/tables/{id}    `uses` with `"key"` on the field                  declare
+PATCH /v1/tables/{id}    `uses` with `key: <field>`                        declare
 PATCH /v1/tables/{id}    `uses` without it                                 retract
-PATCH /v1/tables/{id}    `uses` with `"key"`, `"validateOnly": true`       ask first
+PATCH /v1/tables/{id}    `uses` with `key`, `"validateOnly": true`         ask first
 ```
 
-The key is the `key` use on a field in `uses` — the same statement as every other purpose a field
+The key is `uses.key`, naming the field — the same statement as every other purpose a field
 has — and the read reports it as `naturalKey`. There is no separate verb, and no separate question:
 asking for the verdict before committing to it is the PATCH's own dry run, below.
 
@@ -1700,7 +1693,7 @@ verdict says so in the save's words: `ok: false` with the 409's code,
 
 - **One field, top-level, of the submitted payload.** Not a dot-path: nesting would make the stamped
   value depend on a traversal rule that has to stay stable forever. Not a composite, for the same
-  reason applied to a separator — two fields carrying `key` is `USES_TWO_KEYS`. The key is stamped
+  reason applied to a separator — `key` names one field. The key is stamped
   when the record is created, from what was submitted, before any flow runs — so a `key` on a
   `processed` field is `USES_KEY_NOT_SUBMITTED`, even when a submitted field shares its name. A key
   you want computed is computed by the flow that creates the record, into the submission.
@@ -1723,7 +1716,7 @@ verdict says so in the save's words: `ok: false` with the 409's code,
 ## The key you author
 
 Every project element is addressed by its `key`, a string **you** choose rather than the row id.
-Endpoints, schedules and types — with triggers, sources, eval suites and eval cases —
+Endpoints, schedules and types — with triggers, eval suites and eval cases —
 share one format, the **address key**, and it is checked on write:
 
 ```
@@ -1735,7 +1728,7 @@ first character a letter or a digit
 <!-- field-ok: subscriptionsList — an example of a key an operator authored, not a platform field -->
 
 ⚠️ **This is not the flow-key rule.** A flow's `key` is strict lower-case kebab (as are terms,
-event types and their namespaces, relations and embedding profiles), a vocabulary's is camelCase, a
+event types and their namespaces, relations and embeddings), a vocabulary's is camelCase, a
 table's is a table name and a flow step's is camelCase, unique in its flow (`renewMembers`). Address keys are none of those, and
 deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here. Each
 element's key has exactly one format; do not assume one from another. A key outside its format is
@@ -1833,7 +1826,7 @@ one searched by meaning, which are very different vocabularies to hand a table. 
 Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`) for what to choose.
 
 On the records API — the list, one record, a query, a filing — a record's `terms` are
-`{ vocabularyKey, key, label, status }` entries. `status` is the term's place in its vocabulary:
+`{ vocabulary, key, label, status }` entries. `status` is the term's place in its vocabulary:
 `active`, `candidate` (coined by a `mint: candidate` vocabulary and not yet admitted) or `archived`.
 A client that shows only admitted vocabulary keeps the `active` ones.
 
@@ -1942,7 +1935,7 @@ lists the runs.
 
 ## How they connect to flows
 
-- The record-creating function names a table **by key** (`with.tableKey`), plus the value carrying
+- The record-creating function names a table **by key** (`with.table`), plus the value carrying
   the submission (its `data` setting). Flow-less tables are born ready; flow-backed tables start pending and are processed.
 - A `text.generate` or `text.decide` step names its answer's type in `with.outputSchema`. That is the
   main link between the registry and a step; the save types the step's readers by it.
@@ -1952,7 +1945,7 @@ lists the runs.
 ## Related
 
 - Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — the flow a table binds.
-- Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`) — what `uses.search` names, and where chunking defaults live.
+- Embeddings (capability pack `embeddings` — `GET /v1/capability-packs/embeddings`) — what `uses.search` names, and where chunking defaults live.
 - Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`) and Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`) — classifying and
   linking records.
 - Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — the type comes first, and what a relation's

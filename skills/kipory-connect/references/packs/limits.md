@@ -99,8 +99,9 @@ the request and answers `true` with a `PREVIEWED_NOT_SENT` warning, sending noth
 
 <!-- absent: email-and-push-are-the-only-outbound-senders -->
 
-**Email and push are the built-in channels.** `email.send` delivers a message to a person's inbox
-and `push.send` a notification to the devices their app registered, with the project's own Apple
+**Email and push are the built-in channels.** `email.send` delivers a message to a person's inbox,
+from the project's default address (`<project>@<its domain>`) unless the step names a `sender`
+bound in the document's `project.mail.senders`, and `push.send` a notification to the devices their app registered, with the project's own Apple
 and Google keys. There is no SMS or chat function; a service that sends those through an HTTP API
 is reached with `url.send` and a stored key. A client that must be told something subscribes to the
 project's events through an endpoint, or polls one.
@@ -281,7 +282,7 @@ A function that calls a vendor declares a rate limit, on its page and as `rateLi
 | A saved function result nobody reads                         | 14 days (unless Kipory set another)                                 | Dropped after it; the next call computes it again and is charged again.                                                                                                                                                                                                                      | `kept-for.saved-results-days`   |
 | What a record held before each change                        | 30 days (unless Kipory set another)                                 | Kept so a run can be undone and a project rewound; deleted after it, and with the person or the project it belongs to.                                                                                                                                                                       | `kept-for.row-history-days`     |
 | Model calls Kipory spends writing the project's descriptions | 1,500 calls in any 24 hours per project (unless Kipory set another) | Counted over the last 24 hours; past it descriptions wait.                                                                                                                                                                                                                                   | `design.descriptions-per-day`   |
-| Sources the project watches, per provider                    | 200 sources per project (unless Kipory set another)                 | A run that would watch one more is refused `SOURCE_WATCH_CAP` and writes nothing.                                                                                                                                                                                                            | `sources.watched-per-provider`  |
+| Sources the project watches, per provider                    | 200 sources per project (unless Kipory set another)                 | Every source a trigger's `watch` or a run's `source.watch` holds counts. A trigger save or a run that would watch one more is refused `SOURCE_WATCH_CAP` and writes nothing.                                                                                                                 | `sources.watched-per-provider`  |
 | A retired project                                            | 30 days                                                             | Deleted for good after it.                                                                                                                                                                                                                                                                   | `kept-for.retired-project-days` |
 
 <!-- limits-catalog:end:kept-for -->

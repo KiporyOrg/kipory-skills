@@ -4,6 +4,8 @@
 
 > **Source of truth for facts:** endpoint paths & request shapes → live `GET /v1/openapi.json`.
 > This pack carries judgment.
+>
+> **Format 12 names:** a suite's readiness names each table it reaches as `table` and who owns its rows as `owner` (they were `tableKey` and `ownerScope`).
 
 ## What it is
 
@@ -506,13 +508,13 @@ owns a record, so a suite can run as a person it is about to give data to.
 
 The suite carries half the answer. This read carries the other half: it walks the subject flow's
 transitive `flow.invoke` closure and reports every table the enabled steps name, together
-with its `ownerScope`.
+with its `owner`.
 
-- `ownerScope: "user"` — rows belong to one end user. Paired with a suite that names no user,
+- `owner: "user"` — rows belong to one end user. Paired with a suite that names no user,
   this is the failure above, and you can fix it before spending anything.
-- `ownerScope: "project"` — a shared pool every user of the project reads. A sentinel run reads
+- `owner: "project"` — a shared pool every user of the project reads. A sentinel run reads
   it normally.
-- `ownerScope: null` — **this project declares no table by that name.** The step names something
+- `owner: null` — **this project declares no table by that name.** The step names something
   that does not exist, which fails the run rather than emptying it. It is deliberately not folded
   into the `project` arm: that is the safe-looking one, and this is not a safe state.
 

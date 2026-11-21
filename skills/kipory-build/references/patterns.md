@@ -8,15 +8,15 @@ A flow is its `steps`, in written order, and written order is run order. These s
 
 The flow and record shapes are split by topic:
 
-| Section   | Page                            | Answers                                                                                                                                                                      |
-| --------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| §1, §3–§5 | `patterns.md`                   | a line of steps, a sub-flow and a run for each person, repeat until done, branch / `try` / `fail` / `parallel`                                                               |
-| §2, §6    | `fan-out.md`                    | the `each` and `parallel` blocks, a job longer than one run, run state across elements                                                                                       |
-| —         | `utilities.md`                  | the small functions most flows use (`value.first-non-empty`, `text.interpolate`, `list.concat`, `record.read`) and `value.transform`'s JSONata habits                        |
-| §7, §10   | `records-and-endpoints.md`      | a record's processing flow; a value rolled up from linked records                                                                                                            |
-| §8        | `endpoint-answers.md`           | what an endpoint can answer: the body shape, rows, a 404, a 422 with your message, a 403 for a key, optional query filters, a filter on a list field, natural-key collisions |
-| §9        | `record-query.md`               | `record.query`: a per-user feed, "due now", the clause grammar, and totals with `record.aggregate`                                                                           |
-| §11       | `views.md`, `view-endpoints.md` | views: a read declared once, its sets, params and shapes; then `record.view` in a flow, the view endpoint that pages itself, ETag, the preview                               |
+| Section   | Page                               | Answers                                                                                                                                                                      |
+| --------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §1, §3–§5 | `patterns.md`                      | a line of steps, a sub-flow and a run for each person, repeat until done, branch / `try` / `fail` / `parallel`                                                               |
+| §2, §6    | `fan-out.md`                       | the `each` and `parallel` blocks, a job longer than one run, run state across elements                                                                                       |
+| —         | `utilities.md`                     | the small functions most flows use (`value.first-non-empty`, `text.interpolate`, `list.concat`, `record.read`) and `value.transform`'s JSONata habits                        |
+| §7, §10   | `records-and-endpoints.md`         | a record's processing flow; a value rolled up from linked records                                                                                                            |
+| §8        | `endpoint-answers.md`              | what an endpoint can answer: the body shape, rows, a 404, a 422 with your message, a 403 for a key, optional query filters, a filter on a list field, natural-key collisions |
+| §9        | `record-query.md`                  | `record.query`: a per-user feed, "due now", the clause grammar, and totals with `record.aggregate`                                                                           |
+| §11       | `queries.md`, `query-endpoints.md` | queries: a read declared once, its sets, params and selections; then a named query in a flow, the query endpoint that pages itself, ETag, the preview                        |
 
 The section numbers are one sequence across these pages, so "§8" means the same section wherever it is cited. `models.md` holds which model function to use, `text.decide` questions, model bindings and prices.
 
@@ -32,7 +32,7 @@ The examples are one invented project, **Orchard Club**, a fruit-box subscriptio
 | A condition (an `if` test, a `repeat`'s `until`) | one leaf: `has`, `filled`, `eq`, `in`, `eqIgnoreCase` and `inIgnoreCase` (text equal whatever its case, for a person's typed answer), `gt`, `lt`, `gte`, `lte`, `before`, `after`, `startsWith`, `contains` (ignores case on text), `containsExactCase`, `matches`, `expr`; `and`/`or`/`not` | `{eq: [member.plan, {literal: yearly}]}` |
 | A computation                                    | JSONata, in `value.transform`, in an `{expr}` argument, in every `value.build` field and in an `expr` condition                                                                                                                                                                              | `$count(due.records)`                    |
 
-**A bare string where a value is read is a path, never text.** Text is `{literal: "neutral"}`. A setting that names a thing (`tableKey`, a template's text, a view, a vocabulary key) is a plain value, and a setting that names a field says `field` (`{field: "email", op: "isNull"}`), never `{path}` (`STEP_FIELD_NAME_IS_PATH`). The function's page says which settings take an argument.
+**A bare string where a value is read is a path, never text.** Text is `{literal: "neutral"}`. A setting that names a thing (`table`, a template's text, a query, a vocabulary key) is a plain value, and a setting that names a field says `field` (`{field: "email", op: "isNull"}`), never `{path}` (`STEP_FIELD_NAME_IS_PATH`). The function's page says which settings take an argument.
 
 **Nothing and empty are different.** `null` and a missing value are nothing; `""`, `[]` and `{}` are values. A step given `[]` runs with `[]`, a read that matched nothing answers `[]`, and an `each` over `[]` gives `[]`. `default` and `$default(x, y)` fill only nothing; `$ifEmpty(x, y)` fills nothing or empty. Nothing is ever skipped in silence: a step whose required value is missing at run fails with a typed error.
 
@@ -45,14 +45,14 @@ The examples are one invented project, **Orchard Club**, a fruit-box subscriptio
 A whole flow, as it sits under `flows:` in a project document (its key is the map key, and `label` is required):
 
 ```yaml
-kipory: 11
+kipory: 12
 flows:
   summarise-page:
     label: Summarise a page
     inputs:
-      pageUrl: { typeName: string }
+      pageUrl: string
     outputs:
-      summary: { typeName: string }
+      summary: string
     steps:
       - key: page
         function: url.scrape
@@ -83,7 +83,7 @@ flows:
 - **Every path ends in `return` or `fail`** when the flow has required outputs (`FLOW_PATH_HAS_NO_END` otherwise), and a `return` of a required output that may be nothing is `FLOW_OUTPUT_MAY_BE_NOTHING`. A `return` may stand inside an `if` branch; `fail` ends the other path.
 - **Ingest-phase functions** (`url.scrape`, `text.generate`, …) run in the async worker with retries, a wait ceiling and a cache keyed on their input; `reuseResultsForMinutes` on the step replaces the cache period (`0` always runs fresh). `text.generate`'s `temperature` and `reasoningEffort` are part of the cache key.
 - **One failed step fails the run**, its writes discarded. To carry on past a failure, put the step in a `try` (§5).
-- **Two steps write a record.** `record.update` patches one by `recordId`, with `data` or `fields`; `record.create` makes one with `tableKey`, `data` or `fields`, and `fileIds`. With a processing flow the new record is pending until that flow runs, and a record a flow created is queued for it only by `record.enqueue-process` ([records-and-endpoints.md](records-and-endpoints.md) §7).
+- **Two steps write a record.** `record.update` patches one by `recordId`, with `data` or `fields`; `record.create` makes one with `table`, `data` or `fields`, and `fileIds`. With a processing flow the new record is pending until that flow runs, and a record a flow created is queued for it only by `record.enqueue-process` ([records-and-endpoints.md](records-and-endpoints.md) §7).
 - **A fallback** — try one source, then another — is a `try` whose `catch` runs the second, both handing the page out through the same `out` name (§5). `kipory-gather` owns the page-fetching recipes.
 
 **§2, each item of a list** (the `each` and `parallel` blocks, and a job longer than one run with `flow.continue`) and **§6, run state across elements**, are in [fan-out.md](fan-out.md). A `text.decide` inside the `each`, not one `text.generate` reading the whole list, is the cheap shape for judging a list ([models.md](models.md) §1).
@@ -183,7 +183,6 @@ Each run acts for its person, so the called flow writes that person's records, a
               - key: notify
                 function: email.send
                 with:
-                  address: renewals@orchard.example
                   to: member.email
                   subject: { literal: "Your box is paused" }
                   text:
@@ -209,7 +208,6 @@ Each run acts for its person, so the called flow writes that person's records, a
       - key: send
         function: email.send
         with:
-          address: renewals@orchard.example
           to: member.email
           subject: { literal: "Renewed" }
           text: { literal: "Thank you for another year." }
@@ -219,7 +217,7 @@ Each run acts for its person, so the called flow writes that person's records, a
     out: { sent: { literal: false } }
 ```
 
-- This example assumes `member.email` is required and non-empty on the member's type (`minLength: 1`); with an optional `email` the read is refused `STEP_INPUT_FIELD_MAY_BE_ABSENT`, and you would guard it with `if filled` as in the `if` example.
+- This example assumes `member.email` is required and non-empty on the member's type (`minLength: 1`); with an optional `email` the read is refused `STEP_INPUT_FIELD_MAY_BE_ABSENT`, and you would guard it with `if filled` as in the `if` example. With no `sender`, `email.send` mails from the project's default address; `sender: <name>` picks one of the addresses `project.mail.senders` binds.
 - When a step in `try` fails, what `try` staged is dropped and `catch` runs; the run carries on and closes `partial`. Inside `catch`, `error` is `{code, message, step}`, each always filled: `out: {caught: error.code}`, or `subject: error.message` on a mail step, saves as it is. Branch on `error.code`, or end with `fail`.
 - `try.out` and `catch.out` giving the same names make the value always there (`mail.sent`); a name only `try` gives may be nothing after the block.
 - A `fail` inside `try` is caught like any failure. A refusal (`request.refuse`, a failed signature check) and the platform's own failure (its engine, a spend cap, a cancel) are never caught: what `try` staged is dropped, `catch` does not run, and the failure goes on up.

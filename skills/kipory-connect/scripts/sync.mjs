@@ -595,7 +595,7 @@ if (format.live === undefined) {
 }
 // What this build changed in the save rules, from the same answer: one line,
 // only when it added a code or raised one — news, not a difference, so it
-// changes no exit code (specs/413-targeted-notices, FR-016).
+// changes no exit code.
 {
   const codesOf = (list) =>
     Array.isArray(list)

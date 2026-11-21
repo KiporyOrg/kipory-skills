@@ -25,7 +25,7 @@ Returns records in the order of the ids given; on user-owned types, only the use
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `redirect` | `follow` \| `report` | no | `"follow"` | A merged id: `follow` reads its survivor; `report` fails the read. ⚠️ With `follow`, two ids merged into one record read as that record once. |
 | `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
-| `tableKey` | string | yes | — | The table to read. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
+| `table` | string | yes | — | The table to read. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
 | `userId` | union | no | — | The person whose records to read; empty reads as the run. ⚠️ Left empty in a run with no person, it reads every person's records; dropped ids are silent. |
 
 ### `dataNullChecks` — each item
@@ -185,7 +185,7 @@ Step settings (`with`):
 ```json
 {
   "ids": "candidates",
-  "tableKey": "item"
+  "table": "item"
 }
 ```
 
@@ -221,7 +221,7 @@ Step settings (`with`):
 ```json
 {
   "ids": "candidates",
-  "tableKey": "item",
+  "table": "item",
   "userId": "userInfo.userId"
 }
 ```
@@ -252,7 +252,7 @@ Step settings (`with`):
 ```json
 {
   "ids": "candidates",
-  "tableKey": "review",
+  "table": "review",
   "fields": [
     "rating"
   ],
@@ -305,7 +305,7 @@ Step settings (`with`):
 ```json
 {
   "ids": "candidates",
-  "tableKey": "item"
+  "table": "item"
 }
 ```
 

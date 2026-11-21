@@ -22,7 +22,7 @@ One exact answer over every matching record, grouped by a field, a date, a term 
 | `limit` | integer, 1 to 1000 | no | `100` | How many groups come back at most: 1 to 1000. ⚠️ More groups than this answer the first ones in order, with `complete: false`. |
 | `measures` | object | yes | — | Named totals: count, countDistinct, sum, avg, min or max of a field. |
 | `order` | object | no | — | Order groups by a key or a measure; group keys by default. |
-| `tableKey` | string | yes | — | The table whose records to total. |
+| `table` | string | yes | — | The table whose records to total. |
 | `timeZone` | string | no | `"UTC"` | The time zone days, weeks and months are cut in. |
 | `userId` | union | no | — | The person whose records to total; empty means the signed-in user. ⚠️ An empty value fails the step; left out in a run with no person, it reads every person's records. |
 
@@ -62,7 +62,7 @@ One exact answer over every matching record, grouped by a field, a date, a term 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `term` | yes | — | An assignment of a vocabulary term, by slug. |
-| `vocabularyKey` | string | yes | — | A vocabulary the table lists in `uses.vocabularies`. |
+| `vocabulary` | string | yes | — | A vocabulary the table lists in `uses.vocabularies`. |
 | `slug` | union | yes | — | The term, by slug; an alias counts as its term. |
 
 `slug` — one of:
@@ -243,7 +243,7 @@ One exact answer over every matching record, grouped by a field, a date, a term 
 | `field` | string | no | — | A field with a `search` use to rank on. |
 | `text` | union | no | — | The phrase to resemble. |
 | `likeRecordId` | union | no | — | A record id to resemble instead of a phrase; excluded from results. |
-| `likeTableKey` | string | no | — | The table of the record to resemble, if not the queried one. |
+| `likeTable` | string | no | — | The table of the record to resemble, if not the queried one. |
 | `topK` | integer, 1 to 200 | no | — | How many to rank; default 50. |
 | `minScore` | number, -1 to 1 | no | — | Leave out records scoring below this, from −1 to 1. |
 | `passage` | boolean | no | — | `true` also returns the text of each record's best-matching part. |
@@ -372,7 +372,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "loan",
+  "table": "loan",
   "clauses": [
     {
       "kind": "field",
@@ -420,7 +420,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "loan",
+  "table": "loan",
   "clauses": [
     {
       "kind": "field",
@@ -484,7 +484,7 @@ Step settings (`with`):
 
 ```json
 {
-  "tableKey": "loan",
+  "table": "loan",
   "clauses": [
     {
       "kind": "field",

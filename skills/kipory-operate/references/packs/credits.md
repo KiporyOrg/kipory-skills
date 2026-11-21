@@ -31,7 +31,7 @@ wrong precisely when a customer most needs it to be right.
   `suspended`: the account is stopped for a reason other than balance. It is refused with the same
   code — the `reason` inside `details` reads `payer_suspended` instead of `balance_below_soft_cap` — and
   added credit does not reopen it: only the deployment's operator lifts it.
-- **The per-user ceiling** — `perUserSpendCap` with `perUserSpendConsumed` against it. It is not a
+- **The per-user ceiling** — `userLimit` with `userSpend.consumed` against it. It is not a
   second balance; it caps how much of that wallet **one person** may consume.
 
 ⛔ **Which of the two binds you depends on what you are holding, and this is the distinction to get
@@ -58,13 +58,13 @@ its `own` field is `false` when that is not this project.
 healthy wallet and still be refused, because the ceiling is what stopped them. A dashboard showing
 only the wallet reports that everything is fine right up to a refusal it cannot explain.
 
-`perUserSpendCap` is `null` when the project sets no ceiling, and that is a different answer from
+`userLimit` is `null` when the project sets no ceiling, and that is a different answer from
 `0`, which blocks everything. Treat the two apart; collapsing them with a falsy check turns "no
 spending allowed" into "unlimited". ⚠️ And on a key-authenticated read it is `null` for a third
 reason — _there is no person to cap_ — so a key holder cannot learn the project's configured
 ceiling from this field at all, and should not infer one is absent.
 
-`perUserSpendConsumed` is always present — `0` for a first-time caller, and still reported when the
+`userSpend.consumed` is always present — `0` for a first-time caller, and still reported when the
 cap is `null` — so "no cap configured" is never confused with "no data".
 
 ## A project can give each member their own wallet
@@ -76,8 +76,8 @@ called by a member's session answers that wallet: `wallet` reads `member`, where
 caller reads `node`.
 
 - **The credits are the project's, moved.** A member's wallet is funded only by transfers out of
-  the wallet the project is paid from: `memberJoinGrantCredits` once when a member joins,
-  `memberPeriodicGrantCredits` every `memberGrantPeriod` (`day`, `week` or `month`), and whatever
+  the wallet the project is paid from: `memberWallets.joinGrant` once when a member joins,
+  `memberWallets.periodicGrant: { credits, per }` every `per` (`day`, `week` or `month`), and whatever
   an ADMIN grants one member with `POST /v1/projects/{nodeId}/members/{userId}/credits`. A grant
   the paying wallet cannot cover is refused with `422 PAYING_WALLET_CANNOT_COVER`; an automatic
   one is skipped and made on a later day. ⚠️ A member who joined before wallets were turned on
@@ -87,7 +87,7 @@ caller reads `node`.
   or below their billable calls answer `402 MEMBER_WALLET_EMPTY`, with `balance` and
   `nextGrantAt` in `details`. The project's wallet is not charged in their place.
 - **The per-user ceiling is replaced, not added.** While the project has member wallets on the
-  ceiling is applied to nobody, and `perUserSpendCap` reads `null`: the wallet is a member's
+  ceiling is applied to nobody, and `userLimit` reads `null`: the wallet is a member's
   bound. The stored ceiling applies again if the project
   turns member wallets off.
 - **Unused periodic credits go back.** When a period ends, what a member did not use of that
@@ -107,15 +107,15 @@ grant, expiry, return and charge — is `GET /v1/projects/{nodeId}/members/{user
 
 ## The window is given to you, not derived
 
-`perUserSpendConsumed` covers `perUserSpendCapPeriod` — `lifetime`, `day`, `week` or `month`,
-lowercase like every value on the wire — and `perUserSpendWindowStart` is the inclusive lower bound
+`userSpend.consumed` covers the settings' `userLimit.per` — `lifetime`, `day`, `week` or `month`,
+lowercase like every value on the wire — and `userSpend.windowStart` is the inclusive lower bound
 the figure was **actually summed from**.
 
 Do not recompute that boundary from the period. It is reported rather than derived so the number a
 customer reads and the number the gate enforces can never describe different windows, and
 recomputing is exactly how a client ends up showing a window the server did not use.
 
-`perUserSpendWindowStart` is `null` exactly when the period is `lifetime`, so the pair is never
+`userSpend.windowStart` is `null` exactly when the period is `lifetime`, so the pair is never
 self-contradictory. The distinction carries the meaning: "8 of 10 used" is an ordinary month, or a
 wall about to be hit, and only the window says which.
 
@@ -229,7 +229,7 @@ run and a reprocess cost — is stated once, in the `kipory-operate` skill's `re
 - **Treating `402 MEMBER_WALLET_EMPTY` like the wallet refusal.** Credit to the project's wallet
   does not help: the remedy is the member's next grant, or one an ADMIN gives them.
 - **Expecting a key to spend a member's wallet.** It never does; the project pays for key traffic.
-- **Reading `perUserSpendCap` with a falsy check**, which erases a zero ceiling into "unlimited".
+- **Reading `userLimit` with a falsy check**, which erases a zero ceiling into "unlimited".
 - **Expecting the tenant's charges.** This is one caller's own; breadth of grant does not widen it.
 - **Looking for the compute rate here.** Model prices are `GET /v1/nodes/{nodeId}/model-prices`
   and vendor prices `GET /v1/nodes/{nodeId}/vendor-prices`; the per-second rate is read off a

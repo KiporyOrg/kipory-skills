@@ -8,21 +8,22 @@ Read this when a change to a live project is refused, or before one that may tak
 
 Some destructive changes are refused outright:
 
-- deleting a table that holds records, or re-pointing its type or owner scope
+- deleting a table that holds records, or re-pointing its type or `owner`
   (`TABLE_PINNED_BY_RECORDS`), or removing a field from its type that records hold.
   One exception: a project table whose records name their owner in a text field becomes
-  person-owned with `ownerScope: "user"` plus `ownerField: "<field>"`. Every record becomes the
+  person-owned with `owner: user` plus `ownerField: <field>`. Every record becomes the
   person its field names, the field leaves the type, and a key stays unique across the project.
   Send `validateOnly: true` first. It is refused, with nothing changed, when a record names nobody
   active (`TABLE_OWNER_FIELD_UNUSABLE`, with the count and record ids) or when the type is shared,
   records hold files, or something still reads the field (`TABLE_OWNER_CONVERSION_BLOCKED`). In a
   document, state the type without the field and move its readers to `ownerId` in the same plan.
+  It needs ADMIN on the project (an editor's save, or the apply of a document that converts, is `403 TABLE_OWNER_CONVERSION_FORBIDDEN`; a plan names it as a finding, and an admin may apply what an editor planned); an empty table's `owner` stays an editor's change. The conversion has 15 seconds of its own; past them it is refused in its own words (`422 TYPE_UNSAFE_FOR_TABLE`, reason `RECORDS_CHECK_TOO_SLOW`), nothing changed: delete records the table no longer needs and convert again.
   An undo or rewind cannot hand those records back (`RESTORE_CROSSES_OWNER_CONVERSION`);
 - deleting a flow something still references, or removing a step whose value a later step still reads (unless the same batch changes those readers);
 - deleting a term that is assigned, is a parent, or is the canonical of aliases;
 - deleting a vocabulary while another vocabulary nests under it, or without an `assignedTerms`
   choice once records carry its terms;
-- deleting a built-in event type, or a relation's last pairing.
+- deleting a built-in event type, or a relation's last (from, to) pair.
 
 Others do not refuse. They cascade, and the response tells you what else moved:
 
@@ -60,7 +61,7 @@ thing you were trying to change.
 | assignments still exist on this term     | merge it into the term that should survive (`POST /v1/terms/{id}/merge`) — every assignment moves and a delete then accepts the alias — or archive it to keep it on the records that have it                                                                                    |
 | a vocabulary delete answers 409          | if another vocabulary nests under it, delete that vocabulary first — no flag lifts that, and a vocabulary's parent cannot be changed. Otherwise send `assignedTerms=delete` or `assignedTerms=archive` once any of its terms is assigned. Ask it with `validateOnly=true` first |
 | the event type is built in               | nothing; a built-in event type cannot be deleted                                                                                                                                                                                                                                |
-| this is the last pairing                 | a relation cannot have none; delete the relation instead                                                                                                                                                                                                                        |
+| this is the relation's last pair         | a relation cannot have none; delete the relation instead                                                                                                                                                                                                                        |
 
 - **A refusal that names a rule names it the same way everywhere.** `TABLE_PINNED_BY_RECORDS`
   is the finding's `code` on the `validateOnly` verdict and in a plan, and `details.reason` on the

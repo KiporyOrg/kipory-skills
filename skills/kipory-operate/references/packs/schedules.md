@@ -4,6 +4,8 @@
 
 > **Source of truth for facts:** endpoint paths & request shapes → live `GET /v1/openapi.json`.
 > This pack carries judgment.
+>
+> **Format 12 names:** a schedule's cron pattern is `cron` (it was cronPattern), and a run's closing failure names a refused write's table `table` (it was `tableKey`).
 
 ## What it is
 
@@ -15,7 +17,7 @@ The fire is attributed to the **project**, not to a person, and billed to the pr
 
 <!-- field-ok: userInfo — a run-ambient value seeded by the engine, not a wire field a caller sends -->
 
-<!-- field-ok: ownerId — a member of a person-owned table's row in a flow (437-person-owned-tables), not a wire field -->
+<!-- field-ok: ownerId — a member of a person-owned table's row in a flow, not a wire field -->
 
 **A fire has no end user.** `userInfo` is nothing in the run, so it acts for nobody: it reads and
 changes every person's records of a person-owned table (each row names its person as `ownerId`;
@@ -50,9 +52,10 @@ PATCH /v1/schedules/{id}            { enabled: false, version } stops it; { enab
 ```
 
 Scoped by `project`. Create takes a **key**, the flow, the inputs keyed by the flow's input names, the cron
-pattern and the timezone; optionally a display **label**, a start, an end, a maximum number of runs,
+pattern as `cron` and the timezone; optionally a display **label**, a start, an end, a maximum number of runs,
 and an overlap policy of `skip` or `allow` — ⚠️ omitting the policy means `skip`, which is the one
-that suppresses fires, so state it when you meant `allow`.
+that suppresses fires, so state it when you meant `allow`. In the project document a schedule is a
+row of the top-level `schedules` map: `tidy: { cron: "0 3 * * *", flow: tidy-up }`.
 
 ## The key you author
 
@@ -156,7 +159,7 @@ read the one schedule you are about to show from it when the list left it `null`
   refusal says how many fields the one you sent had. So a six-field _seconds_ pattern like
   `0 */5 * * * *` is refused, and so are a four-field pattern, a blank or whitespace-only one, and
   an `@daily`-style macro. The pattern is counted on the create, and on an update whose body names
-  `cronPattern`.
+  `cron`.
 
 - **A pattern with no future occurrence at all is refused.** Granularity is one minute — ⚠️ and that
   comes from the TICK, not from the pattern grammar, so nothing here fires faster than once a minute
@@ -214,7 +217,7 @@ run's invocation. Reach for them in this order:
     refused, such as a person's own record written by a run that acts for nobody),
     `bound-exceeded`.
   - `refusedWrite` — with a refused save, what it can name of the write: `stepKey` (the step
-    that wrote it) and, for a create, `tableKey`; on `natural-key-collision` the `holderRecordId`
+    that wrote it) and, for a create, `table`; on `natural-key-collision` the `holderRecordId`
     that already holds the key; on `precondition-conflict` the `recordId` another run wrote and the
     `readByStepKey`, the step whose read went stale (with `readByFlowId` when that step is a called flow's). The key's value is never named — read that record for
     it. A save that ran past its time budget (10 ms per change, between 1 and 2 minutes) closes with

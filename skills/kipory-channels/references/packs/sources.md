@@ -10,26 +10,27 @@
 A source is a thing that writes events into your project's event log from outside your own
 flows: a Telegram channel the platform watches today; a webhook URL, a Postgres table and an Apify
 actor next. It is the other half of a trigger (capability pack `triggers` — `GET /v1/capability-packs/triggers`). The source writes `telegram/message`
-rows as they happen; a trigger pointing at that source runs a flow for each one, with the same
-decision log, the same overlap policy and the same replay every trigger has. **A source never names a
-flow.** "One message, three flows" is one source, one event and three triggers — which is what it
+rows as they happen; a trigger runs a flow for each one, with the same decision log, the same
+overlap policy and the same replay every trigger has. **Nobody writes a source.** A trigger states
+what it watches, and the platform keeps one source row for as long as a trigger or a record holds
+it. "One message, three flows" is one source, one event and three triggers — which is what it
 always was underneath.
 
-Every source has a **provider** (`telegram`, `webhook`, `postgres`, `apify`) and a **config** in
-that provider's own shape, validated by that provider's schema at every write. The first source of
-a provider in a project seeds the provider's event vocabulary into the project's
+Every source has a **provider** (`telegram`, `webhook`, `postgres`, `apify`) and the settings a
+watch states in that provider's own shape, validated by that provider's schema at every write. The
+first watch of a provider in a project seeds the provider's event vocabulary into the project's
 registry (capability pack `events` — `GET /v1/capability-packs/events`): its `message` type in the `telegram` namespace, durable and
-project-scoped. The namespace is the source's alone — an event type you create there is a 409.
+project-scoped. The namespace is the provider's alone — an event type you create there is a 409.
 Those rows are permanent once seeded: the delete refuses them outright, whatever
-else is true — deleting every source of that provider does not release them, and neither does
-never having created one. A type of your own already holding one of the provider's keys is a 409
+else is true — letting go of every watch of that provider does not release them, and neither does
+never having made one. A type of your own already holding one of the provider's keys is a 409
 rather than adopted.
 
 ## When you need it — and when you don't
 
 You need a source when something **outside** your flows should start one: a message in a channel,
 a request to a URL, a row in someone's database. You do not need one to react to your own flows'
-events — a trigger on a `post/created` your flow emits has no source at all — and you do not need
+events — a trigger on a `post/created` your flow emits watches nothing — and you do not need
 one for the clock: a schedule (capability pack `schedules` — `GET /v1/capability-packs/schedules`) fires its flow directly.
 
 **A source only reads.** Nothing here sends a message into a channel. The one built-in way a flow
@@ -40,42 +41,47 @@ function instead.
 
 ## The sequence
 
+A trigger states what it watches, in the document or on its own row:
+
+```yaml
+triggers:
+  harbour-news:
+    event: telegram/message
+    watch: [{ channel: "@harbourdaily" }]
+    flow: file-message
+```
+
+The trigger HOLDS each channel in its `watch`: the platform makes the project's source for a
+channel the first time anything holds it, and the trigger hears the events of what it watches.
+The match is structural, not a filter clause, so you never write `channel is @x` yourself. `watch`
+may be edited; a disabled trigger, or one the platform paused, keeps its hold. A trigger on a
+provider's event with no `watch` hears every source of that provider the project watches.
+
+The sources themselves are read, never written:
+
 ```
 GET    /v1/sources/providers                                 the provider registry: concerns, specs (each naming its `categoryKey`), availability, announced names
-GET    /v1/sources?project={nodeId}[&provider=telegram]      every source, newest first, with health, the listening count and deleteRefusal
-POST   /v1/sources                                           { project, provider, config, key?, label? } → 201
+GET    /v1/sources?project={nodeId}[&provider=telegram]      every source, newest first, with health, the listening count and its holders
 GET    /v1/sources/{id}
-PATCH  /v1/sources/{id}                                       { version, label?, config?, enabled? }  — config REPLACES wholesale
-DELETE /v1/sources/{id}[?validateOnly=true]                   409 SOURCE_HAS_LISTENERS while a trigger listens
 GET    /v1/project-events?project={nodeId}&sourceId={id}      the events this source wrote, newest first, cursor-paged
 ```
 
-⚠️ `validateOnly` is the delete's only query parameter; anything else in the query is refused.
+A Telegram watch carries `channel`, a public `@handle` or a numeric channel id. A source's read
+also states `strategy`, the adapter that reads it — the platform's own watcher fleet, the only
+adapter that runs today.
 
-Then a trigger: `POST /v1/triggers` with `sourceId`, `categoryKey: "telegram"`, `eventKey: "message"`,
-the flow and its inputs. The trigger hears that source's events and no other's — the match is
-structural, not a filter clause, so you never write `channel is @x` yourself.
-
-A Telegram source's config carries two fields: `channel`, a public `@handle` or a numeric channel
-id, and `strategy`, which names the adapter that reads it. You may omit `strategy` — it defaults to
-the platform's own watcher fleet, the only adapter that runs today — but the write stores what it
-parsed, so the field comes back on every read whether or not you sent it.
-
-Read the registry rather than remembering it. Each provider names the config field that says what
+Read the registry rather than remembering it. Each provider names the setting that says what
 a source watches (`naturalKeyField` — `channel` for Telegram), and every source comes back with
 that value already read out as `naturalKey`, so a client never needs to know which field it was.
 Each also declares `overlapDefault` — what a new trigger on it does when an event arrives while the
-previous run is still going. A trigger create that omits `overlapPolicy` stores it: `allow` for
+previous run is still going. A trigger that omits `overlapPolicy` takes it: `allow` for
 Telegram, where skipping would drop that message for good, and `skip` for the rest. Start a form
 from it rather than from a rule of your own.
 
-The key is slugified from the channel when you do not supply one (`@alexavni` → `alexavni`), and is
-unique per project and provider. That uniqueness is not what keeps a channel from being watched
-twice: you may supply a key yourself, and a patch may repoint the config without touching the key.
-The channel itself is guarded separately — the database holds one source per channel per project,
-and the design layer gets there first with a 409 naming the source that already watches it. Two
-sources on one channel would mean two events, two media copies and two admissions for one message,
-so a create or a patch that would produce one is refused rather than reconciled.
+One channel is one source per project, whoever holds it: two triggers and a record watching
+`@harbourdaily` are three holds on one source. Two sources on one channel would mean two events,
+two media copies and two admissions for one message, so the database holds one source per channel
+per project.
 
 A Telegram handle is stored in one spelling, lower-case: `@HarbourDaily` is written and read
 back as `@harbourdaily`, and is the same channel as `@harbourdaily`. A numeric id is kept as sent.
@@ -83,14 +89,14 @@ back as `@harbourdaily`, and is the same channel as `@harbourdaily`. A numeric i
 ## Watching on demand, from a flow
 
 When **what is watched is decided by your users** — a person follows a creator, and through it a
-channel — do not write a source per follow from outside. A flow does it with two steps:
+channel — do not write a trigger per follow. A flow holds the watch with two steps:
 
 - `source.watch` holds a watch on one channel for one **holder**: a record the run may write (its
   own, or a shared one), usually the record that stands for the follow. Any other value is refused
   (`HOLDER_NOT_WRITABLE`). The first holder makes the project's source for the channel; a later one
-  adds a hold; a source that was switched off is switched back on.
-- `source.unwatch` lets that holder go. The channel stays watched while anyone else holds it; the
-  last one switches its source off (never deletes it). It answers `{ sourceId, enabled, holders }`,
+  adds a hold.
+- `source.unwatch` lets that holder go. The channel stays watched while anyone else holds it — a
+  record or a trigger; when the last hold goes, the platform stops reading it. It answers `{ sourceId, enabled, holders }`,
   `enabled` always present.
 - **Letting go of a hold that was never placed is harmless.** A holder that never watched the
   channel, or whose hold is already gone, changes nothing: the step succeeds and answers the
@@ -107,18 +113,19 @@ channel — do not write a source per follow from outside. A flow does it with t
   only that person; a name the run may not use answers `HOLDER_NOT_WRITABLE`, and an unwatch with
   it lets nothing go.
 
-The routing stays yours, at design time: create **one** trigger on `categoryKey: "telegram"`,
-`eventKey: "message"` with **no `sourceId`**. A trigger without a source hears every source of its
-provider in the project, so every channel a flow watches runs that one flow, and no flow's data
-can point messages anywhere else. You may create that trigger before the project has any
-Telegram source. Saving a flow with `source.watch` and no such trigger warns you.
+The routing stays yours, at design time: state **one** trigger on `event: telegram/message` with
+**no `watch`**. Such a trigger hears every source of its provider in the project, so every channel a
+flow watches runs that one flow, and no flow's data can point messages anywhere else. You may state
+that trigger before the project watches any channel. Saving a flow with `source.watch` and no such trigger warns you.
 
 What holds:
 
 - **It lands with the run.** The watch is written with the run's other writes; a run that fails
   watches nothing.
-- **A cap.** A project may keep at most 200 Telegram sources watched by runs (the platform can raise
-  it for you). A watch past it fails the run with 409 `SOURCE_WATCH_CAP`; holds on channels already
+- **A cap.** A project may keep at most 200 Telegram sources held (the platform can raise it for
+  you); every held source counts, whether a record or a trigger holds it. A trigger save or a run
+  that would watch past it is refused 409 `SOURCE_WATCH_CAP` and writes nothing (its `details` say how
+  many are held, the cap and how many it would add; a document's finding sits on `triggers.<key>.watch`); holds on channels already
   watched never count.
 - **About a minute** before the platform starts reading a newly watched channel.
 - **What it costs** is the runs your trigger starts, one per message. Letting the last holder go
@@ -126,7 +133,7 @@ What holds:
 - **A preview or a suite case watches nothing**, `applyWrites: true` included. It answers what the
   step would have done — the same fields, `enabled` among them — plus `preview: true`. To make a watch for an existing record, run the flow
   for real as the record's owner.
-- `GET /v1/sources` says which sources runs hold (`watchedByRuns`) and by how many (`holders`).
+- `GET /v1/sources` says who holds each source (`holders`: the triggers by key, the records as a count per table) and which triggers hear it (`heardBy`).
 
 ## What the flow receives
 
@@ -172,41 +179,17 @@ you want to keep it.
 
 ## What the platform refuses
 
-- A provider it has no writer for yet — 422 at create. `GET /v1/sources/providers` says which:
+A watch is judged where it is written — on the trigger's save, in a plan, or in a `source.watch`
+step — and refused before anything is written:
+
+- A provider it has no writer for yet — 422. `GET /v1/sources/providers` says which:
   a provider whose `availability` is `soon` is refused, and that field is read from the same spec
-  the create checks, so offer create exactly where it says `available`.
-- A config the provider's schema rejects, with 422 naming the field.
-- A key already taken for the provider in the project (409).
-- A create or a patch that would point a second source at a channel this project already watches
-  (409 naming the source that has it).
-- A patch that would move a source flows hold (`holders` above 0) to another channel (409, with the
-  number of holders among its details). The holders name it by its channel, so their `source.unwatch` could
-  never release it there. Create a source for the new channel instead.
-- A delete while any trigger listens (409 `SOURCE_HAS_LISTENERS`, with the count). Delete the
-  triggers first, on purpose. Every source on the read carries `deleteRefusal` — that refusal in
-  the delete's own words, or null — from the function the delete throws from, so offer Delete
-  where it is null rather than deciding from `listening` yourself.
-- A type of your own already holding one of the provider's keys (409 at the first create).
+  the write checks, so offer a watch exactly where it says `available`.
+- Watch settings the provider's schema rejects, with 422 naming the field.
+- A watch past the cap (409 `SOURCE_WATCH_CAP`).
+- A type of your own already holding one of the provider's keys (409 at the first watch).
 
-### Ask before you write: `validateOnly`
-
-Send `validateOnly: true` on the create or the patch and the platform answers a **verdict** at 200
-instead of writing: whether the write would be taken (`ok`), what it found (`diagnostics`), whether
-every rule ran (`complete`), and what it would compute (`derived`). Read `severity`, never `code`:
-`error` will not save, `warning` blocks nothing, and `info` notes something the platform left alone.
-
-⭐ **Every refusal above is decided before anything is written**, a key already taken and a channel
-already watched included — so `validateOnly` answers "does this project already watch that
-channel" without watching it again.
-
-⚠️ **A stale `version` is NOT reported here.** The optimistic lock is about when the write lands,
-not about whether your draft is coherent — the save answers 409 for it and the verdict says nothing,
-because `ok` answers only the second question.
-
-⚠️ **`derived` carries the key the source would be addressed by — or `null`.** A source with no
-key of your choosing and no channel in its config is named from the clock at save time, so naming
-one here would name the one key the save is guaranteed not to use. Null means "assigned when you
-save"; anything else is exactly what lands.
+A provider's webhook secret, when a provider takes one, is stored in the vault, never in a watch.
 
 ## What the platform guarantees
 
@@ -229,15 +212,14 @@ save"; anything else is exactly what lands.
 
 ## What will bite you
 
-- **A source nothing listens to still costs its connection** and, for Telegram, a media copy per
-  message. The list shows `listening: 0`.
-- **`enabled: true` with health `unknown` means no platform reader has picked the channel up yet**, and
+- **A source a record holds while no trigger listens still costs its connection** and, for
+  Telegram, a media copy per message. The list shows `listening: 0`.
+- **Health `unknown` on a held source means no platform reader has picked the channel up yet**, and
   the health's `detail` says so. A new source reads `unknown` for a short while before its first
   `live`. The platform's own Telegram accounts are what read channels; nothing on your row provisions
   them, and no call of yours changes it. If it lasts more than a few minutes, tell the human the
   deployment's operator has to look.
-- **A disabled source writes nothing, and switching it back on later does not catch up.** The events that
-  arrived in between were never recorded; there is nothing to replay.
-- **`version` is required on every write** — every patch, switching `enabled` included. A stale one is a 409;
-  re-read and retry. A provider's own report (participants, health) never bumps it.
-- **The provider cannot change.** A different provider is a new source.
+- **A channel nothing holds writes nothing, and holding it again later does not catch up.** The
+  events that arrived in between were never recorded; there is nothing to replay.
+- **A watch names its provider's settings, not a source.** Moving a watch to another channel is an
+  edit of the trigger's `watch`; the old channel is let go when nothing else holds it.

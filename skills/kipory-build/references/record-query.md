@@ -2,13 +2,13 @@
 
 <!-- field-ok: runInfo — a provider value the platform fills, not a request field -->
 <!-- field-ok: authorId — one project's example field name, not a platform field -->
-<!-- field-ok: myShelf — one project's example view key, not a platform field -->
+<!-- field-ok: myShelf — one project's example query key, not a platform field -->
 
-§9 of the flow and record shapes (`patterns.md` has the map of every section). A list an endpoint answers is a view (`views.md`); this is for what a view does not do.
+§9 of the flow and record shapes (`patterns.md` has the map of every section). A list an endpoint answers is a query declared under its table (`queries.md`); this is for what a declared query does not do.
 
 ## 9. Read what one user follows
 
-"Show me what is new from the things I follow" is, first, a view: `myShelf` in [views.md](views.md) (§11) reads the follows as a set inside the same statement, as the caller, with no 1,000-value cap and no extra step. The inline form below is for when the view cannot say it — here, a parent that matches through a link to a followed child, which a set (`field` clauses only) does not reach. It is three steps in a line. The follows are a per-user table; the feed is one `record.query` whose values come from earlier steps.
+"Show me what is new from the things I follow" is, first, a declared query: `myShelf` in [queries.md](queries.md) (§11) reads the follows as a set inside the same statement, as the caller, with no 1,000-value cap and no extra step. The inline form below is for when the query cannot say it — here, a parent that matches through a link to a followed child, which a set (`field` clauses only) does not reach. It is three steps in a line. The follows are a per-user table; the feed is one `record.query` whose values come from earlier steps.
 
 ```
 follows: record.list (my follows)  →  followed: value.transform (follows.records)  →  page: record.query
@@ -20,7 +20,7 @@ The follows read takes every page, so a person following more than one page of t
 
 ```json
 {
-  "tableKey": "follow",
+  "table": "follow",
   "limit": 100,
   "pages": { "max": 10 }
 }
@@ -28,41 +28,32 @@ The follows read takes every page, so a person following more than one page of t
 
 `max: 10` is 1,000 follows; a person with more fails the step `RECORD_READ_HAS_MORE` rather than silently missing the rest — which also fits the 1,000-value bound on `in` below. Without `pages` the save warns `RECORD_LIST_CURSOR_UNREAD`, because no step reads the follows page's `nextCursor`. The feed query itself stays one page: its cursor goes back to the caller.
 
-The relation is declared once, on the child: an `item` points at its `collection`, and the relation `in-collection` is paired from `item` to `collection`. The `uses` of `item`:
+The relation is declared once, from the child's field: an `item` points at its `collection`, so the relation `in-collection` states `from: item.collectionId` and `to: collection`. The `uses` of `item` carry what the clauses filter by:
 
 ```json
-{
-  "fields": [
-    {
-      "source": { "family": "submission", "field": "collectionId" },
-      "uses": [{ "kind": "link", "relation": "in-collection" }]
-    },
-    {
-      "source": { "family": "submission", "field": "authorId" },
-      "uses": ["filter"]
-    }
-  ]
+{ "filter": ["authorId"] }
+```
+
+```json
+"in-collection": {
+  "label": "In collection",
+  "from": "item.collectionId",
+  "to": "collection",
+  "cardinality": "many-to-one"
 }
 ```
 
-The parent declares no relation. The `uses` of `collection` carry only what the query orders by:
+The parent's side needs nothing of the relation. The `uses` of `collection` carry only what the query orders by:
 
 ```json
-{
-  "fields": [
-    {
-      "source": { "family": "submission", "field": "lastItemAt" },
-      "uses": ["filter"]
-    }
-  ]
-}
+{ "filter": ["lastItemAt"] }
 ```
 
 The query is asked of the parent, with the link coming IN:
 
 ```json
 {
-  "tableKey": "collection",
+  "table": "collection",
   "clauses": [
     {
       "kind": "link",
@@ -85,7 +76,7 @@ The query is asked of the parent, with the link coming IN:
 ```
 
 - **Query the thing the user sees, not the thing they follow.** The clause above asks for collections linked to an item by a followed author, so each collection comes back once however many of its items match. Paging the items and collapsing them afterwards repeats a collection across pages.
-- **`incoming` is asked of the table the relation points at.** The `link` use stays on the child's field (`item.collectionId`); the parent needs none, and `peer` clauses are checked against the child's `uses` (`authorId` carries `filter`). Without `direction: "incoming"` the same clause on `collection` is refused `QUERY_CLAUSE_UNROUTED`: the default, `outgoing`, needs the `link` use on the queried table. The refusal says to ask `incoming`.
+- **`incoming` is asked of the table the relation points at.** The link comes from the child's field (`from: item.collectionId`); the parent states nothing, and `peer` clauses are checked against the child's `uses` (`authorId` carries `filter`). Without `direction: "incoming"` the same clause on `collection` is refused `QUERY_CLAUSE_UNROUTED`: the default, `outgoing`, needs the relation to come from a field of the queried table. The refusal says to ask `incoming`.
 - **Following nobody is an answer.** `followed.ids` holding `[]` runs the query and returns no records. A value that may be nothing is a save finding on the query: have the transform always answer a list (`{"ids": [follows.records.authorId]}`).
 - **`in` takes at most 1,000 values.** Past that the step fails with `QUERY_OPERAND_INVALID`; store the membership on the record instead and filter on it.
 - **Each collection with its newest items is `linked`, not a second query.** Add `"linked": { "latest": { "relation": "in-collection", "direction": "incoming", "limit": 3, "onMore": "stop" } }` to the query: each collection then carries `linked.latest`, its three newest items (`limit` is per collection), and `linkedMore.latest` when it has more. For each linked read, the records it hangs off times its `limit`, summed over every linked read, must stay within 20,000 — checked at save.
@@ -97,13 +88,13 @@ The query is asked of the parent, with the link coming IN:
 
 `record.query` is the one function that joins: a record matches when it matches **every** clause in `clauses` (at most 16). Each clause is one of five kinds. Each value is an argument: a path (`"followed.ids"`), a fixed value (`{ "literal": "published" }`; a bare number or `true`/`false` too) or an expression (`{ "expr": "…" }`):
 
-| `kind`     | Members                                                                                                                                                                                                         | Matches                                                                                                                                                                                                                                            |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `field`    | `field`, `op` (`eq`, `lt`, `lte`, `gt`, `gte`, `in`), `value`                                                                                                                                                   | a field of the table that carries a `filter` use. `in` takes a list (any of them, at most 1,000); dates are ISO 8601 strings                                                                                                                       |
-| `term`     | `vocabularyKey`, `slug`                                                                                                                                                                                         | a term of a vocabulary the table surfaces, by slug; an alias resolves to its canonical term                                                                                                                                                        |
-| `semantic` | `text`, optional `field`, optional `topK` (default 50, at most 200)                                                                                                                                             | records ranked by meaning against the table's search index. At most one per query, counting one inside a link clause's `peer`                                                                                                                      |
-| `link`     | `relation`, optional `direction` (`outgoing` by default, `incoming` or `either`), optional `where[]`, `count` (`{ op, n }` with `op` one of `>=`, `>`, `=`, `<`, `<=`; omitted means at least one) and `peer[]` | records linked by a relation a `link` use declares: on a field of the table, or, for `incoming` and `either`, on a field of a table that points at it; `peer` holds `field`, `term` and `semantic` clauses on the record at the other end, one hop |
-| `stream`   | `field`, optional `window` (`from`, `to`), optional `where[]` and `count` (`"exists"` by default, `"none"`, or `{ op, n }`)                                                                                     | event rows of a field that carries a `stream` use, inside a time window                                                                                                                                                                            |
+| `kind`     | Members                                                                                                                                                                                                         | Matches                                                                                                                                                                                                                                    |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `field`    | `field`, `op` (`eq`, `lt`, `lte`, `gt`, `gte`, `in`), `value`                                                                                                                                                   | a field of the table that carries a `filter` use. `in` takes a list (any of them, at most 1,000); dates are ISO 8601 strings                                                                                                               |
+| `term`     | `vocabulary`, `slug`                                                                                                                                                                                            | a term of a vocabulary the table surfaces, by slug; an alias resolves to its canonical term                                                                                                                                                |
+| `semantic` | `text`, optional `field`, optional `topK` (default 50, at most 200)                                                                                                                                             | records ranked by meaning against the table's search index. At most one per query, counting one inside a link clause's `peer`                                                                                                              |
+| `link`     | `relation`, optional `direction` (`outgoing` by default, `incoming` or `either`), optional `where[]`, `count` (`{ op, n }` with `op` one of `>=`, `>`, `=`, `<`, `<=`; omitted means at least one) and `peer[]` | records linked by a relation stated from a field: a field of the table, or, for `incoming` and `either`, a field of a table that points at it; `peer` holds `field`, `term` and `semantic` clauses on the record at the other end, one hop |
+| `stream`   | `field`, optional `window` (`from`, `to`), optional `where[]` and `count` (`"exists"` by default, `"none"`, or `{ op, n }`)                                                                                     | event rows of a field that carries a `stream` use, inside a time window                                                                                                                                                                    |
 
 A text `field` clause finds a value of any length with `eq` and `in`; `lt`/`lte`/`gt`/`gte` compare only values up to 2,000 bytes, and the clause's explanation row says how many records it left out (`longTextSkipped`). Keep a field you range over short (`maxLength` 500 or fewer); find long text by meaning with `semantic`. `record.list` and `record.count` take no range on a text field: saving one is refused `RECORD_FILTER_TEXT_RANGE`.
 
@@ -117,7 +108,7 @@ A figure over many records — how many, a sum, an average, per day or per sourc
 - key: totals
   function: record.aggregate
   with:
-    tableKey: loan
+    table: loan
     clauses:
       - { kind: field, field: decision, op: eq, value: { literal: approved } }
     groupBy:

@@ -58,7 +58,7 @@ Each item of `events`:
 
 ### `GET /v1/triggers`
 
-List one project's triggers (`?project=<nodeId>`), each with the `version` its PATCH takes. `expand=lastRun` adds how the newest event went, `expand=drift` the flow inputs no longer supplied, `expand=flowLabel` the bound flow's name. The same rows, as authored, ride `GET /v1/bootstrap` and the `surfaces.triggers` section of `GET /v1/projects/{nodeId}/document`; the last fire and last error are only here.
+List one project's triggers (`?project=<nodeId>`), each with the `version` its PATCH takes. `expand=lastRun` adds how the newest event went, `expand=drift` the flow inputs no longer supplied, `expand=flowLabel` the bound flow's name. The same rows, as authored, ride `GET /v1/bootstrap` and the `triggers` section of `GET /v1/projects/{nodeId}/document`; the last fire and last error are only here.
 
 **Query**
 
@@ -84,7 +84,7 @@ Each item of `triggers`:
 | `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this trigger. |
 | `categoryKey` | `string` | yes | Key of the event category this trigger listens to, in the project's event registry. |
 | `eventKey` | `string` | yes | Key of the event type within that category. The type it names must be durable and not run-scoped. |
-| `sourceId` | `string \| null` | yes | The source this trigger listens to (see `/v1/sources`), or null for a trigger on an event the project's own flows emit. A sourced trigger hears that source's events and no other's. Permanent. |
+| `watch` | `object[] \| null` | yes | What this trigger watches: one item per source it holds, in the provider's own settings (the same settings its source stores). It hears those sources' events and no other's. Null for a trigger that names nothing to watch: on a provider's event it hears every source of that provider the project watches, and on any other event every emit of the type. |
 | `filter` | `object \| null` | yes | A condition over the recorded event, or null to react to every one. Evaluated over two slots: `event` (the envelope's own fields) and `data` (its payload). An event the filter rejects is recorded as `filtered` in the runs, never silently dropped. A stored filter that is no longer a valid condition is returned as stored and matches no event. |
 | `flowId` | `string` | yes | The flow this trigger runs. |
 | `inputs` | `object` | yes | Fixed inputs merged into the flow's root slots on every fire, around the two reserved slots `event` (the envelope) and `trigger` (delivery context). |
@@ -106,7 +106,7 @@ Each item of `triggers`:
 
 ### `POST /v1/triggers`
 
-Create a trigger: a flow run on every recorded event of one type (`categoryKey`/`eventKey`) that its `filter` accepts — from a source (`sourceId`, or `newSource` to create one in the same write) or from the project's own flows. It is created switched on. With `validateOnly: true` it answers whether the create would be refused, writing nothing. The events a project has recorded: `GET /v1/project-events?project=`. Several triggers at once: the `surfaces.triggers` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Create a trigger: a flow run on every recorded event of one type (`categoryKey`/`eventKey`) that its `filter` accepts — from the sources it `watch`es (each held by the trigger: created or shared in the same write), from every source of a provider when its `watch` is null, or from the project's own flows. It is created switched on. With `validateOnly: true` it answers whether the create would be refused, writing nothing. The events a project has recorded: `GET /v1/project-events?project=`. Several triggers at once: the `triggers` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 
@@ -117,8 +117,7 @@ Create a trigger: a flow run on every recorded event of one type (`categoryKey`/
 | `label` | `string \| null` | no | Display text, unlike the key changeable later. Omit it or pass null and the trigger has none. |
 | `categoryKey` | `string` | yes | Key of the event category to listen to, in the registry. |
 | `eventKey` | `string` | yes | The event within that category. Its type must be active, durable and not run-scoped, or the write is refused with 422. |
-| `sourceId` | `string` | no | The source to listen to (see `/v1/sources`). When given, `categoryKey` must be the provider's category and `eventKey` one of the events it writes, or the write is refused with 422; the trigger then hears that source's events and no other's. Omit for a trigger on an event the project's own flows emit. Permanent. |
-| `newSource` | `object` | no | A source this project does not have yet — a channel to start watching — created by THIS write, in the same transaction as the trigger: both land or neither does, so a trigger the platform refuses leaves no source behind. It is judged exactly as `POST /v1/sources` judges a create (the provider's config, a taken key, a channel already watched — point `sourceId` at that one instead), and the trigger is then judged against it as against `sourceId`. `validateOnly: true` judges both halves and keeps neither. Send `newSource` or `sourceId`, never both (422). Permanent, like `sourceId`. |
+| `watch` | `object[] \| null` | no | What to watch: a list of the provider's own settings, one item per thing watched, in the settings the provider's source takes. The trigger HOLDS each: a source the project does not watch yet is created and switched on, one it already watches is shared, and both count against the project's watch cap. `categoryKey` must then be the provider's category and `eventKey` one of the events it writes, or the write is refused with 422. Omit or send null to name nothing: on a provider's event the trigger then hears every source of that provider the project watches. An empty list is refused (422) — it would mean the same, so it is spelled `null`. |
 | `filter` | `object \| null` | no | A condition over `event` and `data`, or omit / null to react to every event of the type. |
 | `flowId` | `string` | yes | The flow to run on each fire. |
 | `inputs` | `object` | yes | Fixed inputs merged into the flow's root slots on every fire. Every declared slot the two reserved slots `event` and `trigger` do not cover must be here — a trigger has no caller to fill gaps. |
@@ -154,7 +153,7 @@ Each item of `diagnostics`:
 | `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this trigger. |
 | `categoryKey` | `string` | yes | Key of the event category this trigger listens to, in the project's event registry. |
 | `eventKey` | `string` | yes | Key of the event type within that category. The type it names must be durable and not run-scoped. |
-| `sourceId` | `string \| null` | yes | The source this trigger listens to (see `/v1/sources`), or null for a trigger on an event the project's own flows emit. A sourced trigger hears that source's events and no other's. Permanent. |
+| `watch` | `object[] \| null` | yes | What this trigger watches: one item per source it holds, in the provider's own settings (the same settings its source stores). It hears those sources' events and no other's. Null for a trigger that names nothing to watch: on a provider's event it hears every source of that provider the project watches, and on any other event every emit of the type. |
 | `filter` | `object \| null` | yes | A condition over the recorded event, or null to react to every one. Evaluated over two slots: `event` (the envelope's own fields) and `data` (its payload). An event the filter rejects is recorded as `filtered` in the runs, never silently dropped. A stored filter that is no longer a valid condition is returned as stored and matches no event. |
 | `flowId` | `string` | yes | The flow this trigger runs. |
 | `inputs` | `object` | yes | Fixed inputs merged into the flow's root slots on every fire, around the two reserved slots `event` (the envelope) and `trigger` (delivery context). |
@@ -201,7 +200,7 @@ Read one trigger. `expand` takes the list's keys (`lastRun`, `drift`, `flowLabel
 | `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this trigger. |
 | `categoryKey` | `string` | yes | Key of the event category this trigger listens to, in the project's event registry. |
 | `eventKey` | `string` | yes | Key of the event type within that category. The type it names must be durable and not run-scoped. |
-| `sourceId` | `string \| null` | yes | The source this trigger listens to (see `/v1/sources`), or null for a trigger on an event the project's own flows emit. A sourced trigger hears that source's events and no other's. Permanent. |
+| `watch` | `object[] \| null` | yes | What this trigger watches: one item per source it holds, in the provider's own settings (the same settings its source stores). It hears those sources' events and no other's. Null for a trigger that names nothing to watch: on a provider's event it hears every source of that provider the project watches, and on any other event every emit of the type. |
 | `filter` | `object \| null` | yes | A condition over the recorded event, or null to react to every one. Evaluated over two slots: `event` (the envelope's own fields) and `data` (its payload). An event the filter rejects is recorded as `filtered` in the runs, never silently dropped. A stored filter that is no longer a valid condition is returned as stored and matches no event. |
 | `flowId` | `string` | yes | The flow this trigger runs. |
 | `inputs` | `object` | yes | Fixed inputs merged into the flow's root slots on every fire, around the two reserved slots `event` (the envelope) and `trigger` (delivery context). |
@@ -223,7 +222,7 @@ Read one trigger. `expand` takes the list's keys (`lastRun`, `drift`, `flowLabel
 
 ### `PATCH /v1/triggers/{id}`
 
-Change a trigger — the event it listens to, its filter, flow and inputs, name, overlap policy — or switch it on or off with `enabled`. Switching on re-checks the event type and is refused (422) when it was retired or made ephemeral; a trigger switched on does not catch up on events recorded while it was off, and those cannot be replayed either (`POST /v1/triggers/{id}/replay` re-runs only an event this trigger already decided). Its source is permanent. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be refused, writing nothing. On a retired project only `{enabled: false, version}` is accepted. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Change a trigger — the event it listens to, what it `watch`es, its filter, flow and inputs, name, overlap policy — or switch it on or off with `enabled`. Switching on re-checks the event type and is refused (422) when it was retired or made ephemeral; a trigger switched on does not catch up on events recorded while it was off, and those cannot be replayed either (`POST /v1/triggers/{id}/replay` re-runs only an event this trigger already decided). A disabled or paused trigger keeps what it watches. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be refused, writing nothing. On a retired project only `{enabled: false, version}` is accepted. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -238,6 +237,7 @@ Change a trigger — the event it listens to, its filter, flow and inputs, name,
 | `label` | `string \| null` | no | New display text. Omit to leave it alone, or pass null to clear it. |
 | `categoryKey` | `string` | no | Key of a different category to listen to. Omit to leave it alone. |
 | `eventKey` | `string` | no | Key of a different event type to listen to. Omit to leave it alone. |
+| `watch` | `object[] \| null` | no | Replace what the trigger watches — the whole list, not a merge. Items newly listed are held (created or shared, within the watch cap); items no longer listed are released, and a source nothing else holds is switched off. `null` releases everything, and the trigger then hears every source of its provider the project watches. An empty list is refused (422): to stop hearing a channel, list the ones to keep, send `null` to hear all, or disable or delete the trigger. Omit to leave it alone. |
 | `filter` | `object \| null` | no | Replace the filter, or pass null to react to every event. Omit to leave it alone. |
 | `flowId` | `string` | no | Bind a different flow. Omit to leave it alone. |
 | `inputs` | `object` | no | Replace the fixed inputs entirely — this is not a merge. Omit to leave them alone. |
@@ -251,7 +251,7 @@ Change a trigger — the event it listens to, its filter, flow and inputs, name,
 
 One of 2 shapes:
 
-Shape 1, with `id`, `project`, `key`, `label`, `categoryKey`, `eventKey`, `sourceId`, `filter`, `flowId`, `inputs`, `overlapPolicy`, `pausedAt`, `pauseReason`, `failurePolicy`, `enabled`, `createdByUserId`, `lastFiredAt`, `lastError`, `lastErrorAt`, `version`, `createdAt`, `updatedAt`:
+Shape 1, with `id`, `project`, `key`, `label`, `categoryKey`, `eventKey`, `watch`, `filter`, `flowId`, `inputs`, `overlapPolicy`, `pausedAt`, `pauseReason`, `failurePolicy`, `enabled`, `createdByUserId`, `lastFiredAt`, `lastError`, `lastErrorAt`, `version`, `createdAt`, `updatedAt`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -262,7 +262,7 @@ Shape 1, with `id`, `project`, `key`, `label`, `categoryKey`, `eventKey`, `sourc
 | `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this trigger. |
 | `categoryKey` | `string` | yes | Key of the event category this trigger listens to, in the project's event registry. |
 | `eventKey` | `string` | yes | Key of the event type within that category. The type it names must be durable and not run-scoped. |
-| `sourceId` | `string \| null` | yes | The source this trigger listens to (see `/v1/sources`), or null for a trigger on an event the project's own flows emit. A sourced trigger hears that source's events and no other's. Permanent. |
+| `watch` | `object[] \| null` | yes | What this trigger watches: one item per source it holds, in the provider's own settings (the same settings its source stores). It hears those sources' events and no other's. Null for a trigger that names nothing to watch: on a provider's event it hears every source of that provider the project watches, and on any other event every emit of the type. |
 | `filter` | `object \| null` | yes | A condition over the recorded event, or null to react to every one. Evaluated over two slots: `event` (the envelope's own fields) and `data` (its payload). An event the filter rejects is recorded as `filtered` in the runs, never silently dropped. A stored filter that is no longer a valid condition is returned as stored and matches no event. |
 | `flowId` | `string` | yes | The flow this trigger runs. |
 | `inputs` | `object` | yes | Fixed inputs merged into the flow's root slots on every fire, around the two reserved slots `event` (the envelope) and `trigger` (delivery context). |
@@ -345,7 +345,7 @@ Each item of `diagnostics`:
 
 ### `POST /v1/triggers/{id}/replay`
 
-Re-run this trigger's decision about one event it already decided (`eventId`, from `GET /v1/triggers/{id}/runs`) as a new attempt — filter, overlap and admission judged as on a live fire; the original decision is kept. Answers 202 once queued. Refused (422) for an event the trigger never decided, a trigger switched off, or a selector that no longer resolves: replay is no backfill. A new event runs it by itself; to try the flow without firing anything, feed `GET /v1/triggers/{id}/sample` to `POST /v1/flows/{id}/preview`.
+Re-run this trigger's decision about one event it already decided (`eventId`, from `GET /v1/triggers/{id}/runs`) as a new attempt — filter, overlap and admission judged as on a live fire; the original decision is kept. Answers 202 once queued. Refused (422) for an event the trigger never decided, a trigger switched off, a selector that no longer resolves, or an event from a source the trigger no longer `watch`es: replay is no backfill. If its `watch` moves off that source after the 202, the replay is recorded in its runs as `skipped`, with the reason. A new event runs it by itself; to try the flow without firing anything, feed `GET /v1/triggers/{id}/sample` to `POST /v1/flows/{id}/preview`.
 
 **Path parameters**
 
@@ -387,7 +387,7 @@ Resume a trigger the platform paused because its runs kept failing (`pausedAt` o
 | `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this trigger. |
 | `categoryKey` | `string` | yes | Key of the event category this trigger listens to, in the project's event registry. |
 | `eventKey` | `string` | yes | Key of the event type within that category. The type it names must be durable and not run-scoped. |
-| `sourceId` | `string \| null` | yes | The source this trigger listens to (see `/v1/sources`), or null for a trigger on an event the project's own flows emit. A sourced trigger hears that source's events and no other's. Permanent. |
+| `watch` | `object[] \| null` | yes | What this trigger watches: one item per source it holds, in the provider's own settings (the same settings its source stores). It hears those sources' events and no other's. Null for a trigger that names nothing to watch: on a provider's event it hears every source of that provider the project watches, and on any other event every emit of the type. |
 | `filter` | `object \| null` | yes | A condition over the recorded event, or null to react to every one. Evaluated over two slots: `event` (the envelope's own fields) and `data` (its payload). An event the filter rejects is recorded as `filtered` in the runs, never silently dropped. A stored filter that is no longer a valid condition is returned as stored and matches no event. |
 | `flowId` | `string` | yes | The flow this trigger runs. |
 | `inputs` | `object` | yes | Fixed inputs merged into the flow's root slots on every fire, around the two reserved slots `event` (the envelope) and `trigger` (delivery context). |

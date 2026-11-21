@@ -10,7 +10,7 @@ Recipient, subject and body come from the run or are fixed. It sends after the r
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own message, so a new run of the same input sends it again.
 - **I/O:** `recipient, subject, body` → `string`
 - **Also found as:** mail, notify by email, email someone, send message, newsletter
-- **Reads:** The recipient (any address, project member or not), subject and body, each a slot path, fixed value or expression. The sending address is fixed. _(shape hint: `recipient, subject, body`)_
+- **Reads:** The recipient (any address), subject and body, each a slot path, fixed value or expression, and optionally one of the project's named senders. _(shape hint: `recipient, subject, body`)_
 - **Emits:** The message's id — not a receipt: it leaves only if the run finishes and saves. Past the project's daily mail cap the step fails (`project-mail-cap-reached`).
 - **External dependency:** Kipory mail — Delivered by Kipory's own mail service from the sending address; no key of the project's own.
 
@@ -18,9 +18,9 @@ Recipient, subject and body come from the run or are fixed. It sends after the r
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `address` | string | yes | — | The address the message comes from. ⚠️ An unusable sending address only warns on save; the message is refused when sent. |
 | `html` | union | no | — | Optional HTML version of the message. ⚠️ The plain-text body is still required; an HTML-only message reads blank in text clients. |
 | `replyTo` | string | no | — | Optional address replies go to, instead of the sending address. ⚠️ Left empty, replies go to the catch-all mailbox, which a person must sort by hand. |
+| `sender` | string | no | — | One of the project's senders; left out, its default address. ⚠️ Left out, the default address sends; a sender the project does not name refuses the save. |
 | `subject` | union | yes | — | The subject line. |
 | `text` | union | yes | — | The plain-text body, required even with HTML. ⚠️ On a schedule that re-runs every step, this sends again every tick. |
 | `to` | union | yes | — | The address to send to. ⚠️ One recipient per step; a list here is refused, not fanned out. |
@@ -111,7 +111,7 @@ Step settings (`with`):
 
 ```json
 {
-  "address": "digest@example.com",
+  "sender": "digest",
   "to": "draft.to",
   "subject": "draft.subject",
   "text": "draft.body"
@@ -140,7 +140,7 @@ Step settings (`with`):
 
 ```json
 {
-  "address": "digest@example.com",
+  "sender": "digest",
   "to": "draft.to",
   "subject": "draft.subject",
   "text": "draft.body"
@@ -169,7 +169,7 @@ Step settings (`with`):
 
 ```json
 {
-  "address": "digest@example.com",
+  "sender": "digest",
   "to": "draft.to",
   "subject": "draft.subject",
   "text": "draft.body"
