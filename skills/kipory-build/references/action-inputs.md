@@ -63,6 +63,7 @@ Every setting that reads a value — a function's `ids`, `data`, `to`, `userId`,
 - **A bare number, `true` or `false` is the same as `{ "literal": … }`.** Only text needs the wrapper.
 - **A one-item list is an expression**: `"ids": { "expr": "[bookId]" }` hands a list-taking setting one id — no transform.
 - **`default` and `$default(x, y)` fill only nothing; `$ifEmpty(x, y)` fills nothing or empty.**
+- **A division that may be by zero is guarded: `count > 0 ? total / count : 0`.** An expression whose answer holds a number that is not finite (a division or remainder by zero, a number past ±1.8e308, `$toMillis` of an impossible date) fails the step, naming where (`avg`, `[2]`); `$default` does not catch it, since it is not nothing.
 - **Each argument is checked at save** against what the setting expects (`ARGUMENT_TYPE_MISMATCH`); an object that is not exactly one of the forms is `ARGUMENT_MALFORMED`; a key the function does not take is `STEP_SETTING_UNKNOWN`, with a fix to the nearest one. An expression that fails at run fails the step, naming the setting.
 - **A setting that names a thing is a plain value**, not an argument: `table`, a template's text, `vocabulary`, the mail's `sender`. A setting that names a field says `field` (`{ "field": "renewsOn", "op": "eq", "value": "day" }`), never `{path}`.
 

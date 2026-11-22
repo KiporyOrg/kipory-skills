@@ -344,7 +344,9 @@ An endpoint states only what cannot be worked out, here as on the row API: a par
 `{ in: path }` or `{ in: query }` (its `type` is `string`; its `required` follows the path and the
 flow's inputs), a `{part}` of the path needs no entry at all, and `inputs` left out binds every input of the flow by its name. Such
 an endpoint stays bound by name: the export states it with `inputsByName: true`, no `inputs` and
-only the parameters you stated, and each apply binds it again against the flow's inputs as they are.
+only the parameters you stated, and each apply binds it again against the flow's inputs as they are — never one marked
+`internal: true`. When that makes the endpoint accept an input it did not, the plan warns
+`ENDPOINT_ACCEPTS_NEW_INPUT`, naming the endpoint, who may call it and where the value is read.
 A plan says each value it worked out as an `info` finding, `DOCUMENT_FORM_READ`. An endpoint whose
 `inputs` were written is exported whole and keeps them when the document leaves them out
 (anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)).

@@ -1169,7 +1169,9 @@ beside the record's own fields, with `computedAt` (when each was computed) and `
 recompute is due); sync on `computedAt`, since a recompute moves neither `updatedAt` nor
 `version`. `GET /v1/tables/{id}?expand=computedState` shows the backfill and the table's health;
 its `backfill` stays set until every stored record it covers has its value computed or has failed
-to get one three times (`lastFailure` names such a record, which is still retried).
+to get one three times (`lastFailure` names such a record, which is still retried). When a
+formula answered a number that is not finite (a division by zero) or an answer nested too deep,
+`lastFailure.message` says so in a fixed sentence; it never quotes the formula or the record.
 
 A flow-backed table may declare `reprocessOn`: run its processing again for a record when related
 records `join`, `leave` or `change` (named `fields`), once a `debounceSeconds` window passes with

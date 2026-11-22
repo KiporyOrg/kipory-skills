@@ -36,7 +36,7 @@ Read this after `quickstart-document.md`. Names are the example project's (`task
 
 ## How does an endpoint pass the request to the flow?
 
-- **Leave `inputs` out** and each flow input binds by its name: one named like a `{part}` of the path reads it, any other the query on a GET or DELETE and the body on a POST or PATCH. An input the flow gains later binds too.
+- **Leave `inputs` out** and each flow input binds by its name: one named like a `{part}` of the path reads it, others the query (GET, DELETE) or the body (POST, PATCH). A gained input binds too, unless `internal: true`.
 - **State `inputs`** only when a name differs or the value comes from elsewhere: `{"from": "path.id"}`, `{"from": "query.q"}` on a POST (with `"params": {"q": {"in": "query"}}`, or the plan refuses `ENDPOINT_INPUT_UNSATISFIED`), `{"from": "header.x-signature"}` and `{"from": "rawBody"}` for a signed webhook's `request.verify-signature`. Stated, an input not listed is not bound.
 - **A parameter is `{"in": "path"}` or `{"in": "query"}`**; its `type` and `required` follow.
 - **Params go where the contract says:** `{id}` in the path, a GET's rest in the query.

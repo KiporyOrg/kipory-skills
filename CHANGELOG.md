@@ -2,6 +2,28 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261122.51831 — 2026-11-22
+
+Synced from the Kipory monorepo at `052458cf7`.
+
+- changed: `skills/kipory-build/references/action-inputs.md`
+- changed: `skills/kipory-build/references/answers.md`
+- changed: `skills/kipory-build/references/api/flows.md`
+- changed: `skills/kipory-build/references/endpoint-answers.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-connect/scripts/kipory.mjs`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-expose/references/api/api-endpoints.md`
+- changed: `skills/kipory-expose/references/errors.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+
 ## 1.20261122.33601 — 2026-11-22
 
 Synced from the Kipory monorepo at `548dab2e4`.

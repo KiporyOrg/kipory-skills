@@ -1,7 +1,8 @@
 {
-  "source": "548dab2e47daa2a3821b3b6f751e53f2615d77cc",
+  "source": "052458cf7e63b2f36cf8834fe0b154a0ab2004a8",
   "since": "2026-08-19",
   "history": [
+    {"sha":"052458cf7e63","skills":"A non-finite number fails the step, a by-name endpoint warns when it starts accepting an input and an input can be internal, and a key on a person's flow is refused END_USER_REQUIRED (rulings 2–4) (#3800)"},
     {"sha":"548dab2e47da","skills":"A connection can be held by a project or an organization, signed in by any admin there, connected with no credential, and its hidden functions tested with values; the connect form, function panel and Services list follow Anton's picks, and the review's 52 findings are fixed (#3791)"},
     {"sha":"38e4a587c023"},
     {"sha":"6a43d6ce7011"},
@@ -1000,7 +1001,6 @@
     {"sha":"5f7a38ef8610"},
     {"sha":"58fb46e3766b"},
     {"sha":"5f14b48002b3"},
-    {"sha":"3aa136cf974f"},
-    {"sha":"a5b7dcd0a684"}
+    {"sha":"3aa136cf974f"}
   ]
 }

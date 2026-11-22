@@ -126,8 +126,8 @@ names it in the document's top-level `acceptBreaks`, and the plan lists it in `c
 first.
 
 A template's flows carry the same fields a document's do — each step's `with` and its run settings
-(`onOversize` among them) included, and a flow's `caller: user` (it runs only for a signed-in
-user): a project created from the template gets them as written. Its tables
+(`onOversize` among them) included, a flow's `caller: user` (it runs only for a signed-in
+user) and an input's `internal: true` (no endpoint binds it): a project created from the template gets them as written. Its tables
 likewise carry `computed` (a rollup's `ifNone` included), `reprocessOn` and `sharing` as a document's do —
 `renameComputed` too, though a
 template rarely renames — and a plan of one lists the `recompute` consequence for a table whose

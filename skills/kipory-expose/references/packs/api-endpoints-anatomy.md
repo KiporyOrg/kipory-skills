@@ -152,7 +152,8 @@ Its `type` is always `string` (the value is converted to the type of the input i
 required exactly when a required input of the flow reads it. A stated `required` is kept as written.
 A read always returns the whole parameter.
 
-**Leave `inputs` out and every input of the flow is bound by its name.** An input named like a
+**Leave `inputs` out and every input of the flow is bound by its name**, except one the flow marks
+`internal: true` (no endpoint binds it). An input named like a
 `{part}` of the path reads `path.<name>`; any other reads `query.<name>` on a GET or DELETE — its
 query parameter is declared for it — and `body` on a POST or PATCH. So a GET endpoint at `/v1/app/tasks/{id}` over a
 flow that takes `id` and `status` needs only its method, path and flow: a `{part}` of the path that
@@ -163,7 +164,8 @@ body, on a POST or PATCH.
 
 **An endpoint bound by name stays bound by name**: a read shows `inputsByName: true` beside the
 bindings worked out, and `paramsAsWritten`, the parameters as you wrote them. When you add an input
-to the flow and apply again, the endpoint binds it; when you remove one, its binding and the
+to the flow and apply again, the endpoint binds it (unless it is `internal`) and the plan warns
+`ENDPOINT_ACCEPTS_NEW_INPUT`; when you remove one, its binding and the
 parameter declared for it go; a `required` you left out follows the input. A flow edit the endpoint
 could not be bound after (a required object input on a GET, say) is refused, naming the endpoint.
 The project document states such an endpoint as you wrote it — the marker, no `inputs`, only the

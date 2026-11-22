@@ -563,11 +563,16 @@ const printDiagnostics = (diagnostics) => {
     // Neither refuses. A warning is printed whole when there are few, and
     // always when it is about an expression (`JSONATA_*`): those say the
     // expression reads another value than the author meant, and a count
-    // hid one that broke a list's paging (crm, 2026-11-12). The rest, and
-    // info findings, are counted by code.
+    // hid one that broke a list's paging (crm, 2026-11-12), and when an
+    // endpoint starts accepting an input (ENDPOINT_ACCEPTS_NEW_INPUT): a
+    // contract row calls that safe. The rest, and info findings, are
+    // counted by code.
     const warnings = rest.filter((d) => d.severity === "warning");
     const whole = warnings.filter(
-      (d) => warnings.length <= WARNINGS_WHOLE || d.code.startsWith("JSONATA_"),
+      (d) =>
+        warnings.length <= WARNINGS_WHOLE ||
+        d.code.startsWith("JSONATA_") ||
+        d.code === "ENDPOINT_ACCEPTS_NEW_INPUT",
     );
     for (const d of whole)
       out(
@@ -2455,6 +2460,16 @@ const preview = async (flowKey) => {
   );
   const failure = run?.closing?.failure;
   if (failure) out(`failure: ${oneLine(JSON.stringify(failure))}`);
+  // Run as the caller, a key has no person: say how to run it as one. Not
+  // only `caller: user` needs one: a person's records or `userInfo` do too.
+  if (
+    failure?.phase === "end-user-required" &&
+    !nobody &&
+    (typeof as !== "string" || as === ME)
+  )
+    out(
+      "This run needs a signed-in person (the flow states `caller: user`, or reads a person's records or `userInfo`): preview it with `--as <test user>` — writes are not kept as a person; `kipory call <user> …` keeps them.",
+    );
   // Each write, in order, with its own value: a `current` write is what its
   // slot holds now, a `superseded` one (an each's earlier item) carries its
   // value, a `failed` one its error. A written record shows its id.

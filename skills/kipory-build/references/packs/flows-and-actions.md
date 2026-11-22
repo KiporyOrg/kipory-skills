@@ -43,9 +43,12 @@ A flow is `{key, label, description, inputs, outputs, steps}`:
 - **`inputs` and `outputs`** — maps by name. Authored, each value is a type name — a
   registered type (`string`, `number`, `boolean`, a library type or one of your project's) — with
   `?` when it is optional and `[]` when it is a list (`string?`, `Note[]`, `number[]?`), or the long
-  form `{type, list, optional, description}` with only `type` required, for a value that needs a
-  `description`. A caller may leave out an `optional` input; a flow may
-  not give an `optional` output.
+  form `{type, list, optional, internal, description}` with only `type` required, for a value that
+  needs a `description` or is `internal`. A caller may leave out an `optional` input; a flow may
+  not give an `optional` output. An input marked `internal: true` is set only by other flows,
+  schedules and triggers: no endpoint binds it (one binding by name leaves it out, a written
+  binding of it is refused), and it must be optional for an endpoint on the flow to be served. An
+  output cannot be `internal`.
 - **`steps`** — the list, in written order. A step is `key` plus **exactly one kind**:
 
 | Kind       | Shape                                                                                     | Its value                                      |
