@@ -26,11 +26,11 @@ project:
   ai:
     defaultEmbedding: default # omitted = the embedding keyed `default`
     embeddings:
-      default: { model: <model id>, matchExactWords: true, chunking: whole }
+      default: { model: <model id>, matchExactWords: false, chunking: whole }
       long-text:
         {
           model: <model id>,
-          matchExactWords: false,
+          matchExactWords: true,
           chunking: { tokens: 400, overlap: 50 },
         }
 ```
@@ -41,8 +41,8 @@ and takes the default.
 
 **`default` is a reserved key that always resolves.** Naming it — `uses.search.embedding: default`,
 `defaultEmbedding: default`, or leaving `embedding` out — on a project that has no `default` yet
-creates it as the engine default: the inherited `embedding` model, exact words on, whole-record
-chunking. So an exported document applies to a fresh project as it stands.
+creates it as the engine default: the inherited `embedding` model, meaning only (exact words off),
+whole-record chunking. So an exported document applies to a fresh project as it stands.
 
 **The export states only what differs from the engine.** It prints the `default` row under
 `project.ai.embeddings`, and a table's `embedding` line, only once they differ from what the engine
@@ -52,9 +52,11 @@ changes nothing in a plan, and leaving a hidden row out is not a removal: `prune
 **The project's `ai` written without `defaultEmbedding` keeps the pointer** — it is not reset. Moving it
 back is `defaultEmbedding: default`.
 
-`matchExactWords` is worth deciding deliberately. With it on, every `semantic` query clause — in
+`matchExactWords` is worth deciding deliberately; the engine default leaves it off, because a
+query worded differently from its record (a paraphrase) is found better by meaning alone. With it on, every `semantic` query clause — in
 `record.query`, `POST /v1/records/query` and the records list's `mode=semantic` — fuses keyword rank
-with meaning on its own. Turn it on when exact words (names, codes, rare terms) must be findable,
+with meaning on its own. Turn it on — by stating your own embedding — when people search by exact words (names, codes, ids,
+rare terms) that must be findable,
 and know two things: fusion decides the order, while each record's `score` stays the cosine of its
 closest part, so a record a literal match lifted can rank above one that scores higher; and the
 exact words indexed are those of one field per table — the first one marked `search`. `matchExactWords` is required on create;
@@ -92,8 +94,8 @@ training produce meaningless similarity scores with nothing anywhere reporting a
 
 - **Anything searchable is indexed by an embedding**, the one its table's `uses.search` names or the
   project's default. A project with none gets one: the first table that declares `search` and names
-  no embedding creates `default` from the inherited `embedding` model, with exact words on and
-  whole-record chunking, pinned from then on. Most projects want exactly one and never think about
+  no embedding creates `default` from the inherited `embedding` model, meaning only (exact words
+  off) and whole-record chunking, pinned from then on. Most projects want exactly one and never think about
   it again.
 - **A second embedding is an advanced choice with a permanent consequence.** Two tables on
   different embeddings live in different physical collections by construction, so **no single query

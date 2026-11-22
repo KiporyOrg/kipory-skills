@@ -1,7 +1,10 @@
 {
-  "source": "87a0f204f062203fe3a53db7f2ce753a19d6d468",
+  "source": "d540f0000c81a6758fd430994de4df35769a4919",
   "since": "2026-08-19",
   "history": [
+    {"sha":"d540f0000c81","skills":"A type's required field can no longer vanish from an endpoint's answer, and the engine-default embedding matches meaning only (format 12 sweep fixes) (#3807)"},
+    {"sha":"e3230ccc09f6"},
+    {"sha":"a3408ab4687d"},
     {"sha":"87a0f204f062","skills":"A format-11 flow's page draws its steps as a block board: steps and blocks added from one plus, edited in a step sheet that draws each setting as what it is, moved, wrapped, undone, and lit by a preview (#3803)"},
     {"sha":"76c3cfcdec17"},
     {"sha":"79a02a397ef8","skills":"Format 12 follow-ups: search fits a phone, the rename sheet keeps focus, the build ceiling reads as designLimit, references:dangling understands blocks, stored provider types match the code (438) (#3802)"},
@@ -998,9 +1001,6 @@
     {"sha":"799e6785d41d"},
     {"sha":"9d6c1151ae82"},
     {"sha":"e54a3da6ad89"},
-    {"sha":"b19d3601c775"},
-    {"sha":"f3facf7980c6"},
-    {"sha":"c55594c7d6f6"},
-    {"sha":"0749e56c4284"}
+    {"sha":"b19d3601c775"}
   ]
 }

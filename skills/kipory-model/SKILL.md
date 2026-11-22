@@ -21,7 +21,7 @@ Five resources, four packs, and an order the packs do not state because each ans
 
 ## The order, and why it is not arbitrary
 
-**1. Embedding first, if anything will be searchable.** `uses.search` names one (`embedding: notes`) or gets the default; its `chunking` applies unless the table's overrides it. Naming `default`, or none, makes it if missing, from the inherited model (`matchExactWords: true`, `chunking: whole`).
+**1. Embedding first, if anything will be searchable.** `uses.search` names one (`embedding: notes`) or gets the default; its `chunking` applies unless the table's overrides it. Naming `default`, or none, makes it if missing, from the inherited model (`matchExactWords: false`, `chunking: whole`). Exact words on (names, codes, ids): state your own.
 
 ```yaml
 project:

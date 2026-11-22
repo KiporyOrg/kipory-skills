@@ -14,7 +14,7 @@
       "page": "kipory-operate/references/packs/credits.md"
     },
     "embeddings": {
-      "hash": "1fcf5410e623",
+      "hash": "493d10dd89a1",
       "page": "kipory-model/references/packs/embeddings.md"
     },
     "evals": {
@@ -46,7 +46,7 @@
       "page": "kipory-operate/references/packs/project-config.md"
     },
     "project-document": {
-      "hash": "9ccded57e6f1",
+      "hash": "50b7a8acff81",
       "page": "kipory-build/references/packs/project-document.md"
     },
     "project-provisioning": {
@@ -1882,7 +1882,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "2ac1dda7cc5a",
+      "hash": "e7edb153ebeb",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

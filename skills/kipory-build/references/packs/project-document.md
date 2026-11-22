@@ -118,7 +118,7 @@ project:
     models: { summarization: { model: <model id>, effort: low } }
     defaultEmbedding: default # omitted = the embedding keyed `default`
     embeddings:
-      default: { model: <model id>, matchExactWords: true, chunking: whole }
+      default: { model: <model id>, matchExactWords: false, chunking: whole }
   credits:
     userLimit: { credits: 200, per: day }
     publicEndpointsLimit: off # off (the default) = public endpoints are unlimited
@@ -138,7 +138,7 @@ project:
   rerank by the step's own `model`.
 - A table that declares `search` and names no embedding uses the default one. `default` is a
   reserved key that always resolves: naming it, or naming none, on a project without it creates
-  `default` from the inherited embedding model, with `matchExactWords: true` and `chunking: whole`;
+  `default` from the inherited embedding model, with `matchExactWords: false` and `chunking: whole`;
   it is pinned from then on. The export prints the `default` row, and a table's `embedding` line,
   only once they differ from what the platform would create now; stating them as that default
   changes nothing in a plan, and `prune` never deletes the hidden row.
