@@ -28,14 +28,15 @@ A step that can reach more than one vendor resolves **each vendor's key separate
 
 A connection (`kipory-gather`'s `references/connections.md`) takes its credential in its own
 `POST /v1/nodes/{nodeId}/connections` call, not through `/v1/secrets`: the key is stored in the
-**organization's** vault under the connection's own purpose (`connection-<slug>`), and a new one is
-given with `PATCH …/connections/{slug}` `{ credential, version }`, which tests every function on it
-before keeping it. None of the three places above applies to it: its functions send the
-organization's key and only that — never a project's entry under the same purpose, never Kipory's —
-so without it a step fails, and it never falls through to the platform's account. The API bills
-the organization's account; the step still pays its compute. Its daily tests, when the organization
-turns them on, run on that key too and are paid by that account, never from Kipory's. Deleting the
-connection removes the key.
+vault of the **node the connection is held at** — its project or its organization — under the
+connection's own purpose (`connection-<slug>`), and a new one is given with
+`PATCH …/connections/{slug}` `{ credential, version }`, which tests every function on it before
+keeping it. A public server's connection (`{ "kind": "none" }`) keeps no key at all. None of the
+three places above applies to it: its functions send the key held with the connection and only
+that — never another node's entry under the same purpose, never Kipory's — so without it a step
+fails, and it never falls through to the platform's account. The API bills your own account; the
+step still pays its compute. Its daily tests, when turned on where it is held, run on that key too,
+never on Kipory's. Deleting the connection removes the key.
 
 ## The sequence
 

@@ -644,7 +644,7 @@
       "hash": "e57a5d06373a"
     },
     "DELETE /v1/nodes/{nodeId}/connections/{slug}": {
-      "hash": "0c10ee13cbba",
+      "hash": "dd155441a7be",
       "page": "kipory-gather/references/api/connections.md"
     },
     "DELETE /v1/nodes/{nodeId}/invites/{inviteId}": {
@@ -1006,11 +1006,11 @@
       "hash": "250d4690a648"
     },
     "GET /v1/nodes/{nodeId}/connections": {
-      "hash": "187c1de69ef1",
+      "hash": "8024abcf0446",
       "page": "kipory-gather/references/api/connections.md"
     },
     "GET /v1/nodes/{nodeId}/connections/{slug}": {
-      "hash": "37f0c4124157",
+      "hash": "0cd97e186bee",
       "page": "kipory-gather/references/api/connections.md"
     },
     "GET /v1/nodes/{nodeId}/effective-role": {
@@ -1444,15 +1444,15 @@
       "hash": "ef8141a82c90"
     },
     "PATCH /v1/nodes/{nodeId}/connections/{slug}": {
-      "hash": "7fa55adeeaa1",
+      "hash": "58e1c6a1ca68",
       "page": "kipory-gather/references/api/connections.md"
     },
     "PATCH /v1/nodes/{nodeId}/connections/{slug}/abilities/{operation}": {
-      "hash": "0b23bf722109",
+      "hash": "0bc8f6cb73f5",
       "page": "kipory-gather/references/api/connections.md"
     },
     "PATCH /v1/nodes/{nodeId}/connections/{slug}/daily-tests": {
-      "hash": "957f8addfc9e",
+      "hash": "1bc3272f7183",
       "page": "kipory-gather/references/api/connections.md"
     },
     "PATCH /v1/nodes/{nodeId}/members/{userId}": {
@@ -1640,19 +1640,19 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "POST /v1/nodes/{nodeId}/connections": {
-      "hash": "2674f73a3408",
+      "hash": "1f87a1c854ef",
       "page": "kipory-gather/references/api/connections.md"
     },
     "POST /v1/nodes/{nodeId}/connections/{slug}/authorizations": {
-      "hash": "74b5b42fbf02",
+      "hash": "01bdc115021a",
       "page": "kipory-gather/references/api/connections.md"
     },
     "POST /v1/nodes/{nodeId}/connections/{slug}/checks": {
-      "hash": "52196d4e3760",
+      "hash": "75b8910a475e",
       "page": "kipory-gather/references/api/connections.md"
     },
     "POST /v1/nodes/{nodeId}/connections/{slug}/refresh": {
-      "hash": "4fff9a34b3c9",
+      "hash": "c47257ce324d",
       "page": "kipory-gather/references/api/connections.md"
     },
     "POST /v1/nodes/{nodeId}/invites": {

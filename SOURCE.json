@@ -1,7 +1,11 @@
 {
-  "source": "0ac4f4434ce0a67c53c1f86b8b716ecd7087b1ac",
+  "source": "548dab2e47daa2a3821b3b6f751e53f2615d77cc",
   "since": "2026-08-19",
   "history": [
+    {"sha":"548dab2e47da","skills":"A connection can be held by a project or an organization, signed in by any admin there, connected with no credential, and its hidden functions tested with values; the connect form, function panel and Services list follow Anton's picks, and the review's 52 findings are fixed (#3791)"},
+    {"sha":"38e4a587c023"},
+    {"sha":"6a43d6ce7011"},
+    {"sha":"9a3430ca9e27"},
     {"sha":"0ac4f4434ce0","skills":"The project document is format 12: queries and selections live under their table, a `project` section and `requires` state the project's settings and needs, endpoints, triggers and schedules are flat, a trigger holds what it watches, exports are sparse, and every project has its own sending address (438) (#3793)"},
     {"sha":"9d9082de5ea5"},
     {"sha":"ebbe4b717bed"},
@@ -997,10 +1001,6 @@
     {"sha":"58fb46e3766b"},
     {"sha":"5f14b48002b3"},
     {"sha":"3aa136cf974f"},
-    {"sha":"a5b7dcd0a684"},
-    {"sha":"f6b2970a907d"},
-    {"sha":"7c2c2c7ec65a"},
-    {"sha":"08f8436262c8"},
-    {"sha":"6eb138ce6199"}
+    {"sha":"a5b7dcd0a684"}
   ]
 }
