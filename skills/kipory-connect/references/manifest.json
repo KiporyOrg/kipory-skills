@@ -10,7 +10,7 @@
       "page": "kipory-build/references/packs/authoring-order.md"
     },
     "credits": {
-      "hash": "fe64e4d0cdd1",
+      "hash": "2af962aa7a33",
       "page": "kipory-operate/references/packs/credits.md"
     },
     "embeddings": {
@@ -771,7 +771,7 @@
       "hash": "cc578abb9285"
     },
     "GET /v1/bootstrap/": {
-      "hash": "7fd82db14755",
+      "hash": "d9da13b1a1f1",
       "page": "kipory-connect/references/api/bootstrap.md"
     },
     "GET /v1/bootstrap/stream": {
@@ -1176,7 +1176,7 @@
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/projects/{nodeId}/settings": {
-      "hash": "8bbea974f344",
+      "hash": "996d75a7f5ec",
       "page": "kipory-connect/references/api/projects.md"
     },
     "GET /v1/projects/{nodeId}/usage": {
@@ -1466,7 +1466,7 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "PATCH /v1/projects/{nodeId}/settings": {
-      "hash": "9f052be9c072",
+      "hash": "d72b3698e810",
       "page": "kipory-connect/references/api/projects.md"
     },
     "PATCH /v1/record-reprocesses/{id}": {
@@ -1882,7 +1882,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "ac245edcad20",
+      "hash": "2ac1dda7cc5a",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

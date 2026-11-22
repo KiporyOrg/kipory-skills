@@ -45,7 +45,7 @@ apply.
 `POST /v1/flows/{id}/steps/{key}/preview` and eval runs are bounded
 by the project's design-time ceiling (`402 DESIGN_SPEND_CAP_EXCEEDED`), which the balance does not
 show: read `designSpend` on `GET /v1/projects/{nodeId}/settings` for what the current window has
-consumed, and `designSpendCapCredits` and `designSpendCapPeriod` beside it for the ceiling. A
+consumed, and `designLimit: { credits, per }` beside it for the ceiling. A
 record that a `record.enqueue-process` step of a preview or an eval run hands to its processing
 flow counts toward the same ceiling.
 
