@@ -18,53 +18,17 @@ Reaches every device the people registered, once the run saves; a failed run not
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `badge` | integer, at least 0 | no | — | The number to show on the app's icon. |
-| `body` | union | no | — | The body text; required for an alert. |
-| `collapseKey` | string | no | — | Same-key pushes replace each other on the device; at most 64 bytes. |
-| `data` | union | no | — | An object of strings the app receives. |
-| `expiresIn` | integer, 0 to 2419200 | no | `86400` | Seconds to keep trying an offline device; 0 tries once. |
-| `kind` | `alert` \| `background` | no | `"alert"` | `alert` shows title and body; `background` silently wakes the app, data only. |
 | `recipient` | union | no | `{"kind":"self"}` | Whom to notify; the run's own person unless you name others. ⚠️ A device gets pushes only once its app registered it, through a push key the project stored for that app. |
-| `sound` | `default` \| `none` | no | `"default"` | Whether an alert plays the device's sound. |
-| `threadId` | string | no | — | Groups the alert with others of the same thread on the device. |
+| `kind` | `alert` \| `background` | no | `"alert"` | `alert` shows title and body; `background` silently wakes the app, data only. |
 | `title` | union | no | — | The title; required for an alert. |
+| `body` | union | no | — | The body text; required for an alert. |
+| `data` | union | no | — | An object of strings the app receives. |
+| `collapseKey` | string | no | — | Same-key pushes replace each other on the device; at most 64 bytes. |
+| `threadId` | string | no | — | Groups the alert with others of the same thread on the device. |
+| `badge` | integer, at least 0 | no | — | The number to show on the app's icon. |
+| `sound` | `default` \| `none` | no | `"default"` | Whether an alert plays the device's sound. |
 | `urgency` | `normal` \| `high` | no | `"normal"` | `high` delivers at once even when the device saves power. ⚠️ Use `high` sparingly. |
-
-### `body` — one of
-
-- `string`
-- `number`
-- `boolean`
-
-**An object with `literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `literal` | any | yes | — |  |
-
-**An object with `expr`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `expr` | string | yes | — |  |
-
-### `data` — one of
-
-- `string`
-- `number`
-- `boolean`
-
-**An object with `literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `literal` | any | yes | — |  |
-
-**An object with `expr`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `expr` | string | yes | — |  |
+| `expiresIn` | integer, 0 to 2419200, in seconds | no | `86400` | Seconds to keep trying an offline device; 0 tries once. |
 
 ### `recipient` — one of
 
@@ -89,6 +53,42 @@ Reaches every device the people registered, once the run saves; a failed run not
 | `userIds` | string | yes | — | A list of person ids; ids outside the project are skipped. |
 
 ### `title` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | any | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `body` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | any | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `data` — one of
 
 - `string`
 - `number`

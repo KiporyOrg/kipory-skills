@@ -17,10 +17,10 @@ Give it a condition: it refuses only when the condition holds. Nothing the run w
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `status` | integer | yes | — | The status the caller gets, such as 403, 410 or 429. |
 | `code` | string | yes | — | Your word for the refusal, in capitals, such as `LINK_EXPIRED`. |
 | `message` | union | no | — | What the caller is told, up to 500 characters. |
-| `retryAfterSeconds` | integer, 1 to 86400 | no | — | Seconds the caller should wait before trying again. |
-| `status` | integer | yes | — | The status the caller gets, such as 403, 410 or 429. |
+| `retryAfterSeconds` | integer, 1 to 86400, in seconds | no | — | Seconds the caller should wait before trying again. |
 
 ### `message` — one of
 

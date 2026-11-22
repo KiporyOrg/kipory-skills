@@ -25,8 +25,8 @@ Reads the video's captions. Without captions it returns empty, unless the fallba
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `aiFallback` | boolean | no | `false` | Transcribe the audio when captions are missing; two minutes at most. ⚠️ Costs 10 extra vendor credits on each video it has to transcribe. |
 | `language` | string | no | — | Two-letter caption language, like en or es; empty takes the video's own. |
+| `aiFallback` | boolean | no | `false` | Transcribe the audio when captions are missing; two minutes at most. ⚠️ Costs 10 extra vendor credits on each video it has to transcribe. |
 
 ## Worked example
 

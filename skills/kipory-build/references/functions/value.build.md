@@ -17,8 +17,8 @@ Nothing is fetched and no model is called. For logic over the whole value, use R
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `examples` | union[] | no | — | Made-up inputs and the outputs each save must still give. |
 | `fields` | object | yes | — | Each field's expression; a bare string is an expression, not a path. ⚠️ A field whose expression gives nothing is left out; `$now`, `$millis`, `$random`, `$shuffle` and `$eval` are refused. |
+| `examples` | union[] | no | — | Made-up inputs and the outputs each save must still give. |
 
 ### `examples` — each item is one of
 

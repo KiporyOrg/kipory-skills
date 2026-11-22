@@ -2,6 +2,79 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261122.114817 — 2026-11-22
+
+Synced from the Kipory monorepo at `87a0f204f`.
+
+- changed: `skills/kipory-build/references/api/functions-and-models.md`
+- changed: `skills/kipory-build/references/functions/audio.transcribe.md`
+- changed: `skills/kipory-build/references/functions/email.send.md`
+- changed: `skills/kipory-build/references/functions/facebook.ads.md`
+- changed: `skills/kipory-build/references/functions/file.copy.md`
+- changed: `skills/kipory-build/references/functions/file.download-url.md`
+- changed: `skills/kipory-build/references/functions/file.read-text.md`
+- changed: `skills/kipory-build/references/functions/flow.invoke.md`
+- changed: `skills/kipory-build/references/functions/google.ads.md`
+- changed: `skills/kipory-build/references/functions/image.metadata.md`
+- changed: `skills/kipory-build/references/functions/image.resize.md`
+- changed: `skills/kipory-build/references/functions/instagram.comments.md`
+- changed: `skills/kipory-build/references/functions/linkedin.ads.md`
+- changed: `skills/kipory-build/references/functions/pdf.screenshot.md`
+- changed: `skills/kipory-build/references/functions/place.reviews.md`
+- changed: `skills/kipory-build/references/functions/place.search.md`
+- changed: `skills/kipory-build/references/functions/push.send.md`
+- changed: `skills/kipory-build/references/functions/record.aggregate.md`
+- changed: `skills/kipory-build/references/functions/record.append.md`
+- changed: `skills/kipory-build/references/functions/record.count.md`
+- changed: `skills/kipory-build/references/functions/record.create.md`
+- changed: `skills/kipory-build/references/functions/record.delete.md`
+- changed: `skills/kipory-build/references/functions/record.enqueue-process.md`
+- changed: `skills/kipory-build/references/functions/record.link-assert.md`
+- changed: `skills/kipory-build/references/functions/record.link-counts.md`
+- changed: `skills/kipory-build/references/functions/record.link-retract.md`
+- changed: `skills/kipory-build/references/functions/record.links.md`
+- changed: `skills/kipory-build/references/functions/record.list.md`
+- changed: `skills/kipory-build/references/functions/record.merge.md`
+- changed: `skills/kipory-build/references/functions/record.query.md`
+- changed: `skills/kipory-build/references/functions/record.read.md`
+- changed: `skills/kipory-build/references/functions/record.teardown.md`
+- changed: `skills/kipory-build/references/functions/record.update.md`
+- changed: `skills/kipory-build/references/functions/request.refuse.md`
+- changed: `skills/kipory-build/references/functions/request.verify-signature.md`
+- changed: `skills/kipory-build/references/functions/source.unwatch.md`
+- changed: `skills/kipory-build/references/functions/source.watch.md`
+- changed: `skills/kipory-build/references/functions/telegram.resolve-channel.md`
+- changed: `skills/kipory-build/references/functions/term.search.md`
+- changed: `skills/kipory-build/references/functions/term.threshold-gate.md`
+- changed: `skills/kipory-build/references/functions/text.chunk.md`
+- changed: `skills/kipory-build/references/functions/text.csv.md`
+- changed: `skills/kipory-build/references/functions/text.detect-language.md`
+- changed: `skills/kipory-build/references/functions/text.extract.md`
+- changed: `skills/kipory-build/references/functions/text.generate.md`
+- changed: `skills/kipory-build/references/functions/text.rerank.md`
+- changed: `skills/kipory-build/references/functions/text.sanitize.md`
+- changed: `skills/kipory-build/references/functions/tiktok.ads.md`
+- changed: `skills/kipory-build/references/functions/tiktok.transcript.md`
+- changed: `skills/kipory-build/references/functions/url.fetch-as-file.md`
+- changed: `skills/kipory-build/references/functions/url.fetch.md`
+- changed: `skills/kipory-build/references/functions/url.metadata.md`
+- changed: `skills/kipory-build/references/functions/url.scrape.md`
+- changed: `skills/kipory-build/references/functions/url.screenshot.md`
+- changed: `skills/kipory-build/references/functions/url.send.md`
+- changed: `skills/kipory-build/references/functions/value.build.md`
+- changed: `skills/kipory-build/references/functions/value.first-non-empty.md`
+- changed: `skills/kipory-build/references/functions/value.transform.md`
+- changed: `skills/kipory-build/references/functions/vocabulary.aggregate.md`
+- changed: `skills/kipory-build/references/functions/vocabulary.resolve.md`
+- changed: `skills/kipory-build/references/functions/web.search.md`
+- changed: `skills/kipory-build/references/functions/youtube.channel.md`
+- changed: `skills/kipory-build/references/functions/youtube.posts.md`
+- changed: `skills/kipory-build/references/functions/youtube.transcript.md`
+- changed: `skills/kipory-build/references/functions/youtube.trending.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20261122.70533 — 2026-11-22
 
 Synced from the Kipory monorepo at `79a02a397`.

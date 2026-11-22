@@ -17,68 +17,32 @@ High scores reuse the matching term, low ones coin a new term, and the rest go t
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `candidates` | union | no | — | The similarity candidates from `term.search`, best first. |
-| `parentTermId` | union | no | — | Optional resolved parent term id, for hierarchical vocabularies. |
-| `proposalLabel` | union | no | — | The proposed label; empty uses the slug. |
-| `proposalSlug` | union | no | — | The slug for a newly created term. |
-| `thresholds` | union | no | — | This vocabulary's `highThreshold` and `lowThreshold`. |
 | `vocabulary` | union | no | — | The vocabulary to resolve: a run path, or `{ literal: <key> }`. ⚠️ Whether the vocabulary exists is checked when the terms are saved, not here. |
+| `candidates` | union | no | — | The similarity candidates from `term.search`, best first. |
+| `thresholds` | union | no | — | This vocabulary's `highThreshold` and `lowThreshold`. |
+| `proposalSlug` | union | no | — | The slug for a newly created term. |
+| `proposalLabel` | union | no | — | The proposed label; empty uses the slug. |
+| `parentTermId` | union | no | — | Optional resolved parent term id, for hierarchical vocabularies. |
+
+### `vocabulary` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | any | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ### `candidates` — one of
-
-- `string`
-- `number`
-- `boolean`
-
-**An object with `literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `literal` | any | yes | — |  |
-
-**An object with `expr`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `expr` | string | yes | — |  |
-
-### `parentTermId` — one of
-
-- `string`
-- `number`
-- `boolean`
-
-**An object with `literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `literal` | any | yes | — |  |
-
-**An object with `expr`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `expr` | string | yes | — |  |
-
-### `proposalLabel` — one of
-
-- `string`
-- `number`
-- `boolean`
-
-**An object with `literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `literal` | any | yes | — |  |
-
-**An object with `expr`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `expr` | string | yes | — |  |
-
-### `proposalSlug` — one of
 
 - `string`
 - `number`
@@ -114,7 +78,43 @@ High scores reuse the matching term, low ones coin a new term, and the rest go t
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `vocabulary` — one of
+### `proposalSlug` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | any | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `proposalLabel` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | any | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `parentTermId` — one of
 
 - `string`
 - `number`

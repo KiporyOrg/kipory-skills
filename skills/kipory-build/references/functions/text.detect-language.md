@@ -20,9 +20,9 @@ Answers with a two-letter code, or nothing rather than a wrong guess. No model i
 | --- | --- | --- | --- | --- |
 | `minAccuracy` | number, 0 to 1 | no | `0.15` | How clearly the guess must lead its rival, from 0 to 1. ⚠️ Raising it mostly turns short text, like headlines, into unknown. |
 | `minLetters` | integer, at least 0 | no | `12` | Letters needed before a guess; shorter text is usually unknown. ⚠️ Lowering it lets single words through, with wrong answers on names and brands. |
+| `minScriptShare` | number, 0 to 1 | no | `0.6` | Share of the text one writing system needs to decide alone. ⚠️ Only writing systems used by one language decide; Cyrillic, Arabic, Devanagari and Latin never do. |
 | `minMinorityScriptShare` | number, 0 to 1 | no | `0.25` | Share one non-Latin writing system needs to decide, even as a minority. ⚠️ Applies only when the text has exactly one non-Latin writing system. |
 | `minScriptMargin` | number, at least 1 | no | `1.08` | How far the winner must lead languages sharing its writing system. ⚠️ It is a ratio just above 1; 1 accepts whatever ranks first. |
-| `minScriptShare` | number, 0 to 1 | no | `0.6` | Share of the text one writing system needs to decide alone. ⚠️ Only writing systems used by one language decide; Cyrillic, Arabic, Devanagari and Latin never do. |
 
 ## Worked example
 

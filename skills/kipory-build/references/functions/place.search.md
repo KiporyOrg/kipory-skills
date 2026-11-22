@@ -25,11 +25,11 @@ Each place comes with address, coordinates, category, rating, phone, website and
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `detail` | `summary` \| `full` | no | `"summary"` | How much of each listing to read; `full` reads more, slower. |
-| `includeClosed` | boolean | no | `true` | Keep places the map marks temporarily or permanently closed. ⚠️ A place left out is still charged, and changing this searches again. |
+| `maxItems` | integer, 1 to 200 | no | `20` | How many places to return; at most 200, or 60 on `full`. ⚠️ Each place read is charged; a large search with no area wanders to nearby towns. |
 | `language` | string, at least 2 characters | no | `"en"` | Language for names, addresses and hours, like `en` or `de`. ⚠️ Changing the language changes the cache key, so the next run searches again. |
 | `location` | union | no | — | A circle `{lat, lng, radiusMeters}`; empty lets the query say where. ⚠️ Places read outside the circle are left out and still charged: the map searches a wider rectangle than the radius. |
-| `maxItems` | integer, 1 to 200 | no | `20` | How many places to return; at most 200, or 60 on `full`. ⚠️ Each place read is charged; a large search with no area wanders to nearby towns. |
+| `includeClosed` | boolean | no | `true` | Keep places the map marks temporarily or permanently closed. ⚠️ A place left out is still charged, and changing this searches again. |
+| `detail` | `summary` \| `full` | no | `"summary"` | How much of each listing to read; `full` reads more, slower. |
 
 ### `location` — one of
 

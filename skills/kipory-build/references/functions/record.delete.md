@@ -17,10 +17,10 @@ Deletes the user's own and the project's records, never another user's. Deleting
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `ids` | union | yes | — | The record ids to delete: a list, or one id. ⚠️ At most 200 ids; a longer list fails before anything is deleted. |
 | `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+| `ids` | union | yes | — | The record ids to delete: a list, or one id. ⚠️ At most 200 ids; a longer list fails before anything is deleted. |
 
-### `ids` — one of
+### `userId` — one of
 
 - `string`
 - `number`
@@ -38,7 +38,7 @@ Deletes the user's own and the project's records, never another user's. Deleting
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `userId` — one of
+### `ids` — one of
 
 - `string`
 - `number`

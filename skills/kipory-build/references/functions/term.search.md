@@ -18,14 +18,14 @@ Results come best first, each with a similarity score. Use it to check for a ter
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `minScore` | number, -1 to 1 | no | — | Leave out terms scoring below this; it may be negative. |
+| `vocabulary` | union | yes | — | Which vocabulary to search: a run path, or `{ literal: <key> }`. |
+| `text` | union | yes | — | The phrase to search; empty finds nothing. |
 | `parentTermId` | union | no | — | A parent term's id, to search only under it. |
 | `status` | `active` \| `archived` \| `candidate` \| `any` | no | — | Which terms to read by status; `any` reads every status. |
-| `text` | union | yes | — | The phrase to search; empty finds nothing. |
 | `topK` | integer, 1 to 200 | no | `5` | How many terms come back, 1 to 200; default 5. |
-| `vocabulary` | union | yes | — | Which vocabulary to search: a run path, or `{ literal: <key> }`. |
+| `minScore` | number, -1 to 1 | no | — | Leave out terms scoring below this; it may be negative. |
 
-### `parentTermId` — one of
+### `vocabulary` — one of
 
 - `string`
 - `number`
@@ -61,7 +61,7 @@ Results come best first, each with a similarity score. Use it to check for a ter
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `vocabulary` — one of
+### `parentTermId` — one of
 
 - `string`
 - `number`

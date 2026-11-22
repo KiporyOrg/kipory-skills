@@ -17,12 +17,12 @@ A ready or failed record is set pending and processed again. One being processed
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `mode` | `full` \| `from-cache` | no | `"full"` | `full` re-runs every step; `from-cache` replays the unchanged ones. ⚠️ Use `from-cache` only when the earlier derived output still exists. |
-| `recordId` | union | yes | — | The id of the record to queue. ⚠️ Scoped to the signed-in user, so an id owned by anyone else queues nothing and reports no error. |
-| `replay` | `resume` \| `rerun` \| `clean` | no | `"rerun"` | `rerun` (default) runs all; `resume` skips unedited finished steps; `clean` replaces output. ⚠️ `resume` reruns edited steps and their readers (all steps while record values are off); `clean` removes stale files after success. |
 | `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+| `recordId` | union | yes | — | The id of the record to queue. ⚠️ Scoped to the signed-in user, so an id owned by anyone else queues nothing and reports no error. |
+| `mode` | `full` \| `from-cache` | no | `"full"` | `full` re-runs every step; `from-cache` replays the unchanged ones. ⚠️ Use `from-cache` only when the earlier derived output still exists. |
+| `replay` | `resume` \| `rerun` \| `clean` | no | `"rerun"` | `rerun` (default) runs all; `resume` skips unedited finished steps; `clean` replaces output. ⚠️ `resume` reruns edited steps and their readers (all steps while record values are off); `clean` removes stale files after success. |
 
-### `recordId` — one of
+### `userId` — one of
 
 - `string`
 - `number`
@@ -40,7 +40,7 @@ A ready or failed record is set pending and processed again. One being processed
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `userId` — one of
+### `recordId` — one of
 
 - `string`
 - `number`

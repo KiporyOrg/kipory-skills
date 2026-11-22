@@ -26,8 +26,8 @@ Takes an 11-character video id, not a link. Reads automatic and manual captions.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `includeTimestamps` | boolean | no | `false` | When true, prefix each line with its start timestamp; otherwise return prose. |
 | `lang` | string | no | — | Caption language code, like `en`; empty takes the default track. |
+| `includeTimestamps` | boolean | no | `false` | When true, prefix each line with its start timestamp; otherwise return prose. |
 
 ## Worked example
 

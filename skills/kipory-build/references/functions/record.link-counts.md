@@ -17,9 +17,9 @@ Counts one relation's current links reaching each record, across everyone's reco
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `relationKey` | string | yes | — | The relation whose links are counted, by key. |
 | `direction` | `incoming` \| `outgoing` \| `either` | no | `"incoming"` | Links pointing at the record (`incoming`), from it (`outgoing`), or both. |
 | `recordIds` | union | yes | — | One record id or a list of up to 200. ⚠️ A count says how many link here, never whose; on a niche record a small one can still hint. |
-| `relationKey` | string | yes | — | The relation whose links are counted, by key. |
 
 ### `recordIds` — one of
 

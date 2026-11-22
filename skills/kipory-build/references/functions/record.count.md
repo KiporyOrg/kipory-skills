@@ -17,38 +17,28 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `userId` | union | no | — | The person whose records to read; empty reads as the run. ⚠️ Left empty in a run with no person, the step counts every person's records. |
+| `table` | string | yes | — | The table to count. |
+| `statuses` | string[] of `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` \| `DELETING` \| `MERGED`, at least 1 item | no | — | Count only rows with these statuses; omit it to count all. |
+| `linkFilters` | object[], at least 1 item | no | — | Count only rows carrying a link of these relations. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; a never-produced input skips the step. |
 | `createdAfter` | string | no | — | Count only rows created at or after this ISO-8601 date. ⚠️ This is when the row was stored; for your own dates use `fieldFilters`. |
 | `createdBefore` | string | no | — | Count only rows created at or before this ISO-8601 date. |
-| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; an empty list counts zero; a never-produced input skips the step. |
-| `linkFilters` | object[], at least 1 item | no | — | Count only rows carrying a link of these relations. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; a never-produced input skips the step. |
-| `statuses` | string[] of `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` \| `DELETING` \| `MERGED`, at least 1 item | no | — | Count only rows with these statuses; omit it to count all. |
-| `table` | string | yes | — | The table to count. |
-| `userId` | union | no | — | The person whose records to read; empty reads as the run. ⚠️ Left empty in a run with no person, the step counts every person's records. |
 | `vocabularyFilter` | object[], at least 1 item | no | — | Count only rows tagged with all of these vocabulary terms. ⚠️ A nested term slug matches under every parent unless `parentSlug` is set. |
+| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; an empty list counts zero; a never-produced input skips the step. |
 
-### `fieldFilters` — each item
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `field` | string | yes | — | A field the table declares queryable. |
-| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — | The comparison; `in`, or `eq` given a list, matches any listed value. |
-| `value` | union | yes | — | The value to compare with, or the list for `in`. |
-
-`value` — one of:
+### `userId` — one of
 
 - `string`
 - `number`
 - `boolean`
-- an object with `literal` — the table below
-- an object with `expr` — the table below
 
-**`value` › an object with `literal`**
+**An object with `literal`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `literal` | any | yes | — |  |
 
-**`value` › an object with `expr`**
+**An object with `expr`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
@@ -81,24 +71,6 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `userId` — one of
-
-- `string`
-- `number`
-- `boolean`
-
-**An object with `literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `literal` | any | yes | — |  |
-
-**An object with `expr`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `expr` | string | yes | — |  |
-
 ### `vocabularyFilter` — each item
 
 | Member | Type | Required | Default | Meaning |
@@ -106,6 +78,34 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 | `vocabulary` | string | yes | — | The vocabulary, by key. |
 | `slug` | string | yes | — | The term a row must carry, by slug. |
 | `parentSlug` | string | no | — | The parent term's slug, to narrow a nested term to one branch. |
+
+### `fieldFilters` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `field` | string | yes | — | A field the table declares queryable. |
+| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — | The comparison; `in`, or `eq` given a list, matches any listed value. |
+| `value` | union | yes | — | The value to compare with, or the list for `in`. |
+
+`value` — one of:
+
+- `string`
+- `number`
+- `boolean`
+- an object with `literal` — the table below
+- an object with `expr` — the table below
+
+**`value` › an object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | any | yes | — |  |
+
+**`value` › an object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 

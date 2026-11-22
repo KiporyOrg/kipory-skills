@@ -18,17 +18,17 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `clauses` | union[], at most 16 items | no | `[]` | Clauses every record must match; none matches every record the run reaches. ⚠️ A semantic clause returns at most topK records, with no further pages. |
-| `cursor` | union | no | — | A prior answer's cursor; empty for the first page. ⚠️ Bound to another read's `nextCursor` after its last page, it answers an empty page; otherwise it reads page one. |
-| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size answer fails the step; with `tables`, each row carries its own table's named fields. |
-| `limit` | union | no | — | Rows per page, 1 to 100; otherwise 50. ⚠️ A run warns from half the slot limit, and a save when a page of large records would pass it. |
-| `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
-| `order` | union | no | — | `created` (newest first; `direction: asc`, oldest), `meaning`, or a filterable field. ⚠️ A field order leaves out records with no value in that field. |
-| `pages` | object | no | — | Read every page of an exact question, from `cursor` if set. ⚠️ Only an exact question reads every page; records left after the last page fail the step unless `onMore` is "stop". |
 | `query` | string | no | — | A table's query to read instead of clauses, as `<table>.<key>`. ⚠️ Its params come from flow inputs of the same names; its paging from `<step>After`, `<step>Before`, `<step>Limit`. |
 | `table` | string | no | — | The table to query; set exactly one of this and `tables`. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
 | `tables` | string[], 2 to 8 items | no | — | 2 to 8 tables ranked in one answer, in place of `table`. ⚠️ Needs a `semantic` clause and one search model; tell the mixed rows apart by `scores[i].table`, never by their fields. |
+| `clauses` | union[], at most 16 items | no | `[]` | Clauses every record must match; none matches every record the run reaches. ⚠️ A semantic clause returns at most topK records, with no further pages. |
+| `limit` | union | no | `50` when unset | Rows per page, 1 to 100; otherwise 50. ⚠️ A run warns from half the slot limit, and a save when a page of large records would pass it. |
+| `order` | union | no | — | `created` (newest first; `direction: asc`, oldest), `meaning`, or a filterable field. ⚠️ A field order leaves out records with no value in that field. |
+| `cursor` | union | no | — | A prior answer's cursor; empty for the first page. ⚠️ Bound to another read's `nextCursor` after its last page, it answers an empty page; otherwise it reads page one. |
 | `userId` | union | no | — | The person whose records to query; empty means the signed-in user. ⚠️ An empty value fails the step; left out in a run with no person, it reads every person's records. |
+| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size answer fails the step; with `tables`, each row carries its own table's named fields. |
+| `pages` | object | no | — | Read every page of an exact question, from `cursor` if set. ⚠️ Only an exact question reads every page; records left after the last page fail the step unless `onMore` is "stop". |
+| `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 
 ### `clauses` — each item is one of
 
@@ -306,6 +306,47 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 - `kind: link` — the same members as `kind: link` of `clauses`
 - `kind: stream` — the same members as `kind: stream` of `clauses`
 
+### `limit` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | any | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `order` — one of
+
+**`by: created`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `by` | `created` | yes | — | By creation time. |
+| `direction` | `asc` \| `desc` | no | — | `desc` (newest first, the default) or `asc` (oldest first). |
+
+**`by: meaning`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `by` | `meaning` | yes | — | Closest first; needs a `semantic` clause. |
+
+**`by: field`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `by` | `field` | yes | — | By a `filter` field; records without a value are left out. |
+| `field` | string | yes | — | A date, number, text or boolean field with a `filter` use. |
+| `direction` | `asc` \| `desc` | no | `"desc"` | `desc` (latest or largest first, the default) or `asc`. |
+
 ### `cursor` — one of
 
 - `string`
@@ -324,7 +365,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `limit` — one of
+### `userId` — one of
 
 - `string`
 - `number`
@@ -341,6 +382,13 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
+
+### `pages`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `max` | integer, 1 to 500 | yes | — | Most pages to read, up to the project's read-pages limit. |
+| `onMore` | `fail` \| `stop` | no | `"fail"` | `"fail"` (default) fails when records remain; `"stop"` answers a `nextCursor`. |
 
 ### `linked` — each entry, under a name you choose
 
@@ -420,54 +468,6 @@ each entry › `linked` › each entry › `when` — one of:
 | `literal` | any | yes | — |  |
 
 **each entry › `linked` › each entry › `when` › an object with `expr`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `expr` | string | yes | — |  |
-
-### `order` — one of
-
-**`by: created`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `by` | `created` | yes | — | By creation time. |
-| `direction` | `asc` \| `desc` | no | — | `desc` (newest first, the default) or `asc` (oldest first). |
-
-**`by: meaning`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `by` | `meaning` | yes | — | Closest first; needs a `semantic` clause. |
-
-**`by: field`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `by` | `field` | yes | — | By a `filter` field; records without a value are left out. |
-| `field` | string | yes | — | A date, number, text or boolean field with a `filter` use. |
-| `direction` | `asc` \| `desc` | no | `"desc"` | `desc` (latest or largest first, the default) or `asc`. |
-
-### `pages`
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `max` | integer, 1 to 500 | yes | — | Most pages to read, up to the project's read-pages limit. |
-| `onMore` | `fail` \| `stop` | no | `"fail"` | `"fail"` (default) fails when records remain; `"stop"` answers a `nextCursor`. |
-
-### `userId` — one of
-
-- `string`
-- `number`
-- `boolean`
-
-**An object with `literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `literal` | any | yes | — |  |
-
-**An object with `expr`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |

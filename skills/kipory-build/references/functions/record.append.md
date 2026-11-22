@@ -17,32 +17,14 @@ Writes time-stamped events to a record's stream field, not its data. A retry nev
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `event` | union | yes | — | One event object or a list, each with its time property. ⚠️ An event with no valid time fails the step, and nothing is written. |
-| `eventId` | union | no | — | Your own event id, or a list; empty means one is derived. ⚠️ The same id under another time counts as a second event, not a retry. |
+| `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+| `table` | string | yes | — | The table whose stream field receives the events. |
 | `field` | string | yes | — | The stream field of that type that receives the events. |
 | `recordId` | union | yes | — | The id of the record to append to. ⚠️ The record must be the user's own or the project's, of this type. |
-| `table` | string | yes | — | The table whose stream field receives the events. |
-| `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+| `event` | union | yes | — | One event object or a list, each with its time property. ⚠️ An event with no valid time fails the step, and nothing is written. |
+| `eventId` | union | no | — | Your own event id, or a list; empty means one is derived. ⚠️ The same id under another time counts as a second event, not a retry. |
 
-### `event` — one of
-
-- `string`
-- `number`
-- `boolean`
-
-**An object with `literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `literal` | any | yes | — |  |
-
-**An object with `expr`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `expr` | string | yes | — |  |
-
-### `eventId` — one of
+### `userId` — one of
 
 - `string`
 - `number`
@@ -78,7 +60,25 @@ Writes time-stamped events to a record's stream field, not its data. A retry nev
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `userId` — one of
+### `event` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | any | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `eventId` — one of
 
 - `string`
 - `number`

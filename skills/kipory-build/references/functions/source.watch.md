@@ -17,9 +17,9 @@ Holds one channel for a record, usually the follow, making or switching on its s
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `provider` | `telegram` | yes | — | Which kind of source to watch. |
 | `channel` | union | yes | — | The channel, e.g. the path `outlet.channel`. ⚠️ Starts within a minute and costs one triggered run per message, until the last holder lets go. |
 | `holder` | union | yes | — | The id of the holding record, e.g. the path `follow.recordId`. ⚠️ Use the record whose life the watch should share, like the follow; only it releases the watch. |
-| `provider` | `telegram` | yes | — | Which kind of source to watch. |
 | `userId` | union | no | — | The person whose own record holds the watch. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; the watch ends with their account. |
 
 ### `channel` — one of

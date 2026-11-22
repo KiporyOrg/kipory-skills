@@ -18,9 +18,9 @@ Shows the record on the other end, the direction, and the relation's properties.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `includeExpired` | boolean | no | `false` | Include links that have been retracted. |
-| `limit` | integer, more than 0 | no | `100` | Most links returned, most recently valid first. |
 | `relationKey` | string | no | — | Return only links of this relation; empty means every relation. ⚠️ A link whose far end this run may not read is left out rather than blanked. |
+| `limit` | integer, more than 0 | no | `100` | Most links returned, most recently valid first. |
+| `includeExpired` | boolean | no | `false` | Include links that have been retracted. |
 
 ## Worked example
 

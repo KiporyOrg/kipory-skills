@@ -17,9 +17,9 @@ It hands the other flow its inputs and reads back what that flow returns.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `as` | `project` | no | — | `project` runs the called flow as the project, acting for no one. ⚠️ The called flow reaches every person's records; pass it the caller's id as an input if it needs one. |
 | `flow` | string | yes | — | The key of another saved flow to run, like `score-article`. |
 | `inputs` | object | no | `{}` | Each input of the called flow: a path, fixed value or expression. |
+| `as` | `project` | no | — | `project` runs the called flow as the project, acting for no one. ⚠️ The called flow reaches every person's records; pass it the caller's id as an input if it needs one. |
 
 ## Worked example
 

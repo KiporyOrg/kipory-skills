@@ -17,9 +17,9 @@ Removes one record's watch. The last one switches the source off, never deletes 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `provider` | `telegram` | yes | — | What kind of source the channel is. |
 | `channel` | union | yes | — | The channel to let go, e.g. the path `outlet.channel`. ⚠️ Starts within a minute and costs one triggered run per message, until the last holder lets go. |
 | `holder` | union | yes | — | The id of the record `source.watch` was given. |
-| `provider` | `telegram` | yes | — | What kind of source the channel is. |
 | `userId` | union | no | — | The person whose record held the watch. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ### `channel` — one of

@@ -21,12 +21,12 @@ Check the file's type first, so files that are not PDFs are skipped.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `page` | integer, more than 0 | no | `1` | Page number to draw, starting at 1. |
 | `format` | `png` \| `jpeg` | no | `"png"` | Output image format: PNG, or JPEG with a quality setting. |
 | `jpegQuality` | integer, 1 to 100 | no | `85` | JPEG quality from 1 to 100; ignored for PNG. |
-| `maxInputBytes` | integer, more than 0, at most 100000000 | no | `50000000` | Largest PDF to accept, in bytes; bigger ones fail. |
-| `maxOutputBytes` | integer, more than 0, at most 100000000 | no | `10000000` | Largest image to save, in bytes; bigger ones fail. |
-| `page` | integer, more than 0 | no | `1` | Page number to draw, starting at 1. |
 | `viewportScale` | number, 0.25 to 4 | no | `2` | Resolution multiplier, where 1 is about 72 DPI; at most 4. |
+| `maxInputBytes` | integer, more than 0, at most 100000000, in bytes | no | `50000000` | Largest PDF to accept, in bytes; bigger ones fail. |
+| `maxOutputBytes` | integer, more than 0, at most 100000000, in bytes | no | `10000000` | Largest image to save, in bytes; bigger ones fail. |
 
 ## Worked example
 

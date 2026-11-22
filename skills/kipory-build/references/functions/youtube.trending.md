@@ -24,9 +24,9 @@ Shows what is hot right now, not what is biggest. Collect it across runs to buil
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `includeChannelDetails` | boolean | no | — | Also look up each channel's declared country and subscriber count. ⚠️ Costs two extra quota units per 50 channels; the country is often missing. |
 | `maxResults` | integer, 1 to 200 | no | `50` | How many trending videos to read in total; a page holds 50. ⚠️ Each page past the first costs another quota unit. |
 | `videoCategoryIds` | string[], at least 1 item | no | — | Read only these video categories; empty reads the whole chart. ⚠️ Each category costs one quota unit, and category ids differ by region. |
+| `includeChannelDetails` | boolean | no | — | Also look up each channel's declared country and subscriber count. ⚠️ Costs two extra quota units per 50 channels; the country is often missing. |
 
 ## Worked example
 

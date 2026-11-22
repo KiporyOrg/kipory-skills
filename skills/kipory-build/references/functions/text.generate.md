@@ -20,12 +20,12 @@ Returns text, or a structured value when the step declares an output shape. Wire
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `model` | union | no | — | The model to use; empty uses this step's model. ⚠️ An unknown or disabled model fails the run; nothing falls back to this step's model. |
-| `outputSchema` | union | no | — | The answer's type; empty means the answer is text. |
-| `reasoningEffort` | `none` \| `low` \| `medium` \| `high` | no | — | How hard the model thinks first; `none` where it allows. ⚠️ Reasoning is billed as output; left out, the model runs at its own default effort. |
-| `task` | string | no | — | The AI task whose model answers; empty uses `extraction`. |
 | `temperature` | number, 0 to 2 | no | — | How much the answer may vary; empty uses the model's own. ⚠️ It is part of the cache key, so changing it discards every answer already cached for the same prompt. |
+| `reasoningEffort` | `none` \| `low` \| `medium` \| `high` | no | — | How hard the model thinks first; `none` where it allows. ⚠️ Reasoning is billed as output; left out, the model runs at its own default effort. |
+| `model` | union | no | — | The model to use; empty uses this step's model. ⚠️ An unknown or disabled model fails the run; nothing falls back to this step's model. |
+| `task` | string | no | `"extraction"` when unset | The AI task whose model answers; empty uses `extraction`. |
 | `vocabularyFields` | object[] | no | — | Which answer fields hold vocabulary values to resolve into terms. |
+| `outputSchema` | union | no | — | The answer's type; empty means the answer is text. |
 
 ### `model` — one of
 
@@ -44,6 +44,13 @@ Returns text, or a structured value when the step declares an output shape. Wire
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
+
+### `vocabularyFields` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `field` | string | yes | — | The field of the answer that holds the vocabulary's value. |
+| `vocabulary` | string | yes | — | The vocabulary, by key. |
 
 ### `outputSchema` — one of
 
@@ -88,13 +95,6 @@ Returns text, or a structured value when the step declares an output shape. Wire
 | --- | --- | --- | --- | --- |
 | `kind` | `recordRef` | yes | — | One stored record, given by its id. |
 | `table` | string | yes | — | Which table the id refers to. |
-
-### `vocabularyFields` — each item
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `field` | string | yes | — | The field of the answer that holds the vocabulary's value. |
-| `vocabulary` | string | yes | — | The vocabulary, by key. |
 
 ## Worked example
 

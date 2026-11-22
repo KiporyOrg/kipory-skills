@@ -20,7 +20,7 @@ Anything can read the link, such as a browser or a model. It never expires unles
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `neverExpires` | boolean | no | `true` | When on, the link never expires; turn off to set a lifetime. ⚠️ Files from endpoint, schedule or trigger runs may be removed after 7 days; give their links 7 days or less. |
-| `ttlSeconds` | integer, more than 0, at most 604800 | no | `300` | Link lifetime in seconds when it expires; at most 7 days. |
+| `ttlSeconds` | integer, more than 0, at most 604800, in seconds | no | `300` | Link lifetime in seconds when it expires; at most 7 days. |
 
 ## Worked example
 

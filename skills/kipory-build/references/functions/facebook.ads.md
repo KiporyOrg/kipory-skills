@@ -25,10 +25,10 @@ Also covers Instagram. Each ad comes with its advertiser, copy, media links, des
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `activeOnly` | boolean | no | `false` | Return only ads still running; off returns ended ads too. |
-| `by` | `company` \| `keyword` \| `page` | no | `"company"` | What the input is: company name, keyword, or page's ad library id. ⚠️ A company name matches every advertiser sharing it; a page's ad library id lists only that page's ads. |
-| `country` | string | no | — | Two-letter country code, like US or DE; empty reads all countries. |
 | `maxItems` | integer, more than 0, at most 100 | no | `20` | How many ads to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `by` | `company` \| `keyword` \| `page` | no | `"company"` | What the input is: company name, keyword, or page's ad library id. ⚠️ A company name matches every advertiser sharing it; a page's ad library id lists only that page's ads. |
+| `activeOnly` | boolean | no | `false` | Return only ads still running; off returns ended ads too. |
+| `country` | string | no | — | Two-letter country code, like US or DE; empty reads all countries. |
 
 ## Worked example
 

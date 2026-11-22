@@ -25,10 +25,10 @@ Name the advertiser by its website domain. Image and text are left out unless as
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `country` | string | no | — | Two-letter country code, like US or DE; empty reads all countries. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many ads to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 | `details` | boolean | no | `false` | Also return each ad's image, plus text and destination where given. ⚠️ Costs 25 vendor credits per request instead of 1. |
 | `format` | `text` \| `image` \| `video` | no | — | Return only ads of this format; empty returns all. |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many ads to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `country` | string | no | — | Two-letter country code, like US or DE; empty reads all countries. |
 
 ## Worked example
 

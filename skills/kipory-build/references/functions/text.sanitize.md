@@ -17,13 +17,13 @@ Wraps each item in a tagged block, strips control tokens and caps the length.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `idField` | string | no | `"id"` | Which field on each item carries its id. |
 | `items` | union | yes | — | The items, each with the fields named below. |
-| `maxCharsPerItem` | integer, 100 to 50000 | no | `4000` | Most characters per item, 4000 by default; longer text is cut. ⚠️ A lower cap limits what a poisoned item can say but loses real evidence. |
-| `nonce` | union | no | — | The nonce to stamp; unset, one is made. ⚠️ Point it at the run's nonce so every call in the run shares it. |
-| `outputShape` | `list` \| `joined` | no | `"list"` | `list` gives one entry per item; `joined` gives a single string. |
+| `idField` | string | no | `"id"` | Which field on each item carries its id. |
 | `textField` | string | no | `"text"` | Which field on each item carries its text. |
+| `nonce` | union | no | — | The nonce to stamp; unset, one is made. ⚠️ Point it at the run's nonce so every call in the run shares it. |
+| `maxCharsPerItem` | integer, 100 to 50000, in characters | no | `4000` | Most characters per item, 4000 by default; longer text is cut. ⚠️ A lower cap limits what a poisoned item can say but loses real evidence. |
 | `truncationMarker` | string | no | `" […truncated]"` | Text appended to a body cut at the cap. |
+| `outputShape` | `list` \| `joined` | no | `"list"` | `list` gives one entry per item; `joined` gives a single string. |
 
 ### `items` — one of
 

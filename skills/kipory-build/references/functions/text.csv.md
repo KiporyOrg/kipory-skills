@@ -17,21 +17,10 @@ Headings first, then each row; values with commas, quotes or line breaks are quo
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `bom` | boolean | no | `false` | Start with a byte-order mark, for spreadsheets that need it. |
+| `rows` | union | yes | — | The rows to export: a list of objects. |
 | `columns` | union[], at least 1 item | yes | — | The columns, in order; their headings make the first line. |
 | `defuseFormulas` | boolean | no | `true` | Put `'` before text a spreadsheet would run as a formula. |
-| `rows` | union | yes | — | The rows to export: a list of objects. |
-
-### `columns` — each item is one of
-
-- `string`
-
-**An object with `field`, `header`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `field` | string | yes | — | The row's field it reads; `a.b` reads inside an object. |
-| `header` | string | yes | — | The column's heading in the first line. |
+| `bom` | boolean | no | `false` | Start with a byte-order mark, for spreadsheets that need it. |
 
 ### `rows` — one of
 
@@ -50,6 +39,17 @@ Headings first, then each row; values with commas, quotes or line breaks are quo
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
+
+### `columns` — each item is one of
+
+- `string`
+
+**An object with `field`, `header`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `field` | string | yes | — | The row's field it reads; `a.b` reads inside an object. |
+| `header` | string | yes | — | The column's heading in the first line. |
 
 ## Worked example
 

@@ -17,30 +17,48 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `createdAfter` | string | no | — | Keep only rows created at or after this fixed ISO-8601 date. |
-| `createdBefore` | string | no | — | Keep only rows created at or before this date. |
+| `userId` | union | no | — | The person whose records to read; empty reads as the run. ⚠️ Left empty in a run with no person, the step reads every person's records. |
+| `table` | string | yes | — | The table to list. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
 | `cursor` | union | no | — | A previous page's cursor; empty for the first page. ⚠️ Bound to another read's `nextCursor` after its last page, it answers an empty page; otherwise it reads page one. |
-| `dataContains` | union | no | — | The object to look for in that list. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`, a non-object fails it; a never-produced input skips the step. |
-| `dataContainsPath` | string | no | — | Keep only rows whose list at this `data` path contains `dataContains`. ⚠️ This reads every row of the table before narrowing. |
-| `dataEquals` | union | no | — | The value to compare: text, number or true/false. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`, a wrong kind fails it; a never-produced input skips the step. |
-| `dataEqualsPath` | string | no | — | Keep only rows whose value at this `data` path equals `dataEquals`. ⚠️ This reads every row of the table before narrowing. |
-| `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a field inside `data` is empty or filled. ⚠️ A missing key counts as no value, and every row is read. |
-| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; an empty list answers an empty page; a never-produced input skips the step. |
-| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size page fails the step; a run warns from half the limit and a save when one is likely. |
-| `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on every row. |
-| `limit` | union | no | — | Rows per page, 1 to 100; otherwise 50. ⚠️ Only `nextCursor` shows a page was cut short; a value outside 1–100 or not whole reads the default. |
-| `linkFilters` | object[], at least 1 item | no | — | Keep only rows carrying a link of these relations. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; a never-produced input skips the step. |
-| `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
-| `order` | `asc` \| `desc` | no | `"desc"` | Sort direction: `desc` (default, newest first) or `asc`. |
-| `pages` | object | no | — | Read every page, from `cursor` if set; unset reads one page. ⚠️ Records left after the last page fail the step unless `onMore` is "stop". |
-| `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
+| `limit` | union | no | `50` when unset | Rows per page, 1 to 100; otherwise 50. ⚠️ Only `nextCursor` shows a page was cut short; a value outside 1–100 or not whole reads the default. |
+| `statuses` | string[] of `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` \| `DELETING` \| `MERGED`, at least 1 item | no | — | Keep only rows with these statuses; omit it for every status. |
 | `sort` | `createdAt` \| `updatedAt` | no | `"createdAt"` | Order by when a row was created (default) or last changed. |
 | `sortField` | string | no | — | Order by one of the table's queryable fields instead of `sort`. ⚠️ The field must be a date; rows without a value are left out. |
-| `statuses` | string[] of `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` \| `DELETING` \| `MERGED`, at least 1 item | no | — | Keep only rows with these statuses; omit it for every status. |
-| `table` | string | yes | — | The table to list. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
-| `userId` | union | no | — | The person whose records to read; empty reads as the run. ⚠️ Left empty in a run with no person, the step reads every person's records. |
+| `order` | `asc` \| `desc` | no | `"desc"` | Sort direction: `desc` (default, newest first) or `asc`. |
 | `vocabularyFilter` | object[], at least 1 item | no | — | Keep only rows tagged with all of these vocabulary terms. ⚠️ A nested term slug matches under every parent unless `parentSlug` is set. |
+| `dataEqualsPath` | string | no | — | Keep only rows whose value at this `data` path equals `dataEquals`. ⚠️ This reads every row of the table before narrowing. |
+| `dataEquals` | union | no | — | The value to compare: text, number or true/false. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`, a wrong kind fails it; a never-produced input skips the step. |
+| `dataContainsPath` | string | no | — | Keep only rows whose list at this `data` path contains `dataContains`. ⚠️ This reads every row of the table before narrowing. |
+| `dataContains` | union | no | — | The object to look for in that list. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`, a non-object fails it; a never-produced input skips the step. |
+| `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a field inside `data` is empty or filled. ⚠️ A missing key counts as no value, and every row is read. |
+| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; an empty list answers an empty page; a never-produced input skips the step. |
+| `linkFilters` | object[], at least 1 item | no | — | Keep only rows carrying a link of these relations. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; a never-produced input skips the step. |
+| `createdAfter` | string | no | — | Keep only rows created at or after this fixed ISO-8601 date. |
+| `createdBefore` | string | no | — | Keep only rows created at or before this date. |
+| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size page fails the step; a run warns from half the limit and a save when one is likely. |
+| `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on every row. |
+| `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
+| `pages` | object | no | — | Read every page, from `cursor` if set; unset reads one page. ⚠️ Records left after the last page fail the step unless `onMore` is "stop". |
+| `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `whose` | `all` \| `own` \| `shared` | no | `"all"` | Sharing tables: `all` (default), `own`, or `shared` (newest share first). |
+
+### `userId` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | any | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ### `cursor` — one of
 
@@ -60,7 +78,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `dataContains` — one of
+### `limit` — one of
 
 - `string`
 - `number`
@@ -78,7 +96,33 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
+### `vocabularyFilter` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `vocabulary` | string | yes | — | The vocabulary, by key. |
+| `slug` | string | yes | — | The term a row must carry, by slug. |
+| `parentSlug` | string | no | — | The parent term's slug, to narrow a nested term to one branch. |
+
 ### `dataEquals` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | any | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `dataContains` — one of
 
 - `string`
 - `number`
@@ -131,33 +175,6 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `include`
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `vocabularies` | boolean | no | `true` | Add the terms each row is filed under. |
-| `links` | boolean | no | `false` | Add each row's links. |
-| `files` | boolean | no | `false` | Add each row's attached files. |
-| `cost` | boolean | no | `false` | Add what each row's processing cost. |
-
-### `limit` — one of
-
-- `string`
-- `number`
-- `boolean`
-
-**An object with `literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `literal` | any | yes | — |  |
-
-**An object with `expr`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `expr` | string | yes | — |  |
-
 ### `linkFilters` — each item
 
 | Member | Type | Required | Default | Meaning |
@@ -184,6 +201,29 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
+
+### `include`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `vocabularies` | boolean | no | `true` | Add the terms each row is filed under. |
+| `links` | boolean | no | `false` | Add each row's links. |
+| `files` | boolean | no | `false` | Add each row's attached files. |
+| `cost` | boolean | no | `false` | Add what each row's processing cost. |
+
+### `scalars`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `statusError` | boolean | no | `false` | Add the row's failure summary, or null when it has none. |
+| `fileCount` | boolean | no | `false` | Add the number of files attached to the row. |
+
+### `pages`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `max` | integer, 1 to 500 | yes | — | Most pages to read, up to the project's read-pages limit. |
+| `onMore` | `fail` \| `stop` | no | `"fail"` | `"fail"` (default) fails when records remain; `"stop"` answers a `nextCursor`. |
 
 ### `linked` — each entry, under a name you choose
 
@@ -267,46 +307,6 @@ each entry › `linked` › each entry › `when` — one of:
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
-
-### `pages`
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `max` | integer, 1 to 500 | yes | — | Most pages to read, up to the project's read-pages limit. |
-| `onMore` | `fail` \| `stop` | no | `"fail"` | `"fail"` (default) fails when records remain; `"stop"` answers a `nextCursor`. |
-
-### `scalars`
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `statusError` | boolean | no | `false` | Add the row's failure summary, or null when it has none. |
-| `fileCount` | boolean | no | `false` | Add the number of files attached to the row. |
-
-### `userId` — one of
-
-- `string`
-- `number`
-- `boolean`
-
-**An object with `literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `literal` | any | yes | — |  |
-
-**An object with `expr`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `expr` | string | yes | — |  |
-
-### `vocabularyFilter` — each item
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `vocabulary` | string | yes | — | The vocabulary, by key. |
-| `slug` | string | yes | — | The term a row must carry, by slug. |
-| `parentSlug` | string | no | — | The parent term's slug, to narrow a nested term to one branch. |
 
 ## Worked example
 

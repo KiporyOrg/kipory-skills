@@ -25,8 +25,8 @@ Each comment has its text, author, time and likes. Replies cost far more and are
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `includeReplies` | boolean | no | `false` | Also return the first replies under each comment; slower. ⚠️ Costs 15 vendor credits per request instead of 1, whether or not any replies come back. |
 | `maxItems` | integer, more than 0, at most 100 | no | `20` | How many comments to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `includeReplies` | boolean | no | `false` | Also return the first replies under each comment; slower. ⚠️ Costs 15 vendor credits per request instead of 1, whether or not any replies come back. |
 
 ## Worked example
 

@@ -18,10 +18,10 @@ For steps that handle one part at a time. Neighbouring parts can share text; sam
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `chunkTokens` | integer, more than 0 | no | `2000` | Tokens per chunk; default 2000. |
 | `encoding` | `cl100k_base` \| `o200k_base` \| `p50k_base` \| `p50k_edit` \| `r50k_base` \| `gpt2` | no | `"cl100k_base"` | The encoding that counts tokens; default `cl100k_base`. |
+| `chunkTokens` | integer, more than 0, in tokens | no | `2000` | Tokens per chunk; default 2000. |
+| `overlapTokens` | integer, at least 0, in tokens | no | `200` | Tokens shared by neighbouring chunks, less than `chunkTokens`; default 200. |
 | `maxChunks` | integer, more than 0 | no | `30` | Most chunks to return, default 30; text past it is dropped. |
-| `overlapTokens` | integer, at least 0 | no | `200` | Tokens shared by neighbouring chunks, less than `chunkTokens`; default 200. |
 
 ## Worked example
 

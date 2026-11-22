@@ -24,11 +24,11 @@ Loads the page in a real browser, so script-built pages work. Results are cached
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `onlyMainContent` | boolean | no | `true` | Strip navigation, footers, and ads — request article body only. |
 | `excludeTags` | string[] | no | `[]` | CSS selectors to strip from the page before the text is extracted. ⚠️ For chrome the main-content pass keeps, like a consent banner; for script-injected widgets, use includeTags. |
 | `includeTags` | string[] | no | `[]` | CSS selectors to keep, dropping everything else. ⚠️ Narrower than `excludeTags`: leave it empty unless the article's container is known and stable. |
-| `mainContentFallbackMinChars` | integer, at least 0 | no | `0` | Below this many characters, also read the whole page; 0 is off. ⚠️ Non-zero bills a second scrape on each page that trips it, keeping the longer; so does an overlay-only result. |
-| `onlyMainContent` | boolean | no | `true` | Strip navigation, footers, and ads — request article body only. |
-| `timeoutMs` | integer, more than 0 | no | `30000` | Milliseconds to wait for the provider; 1,000 to 136,000. ⚠️ This limits the one page read, not the step's own `timeoutMs` run setting. |
+| `mainContentFallbackMinChars` | integer, at least 0, in characters | no | `0` | Below this many characters, also read the whole page; 0 is off. ⚠️ Non-zero bills a second scrape on each page that trips it, keeping the longer; so does an overlay-only result. |
+| `timeoutMs` | integer, more than 0, in milliseconds | no | `30000` | Milliseconds to wait for the provider; 1,000 to 136,000. ⚠️ This limits the one page read, not the step's own `timeoutMs` run setting. |
 
 ## Worked example
 

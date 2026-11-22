@@ -25,8 +25,8 @@ Newest or most viewed first, from a handle, id or link. Each has title, descript
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `content` | `videos` \| `shorts` | no | `"videos"` | Which of the channel's uploads to list. |
 | `maxItems` | integer, more than 0, at most 100 | no | `20` | How many videos to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `content` | `videos` \| `shorts` | no | `"videos"` | Which of the channel's uploads to list. |
 | `sort` | `latest` \| `popular` | no | `"latest"` | Newest first, or most viewed first. |
 
 ## Worked example

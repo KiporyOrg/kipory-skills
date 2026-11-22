@@ -19,8 +19,8 @@ Tags come back only for formats that carry them. It never fails on a file that d
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `includeRawDebug` | boolean | no | `true` | Also include a small raw object for troubleshooting. |
 | `segments` | string[] of `tiff` \| `exif` \| `gps` \| `iptc` \| `xmp`, at least 1 item | no | `["tiff","exif","gps","iptc","xmp"]` | Metadata kinds to read; default TIFF, EXIF, GPS, IPTC and XMP. |
+| `includeRawDebug` | boolean | no | `true` | Also include a small raw object for troubleshooting. |
 
 ## Worked example
 

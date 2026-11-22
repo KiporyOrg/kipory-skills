@@ -17,25 +17,36 @@ Returns records in the order of the ids given; on user-owned types, only the use
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `ids` | union | yes | — | A list of ids, or a path like `hits[].recordId`. ⚠️ A lone id needs no list; no ids answer `[]`, or a 404 with `failIfEmpty: true`. |
+| `userId` | union | no | — | The person whose records to read; empty reads as the run. ⚠️ Left empty in a run with no person, it reads every person's records; dropped ids are silent. |
+| `table` | string | yes | — | The table to read. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
+| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ Unknown field names are ignored. |
+| `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on the record. |
+| `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
 | `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a field inside `data` is empty or filled. ⚠️ A missing key counts as no value; only the submitted value is checked. |
 | `failIfEmpty` | boolean | no | `false` | Fail when nothing is found instead of returning an empty list. ⚠️ Written as `true`, it proves `<step>[0]` to the save, unless the step says `onOversize: cut`. |
-| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ Unknown field names are ignored. |
-| `ids` | union | yes | — | A list of ids, or a path like `hits[].recordId`. ⚠️ A lone id needs no list; no ids answer `[]`, or a 404 with `failIfEmpty: true`. |
-| `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on the record. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `redirect` | `follow` \| `report` | no | `"follow"` | A merged id: `follow` reads its survivor; `report` fails the read. ⚠️ With `follow`, two ids merged into one record read as that record once. |
-| `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
-| `table` | string | yes | — | The table to read. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
-| `userId` | union | no | — | The person whose records to read; empty reads as the run. ⚠️ Left empty in a run with no person, it reads every person's records; dropped ids are silent. |
 
-### `dataNullChecks` — each item
+### `ids` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `field` | string | yes | — | The field, a dotted path inside the record's `data`. |
-| `op` | `isNull` \| `isNotNull` | yes | — | `isNull` keeps rows with no value there; `isNotNull` keeps the rest. |
+| `literal` | any | yes | — |  |
 
-### `ids` — one of
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `userId` — one of
 
 - `string`
 - `number`
@@ -61,6 +72,20 @@ Returns records in the order of the ids given; on user-owned types, only the use
 | `links` | boolean | no | `false` | Add each row's links. |
 | `files` | boolean | no | `false` | Add each row's attached files. |
 | `cost` | boolean | no | `false` | Add what each row's processing cost. |
+
+### `scalars`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `statusError` | boolean | no | `false` | Add the row's failure summary, or null when it has none. |
+| `fileCount` | boolean | no | `false` | Add the number of files attached to the row. |
+
+### `dataNullChecks` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `field` | string | yes | — | The field, a dotted path inside the record's `data`. |
+| `op` | `isNull` \| `isNotNull` | yes | — | `isNull` keeps rows with no value there; `isNotNull` keeps the rest. |
 
 ### `linked` — each entry, under a name you choose
 
@@ -140,31 +165,6 @@ each entry › `linked` › each entry › `when` — one of:
 | `literal` | any | yes | — |  |
 
 **each entry › `linked` › each entry › `when` › an object with `expr`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `expr` | string | yes | — |  |
-
-### `scalars`
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `statusError` | boolean | no | `false` | Add the row's failure summary, or null when it has none. |
-| `fileCount` | boolean | no | `false` | Add the number of files attached to the row. |
-
-### `userId` — one of
-
-- `string`
-- `number`
-- `boolean`
-
-**An object with `literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `literal` | any | yes | — |  |
-
-**An object with `expr`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |

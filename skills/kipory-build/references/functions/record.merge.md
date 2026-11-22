@@ -17,9 +17,27 @@ Records naming the duplicate then name the kept record; the duplicate stays only
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 | `keep` | union | yes | — | The id of the record that stays. |
 | `merge` | union | yes | — | The id of the record folded into it. ⚠️ Fails, changing nothing, when the two differ in table or owner, or would clash on a key. |
-| `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+
+### `userId` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | any | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ### `keep` — one of
 
@@ -40,24 +58,6 @@ Records naming the duplicate then name the kept record; the duplicate stays only
 | `expr` | string | yes | — |  |
 
 ### `merge` — one of
-
-- `string`
-- `number`
-- `boolean`
-
-**An object with `literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `literal` | any | yes | — |  |
-
-**An object with `expr`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `expr` | string | yes | — |  |
-
-### `userId` — one of
 
 - `string`
 - `number`

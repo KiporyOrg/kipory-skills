@@ -21,16 +21,16 @@ Sends after the run is saved; previews never send. The flow never sees the answe
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `body` | union | no | — | The request body, usually built by an earlier step. ⚠️ A schedule that re-runs every step sends every tick; nothing un-sends a request. |
-| `bodyAs` | `json` \| `form` \| `text` | no | — | How to send the body: `json` (default), `form` or `text`. ⚠️ Under `json` a string is sent quoted; for your own text use `text` and `contentType`. |
-| `contentType` | string, at most 128 characters | no | — | The content type of a `text` body. |
-| `headers` | object | no | — | Headers by name; an empty value omits one; credentials go in `secret`. |
-| `idempotencyKey` | union | no | — | A repeat key, sent as the `Idempotency-Key` header. ⚠️ Left empty, a new run sends a request the receiver cannot tell from the first. |
 | `method` | `POST` \| `PUT` \| `PATCH` \| `DELETE` | no | `"POST"` | The request method. |
 | `query` | object | no | — | Query parameters for the address by name; an empty value omits one. |
+| `headers` | object | no | — | Headers by name; an empty value omits one; credentials go in `secret`. |
+| `body` | union | no | — | The request body, usually built by an earlier step. ⚠️ A schedule that re-runs every step sends every tick; nothing un-sends a request. |
+| `bodyAs` | `json` \| `form` \| `text` | no | `"json"` when unset | How to send the body: `json` (default), `form` or `text`. ⚠️ Under `json` a string is sent quoted; for your own text use `text` and `contentType`. |
+| `contentType` | string, at most 128 characters | no | — | The content type of a `text` body. |
 | `secret` | string, at most 128 characters | no | — | The name of a stored request credential to send. ⚠️ Sent only over `https`; a host the credential does not allow fails unreported. |
+| `idempotencyKey` | union | no | — | A repeat key, sent as the `Idempotency-Key` header. ⚠️ Left empty, a new run sends a request the receiver cannot tell from the first. |
+| `timeoutMs` | integer, more than 0, at most 60000, in milliseconds | no | `15000` | How long one delivery attempt waits for an answer. ⚠️ This limits one delivery attempt, not the step's own `timeoutMs` run setting. |
 | `sign` | object | no | — | Sign the body sent with a shared secret. ⚠️ Signed once when the step runs: retries keep that time, so a 5-minute receiver refuses late ones. |
-| `timeoutMs` | integer, more than 0, at most 60000 | no | `15000` | How long one delivery attempt waits for an answer. ⚠️ This limits one delivery attempt, not the step's own `timeoutMs` run setting. |
 
 ### `body` — one of
 

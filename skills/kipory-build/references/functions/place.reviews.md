@@ -25,12 +25,12 @@ Give a place ID or map link, not a name. Newest first by default; cached for a d
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `includeReviewerDetails` | boolean | no | `false` | Include each reviewer's name, profile link and photo, and the review's link. ⚠️ Reviewer names, profiles and photos are personal data; turn this on only with a lawful reason. |
-| `language` | string, at least 2 characters | no | `"en"` | Language for translated review text, as a code like `en` or `de`. |
 | `maxReviews` | integer, 1 to 1000 | no | `100` | How many reviews to return, up to 1000; each one is charged. ⚠️ Every review returned is charged, and a larger pull takes longer. |
-| `origin` | `all` \| `google` | no | `"all"` | `all` adds reviews from other review sites; `google` keeps only its own. |
-| `since` | string | no | — | Return only reviews published on or after this date, like `2026-09-01`. |
 | `sort` | `newest` \| `most-relevant` \| `highest` \| `lowest` | no | `"newest"` | Which reviews come first: newest, most relevant, highest or lowest rated. |
+| `since` | string | no | — | Return only reviews published on or after this date, like `2026-09-01`. |
+| `language` | string, at least 2 characters | no | `"en"` | Language for translated review text, as a code like `en` or `de`. |
+| `origin` | `all` \| `google` | no | `"all"` | `all` adds reviews from other review sites; `google` keeps only its own. |
+| `includeReviewerDetails` | boolean | no | `false` | Include each reviewer's name, profile link and photo, and the review's link. ⚠️ Reviewer names, profiles and photos are personal data; turn this on only with a lawful reason. |
 
 ## Worked example
 

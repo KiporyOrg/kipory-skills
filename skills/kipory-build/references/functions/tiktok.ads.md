@@ -25,8 +25,8 @@ Each ad comes with its advertiser, video links and the dates it was shown.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `by` | `keyword` \| `company` | no | `"keyword"` | Whether the input is a keyword to search or a company name. |
 | `maxItems` | integer, more than 0, at most 100 | no | `20` | How many ads to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `by` | `keyword` \| `company` | no | `"keyword"` | Whether the input is a keyword to search or a company name. |
 
 ## Worked example
 

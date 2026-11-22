@@ -17,11 +17,11 @@ Submitted inputs are untouched, and running it twice does no harm.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 | `recordId` | union | yes | — | The id of the record to strip. |
 | `targets` | string[] of `files` \| `terms`, at least 1 item | no | `["files","terms"]` | Which to clear: generated files, term assignments, or both (default). ⚠️ The search index is kept; the record is indexed again when it next turns ready. |
-| `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
-### `recordId` — one of
+### `userId` — one of
 
 - `string`
 - `number`
@@ -39,7 +39,7 @@ Submitted inputs are untouched, and running it twice does no harm.
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `userId` — one of
+### `recordId` — one of
 
 - `string`
 - `number`

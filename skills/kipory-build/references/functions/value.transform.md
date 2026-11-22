@@ -17,8 +17,8 @@ No fetch, no model call; besides JSONata's functions it may call the platform's 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `examples` | union[] | no | — | Made-up inputs and the outputs each save must still give. |
 | `expression` | string | yes | — | The expression to run; a name at its top is a slot. ⚠️ The result must fit the output type; `$now`, `$millis`, `$random`, `$shuffle` and `$eval` are refused. |
+| `examples` | union[] | no | — | Made-up inputs and the outputs each save must still give. |
 
 ### `examples` — each item is one of
 

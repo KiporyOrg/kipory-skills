@@ -19,9 +19,9 @@ A recent answer is reused; otherwise it waits for a fresh one. A failed lookup r
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `freshnessMinutes` | number | no | `360` | Minutes a saved answer stays fresh enough to reuse. |
-| `maxWaitMs` | number | no | `25000` | Milliseconds to wait for a fresh answer before giving up. |
-| `pollIntervalMs` | number | no | `1000` | How often to check whether the answer has arrived. |
+| `freshnessMinutes` | number, in minutes | no | `360` | Minutes a saved answer stays fresh enough to reuse. |
+| `maxWaitMs` | number, in milliseconds | no | `25000` | Milliseconds to wait for a fresh answer before giving up. |
+| `pollIntervalMs` | number, in milliseconds | no | `1000` | How often to check whether the answer has arrived. |
 
 ## Worked example
 

@@ -23,18 +23,18 @@ Reads JSON, plain text or an XML feed. A 4xx answer fails the step; its failure 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `body` | union | no | — | The request body, usually built by an earlier step. |
-| `bodyAs` | `json` \| `form` \| `text` | no | — | How to send the body: `json` (default), `form` or `text`. ⚠️ Under `json` a string is sent quoted; for your own text use `text` and `contentType`. |
-| `contentType` | string, at most 128 characters | no | — | The content type of a `text` body. |
-| `headers` | object | no | — | Headers by name; an empty value omits one; credentials go in `secret`. |
-| `maxBytes` | integer, more than 0, at most 100000000 | no | `5000000` | Reject responses larger than this many bytes. ⚠️ A body too long for its slot is cut to fit and ends in `[TRUNCATED]`. |
+| `timeoutMs` | integer, more than 0, in milliseconds | no | `15000` | Request timeout in milliseconds. ⚠️ This limits the one request, not the step's own `timeoutMs` run setting. |
+| `maxBytes` | integer, more than 0, at most 100000000, in bytes | no | `5000000` | Reject responses larger than this many bytes. ⚠️ A body too long for its slot is cut to fit and ends in `[TRUNCATED]`. |
 | `maxRedirects` | integer, 0 to 10 | no | `3` | Maximum HTTP redirect hops to follow. |
-| `method` | `GET` \| `POST` | no | — | GET (default), or POST for a service that only answers POST. ⚠️ A POST may be sent several times and cached, so use it only where it changes nothing. |
+| `method` | `GET` \| `POST` | no | `"GET"` when unset | GET (default), or POST for a service that only answers POST. ⚠️ A POST may be sent several times and cached, so use it only where it changes nothing. |
 | `query` | object | no | — | Query parameters for the address by name; an empty value omits one. |
-| `responseAs` | `text` \| `json` \| `json-list` | no | — | `text` (default), `json` for an object, or `json-list` for a list. ⚠️ Under `json` a list arrives under `value`; `json-list` fails on anything but a list of objects. |
+| `headers` | object | no | — | Headers by name; an empty value omits one; credentials go in `secret`. |
+| `body` | union | no | — | The request body, usually built by an earlier step. |
+| `bodyAs` | `json` \| `form` \| `text` | no | `"json"` when unset | How to send the body: `json` (default), `form` or `text`. ⚠️ Under `json` a string is sent quoted; for your own text use `text` and `contentType`. |
+| `contentType` | string, at most 128 characters | no | — | The content type of a `text` body. |
 | `secret` | string, at most 128 characters | no | — | The name of a stored request credential to send. ⚠️ Sent only over `https`; if the credential lists hosts, any other host fails. |
-| `timeoutMs` | integer, more than 0 | no | `15000` | Request timeout in milliseconds. ⚠️ This limits the one request, not the step's own `timeoutMs` run setting. |
-| `userAgent` | `kipory` \| `browser` | no | — | `kipory`, the default, or `browser` for a site refusing Kipory's reader. |
+| `userAgent` | `kipory` \| `browser` | no | `"kipory"` when unset | `kipory`, the default, or `browser` for a site refusing Kipory's reader. |
+| `responseAs` | `text` \| `json` \| `json-list` | no | `"text"` when unset | `text` (default), `json` for an object, or `json-list` for a list. ⚠️ Under `json` a list arrives under `value`; `json-list` fails on anything but a list of objects. |
 
 ### `body` — one of
 

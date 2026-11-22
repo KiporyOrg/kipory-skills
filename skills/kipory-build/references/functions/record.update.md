@@ -17,57 +17,21 @@ Merges or replaces the data; can also clear derived output, set a status and att
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `add` | object | no | — | Numbers to add to declared number fields, not fixed lists; negative subtracts. ⚠️ Not with `replace` or `start-again`; later steps see estimates; a sum past the bounds refuses; a resent request adds twice. |
-| `clearDerived` | boolean | no | `false` | Empty the record's derived output in the same write. ⚠️ Cannot be combined with `derived`. |
-| `data` | union | no | — | The new fields as one object, or use `fields`; empty changes nothing. ⚠️ Nothing is written when it is not an object, or when a field it writes breaks its table's type. |
-| `derived` | union | no | — | The new derived output; empty leaves it alone. ⚠️ Cannot be combined with `clearDerived` — one writes derived output and the other empties it. |
-| `failIfPreconditionUnmet` | boolean | no | `false` | Fail with a conflict when nothing matched, instead of reporting no change. |
-| `fields` | object | no | — | The fields to write, each a slot path, fixed value or expression. ⚠️ Beside `add`, this and `data` apply at the save, overwriting another run's change to them meanwhile. |
-| `fileIds` | union | no | — | The file ids to attach to the record. ⚠️ A file must belong to the record's owner or to the project, and be attached nowhere else. |
-| `ifChangedMeanwhile` | `start-again` \| `apply` | no | — | When another run changed the record since this run read it. ⚠️ On a conflict `start-again` writes nothing, while `apply` (merge only) overwrites what another run wrote to these fields meanwhile. |
-| `mode` | `merge` \| `replace` | no | `"merge"` | `merge` (default) merges over existing values; `replace` overwrites them. ⚠️ In `merge`, a key set to `null` is removed from the record. |
-| `recordId` | union | yes | — | The id of the record to patch. ⚠️ On a per-user type, another user's id changes nothing and reports no error. |
-| `requireStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Only write when the record currently has this status. |
-| `setStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Set the record to this status, clearing any earlier error. ⚠️ Setting it to pending does not start processing on its own — a separate `record.enqueue-process` step does that. |
 | `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+| `recordId` | union | yes | — | The id of the record to patch. ⚠️ On a per-user type, another user's id changes nothing and reports no error. |
+| `fileIds` | union | no | — | The file ids to attach to the record. ⚠️ A file must belong to the record's owner or to the project, and be attached nowhere else. |
+| `data` | union | no | — | The new fields as one object, or use `fields`; empty changes nothing. ⚠️ Nothing is written when it is not an object, or when a field it writes breaks its table's type. |
+| `fields` | object | no | — | The fields to write, each a slot path, fixed value or expression. ⚠️ Beside `add`, this and `data` apply at the save, overwriting another run's change to them meanwhile. |
+| `derived` | union | no | — | The new derived output; empty leaves it alone. ⚠️ Cannot be combined with `clearDerived` — one writes derived output and the other empties it. |
+| `mode` | `merge` \| `replace` | no | `"merge"` | `merge` (default) merges over existing values; `replace` overwrites them. ⚠️ In `merge`, a key set to `null` is removed from the record. |
+| `clearDerived` | boolean | no | `false` | Empty the record's derived output in the same write. ⚠️ Cannot be combined with `derived`. |
+| `setStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Set the record to this status, clearing any earlier error. ⚠️ Setting it to pending does not start processing on its own — a separate `record.enqueue-process` step does that. |
+| `requireStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Only write when the record currently has this status. |
+| `failIfPreconditionUnmet` | boolean | no | `false` | Fail with a conflict when nothing matched, instead of reporting no change. |
+| `ifChangedMeanwhile` | `start-again` \| `apply` | no | — | When another run changed the record since this run read it. ⚠️ On a conflict `start-again` writes nothing, while `apply` (merge only) overwrites what another run wrote to these fields meanwhile. |
+| `add` | object | no | — | Numbers to add to declared number fields, not fixed lists; negative subtracts. ⚠️ Not with `replace` or `start-again`; later steps see estimates; a sum past the bounds refuses; a resent request adds twice. |
 
-### `data` — one of
-
-- `string`
-- `number`
-- `boolean`
-
-**An object with `literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `literal` | any | yes | — |  |
-
-**An object with `expr`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `expr` | string | yes | — |  |
-
-### `derived` — one of
-
-- `string`
-- `number`
-- `boolean`
-
-**An object with `literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `literal` | any | yes | — |  |
-
-**An object with `expr`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `expr` | string | yes | — |  |
-
-### `fileIds` — one of
+### `userId` — one of
 
 - `string`
 - `number`
@@ -103,7 +67,43 @@ Merges or replaces the data; can also clear derived output, set a status and att
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `userId` — one of
+### `fileIds` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | any | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `data` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | any | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `derived` — one of
 
 - `string`
 - `number`

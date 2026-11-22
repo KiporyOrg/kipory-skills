@@ -22,14 +22,14 @@ More accurate than the search that found them, but too slow for a whole table.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `documentItems` | union | yes | — | The documents to score, each with its own id. |
-| `maxDocumentChars` | integer, 100 to 500000 | no | `50000` | Most characters per document; longer ones are rejected, not cut. |
-| `maxDocuments` | integer, 1 to 1000 | no | `100` | Most documents to score; extras are dropped with a warning. ⚠️ Cost is billed per hundred documents scored, so raising this past the default multiplies what every call costs. |
 | `model` | string | no | `"cohere/rerank-v3.5"` | Which re-ranking model scores, by catalog id; default is the multilingual one. |
-| `queryStreams` | union | yes | — | The text to match against. |
 | `topN` | integer, 1 to 100 | no | `10` | How many results to return, best first, up to the documents scored. ⚠️ Saving is refused when this exceeds the number of documents scored. |
+| `maxDocuments` | integer, 1 to 1000 | no | `100` | Most documents to score; extras are dropped with a warning. ⚠️ Cost is billed per hundred documents scored, so raising this past the default multiplies what every call costs. |
+| `maxDocumentChars` | integer, 100 to 500000, in characters | no | `50000` | Most characters per document; longer ones are rejected, not cut. |
+| `queryStreams` | union | yes | — | The text to match against. |
+| `documentItems` | union | yes | — | The documents to score, each with its own id. |
 
-### `documentItems` — one of
+### `queryStreams` — one of
 
 - `string`
 - `number`
@@ -47,7 +47,7 @@ More accurate than the search that found them, but too slow for a whole table.
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `queryStreams` — one of
+### `documentItems` — one of
 
 - `string`
 - `number`

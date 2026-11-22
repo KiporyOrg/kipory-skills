@@ -17,12 +17,12 @@ Reuses a matching term or coins a new one when allowed. Wire the output into one
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `vocabularies` | string[] | no | — | Which of the project's vocabularies to propose values for. ⚠️ A key the project does not declare is refused when the step runs. |
 | `context` | union[] | no | — | What the model reads to make its proposal. ⚠️ Leave it empty when every vocabulary gets its value from `deterministic`, or when you are only using extraction. |
-| `deterministic` | object | no | — | Vocabularies mapped to their values, which skip the proposal. ⚠️ Values past a vocabulary's cap go back to the model, which picks from them. |
 | `extractedVocabularies` | union[] | no | — | Vocabulary values already extracted; they are read, not proposed. |
+| `deterministic` | object | no | — | Vocabularies mapped to their values, which skip the proposal. ⚠️ Values past a vocabulary's cap go back to the model, which picks from them. |
 | `maxValues` | object | no | — | Most values per multi-value vocabulary; leave one out for no cap. ⚠️ Only applies to vocabularies that accept many values. |
 | `model` | string | no | — | The proposal model by catalog id; default is the extraction model. |
-| `vocabularies` | string[] | no | — | Which of the project's vocabularies to propose values for. ⚠️ A key the project does not declare is refused when the step runs. |
 
 ### `context` — each item is one of
 

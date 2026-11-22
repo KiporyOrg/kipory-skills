@@ -1,7 +1,9 @@
 {
-  "source": "79a02a397ef812279ac3670e85e7ed251a5069cf",
+  "source": "87a0f204f062203fe3a53db7f2ce753a19d6d468",
   "since": "2026-08-19",
   "history": [
+    {"sha":"87a0f204f062","skills":"A format-11 flow's page draws its steps as a block board: steps and blocks added from one plus, edited in a step sheet that draws each setting as what it is, moved, wrapped, undone, and lit by a preview (#3803)"},
+    {"sha":"76c3cfcdec17"},
     {"sha":"79a02a397ef8","skills":"Format 12 follow-ups: search fits a phone, the rename sheet keeps focus, the build ceiling reads as designLimit, references:dangling understands blocks, stored provider types match the code (438) (#3802)"},
     {"sha":"8342bc2a797a"},
     {"sha":"052458cf7e63","skills":"A non-finite number fails the step, a by-name endpoint warns when it starts accepting an input and an input can be internal, and a key on a person's flow is refused END_USER_REQUIRED (rulings 2–4) (#3800)"},
@@ -999,8 +1001,6 @@
     {"sha":"b19d3601c775"},
     {"sha":"f3facf7980c6"},
     {"sha":"c55594c7d6f6"},
-    {"sha":"0749e56c4284"},
-    {"sha":"5f7a38ef8610"},
-    {"sha":"58fb46e3766b"}
+    {"sha":"0749e56c4284"}
   ]
 }

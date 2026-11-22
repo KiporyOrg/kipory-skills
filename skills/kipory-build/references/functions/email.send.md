@@ -18,14 +18,14 @@ Recipient, subject and body come from the run or are fixed. It sends after the r
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `html` | union | no | — | Optional HTML version of the message. ⚠️ The plain-text body is still required; an HTML-only message reads blank in text clients. |
-| `replyTo` | string | no | — | Optional address replies go to, instead of the sending address. ⚠️ Left empty, replies go to the catch-all mailbox, which a person must sort by hand. |
 | `sender` | string | no | — | One of the project's senders; left out, its default address. ⚠️ Left out, the default address sends; a sender the project does not name refuses the save. |
+| `to` | union | yes | — | The address to send to. ⚠️ One recipient per step; a list here is refused, not fanned out. |
 | `subject` | union | yes | — | The subject line. |
 | `text` | union | yes | — | The plain-text body, required even with HTML. ⚠️ On a schedule that re-runs every step, this sends again every tick. |
-| `to` | union | yes | — | The address to send to. ⚠️ One recipient per step; a list here is refused, not fanned out. |
+| `html` | union | no | — | Optional HTML version of the message. ⚠️ The plain-text body is still required; an HTML-only message reads blank in text clients. |
+| `replyTo` | string | no | — | Optional address replies go to, instead of the sending address. ⚠️ Left empty, replies go to the catch-all mailbox, which a person must sort by hand. |
 
-### `html` — one of
+### `to` — one of
 
 - `string`
 - `number`
@@ -79,7 +79,7 @@ Recipient, subject and body come from the run or are fixed. It sends after the r
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `to` — one of
+### `html` — one of
 
 - `string`
 - `number`

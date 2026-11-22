@@ -24,19 +24,19 @@ Keeps the file on the record and returns a reference to it.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `allowedMimePatterns` | string[] | no | — | Content types to accept, as RE2 regular expressions; empty accepts anything. |
-| `body` | union | no | — | The request body, usually built by an earlier step. |
-| `bodyAs` | `json` \| `form` \| `text` | no | — | How to send the body: `json` (default), `form` or `text`. ⚠️ Under `json` a string is sent quoted; for your own text use `text` and `contentType`. |
-| `contentType` | string, at most 128 characters | no | — | The content type of a `text` body. |
-| `failureMode` | `hard` \| `soft` | no | `"hard"` | `hard` fails the step; `soft` returns an empty file and continues. ⚠️ A bad address, private address or storage failure fails the step even under `soft`. |
-| `headers` | object | no | — | Headers by name; an empty value omits one; credentials go in `secret`. |
-| `maxBytes` | integer, more than 0, at most 100000000 | no | `25000000` | Largest download in bytes; a bigger one fails. |
+| `maxBytes` | integer, more than 0, at most 100000000, in bytes | no | `25000000` | Largest download in bytes; a bigger one fails. |
+| `timeoutMs` | integer, more than 0, in milliseconds | no | `30000` | HTTP request timeout in milliseconds. ⚠️ This limits the one request, not the step's own `timeoutMs` run setting. |
 | `maxRedirects` | integer, 0 to 10 | no | `5` | How many redirects to follow at most. |
-| `method` | `GET` \| `POST` | no | — | GET (default), or POST for a service that needs it. ⚠️ A POST may be sent several times and cached, so use it only where it changes nothing. |
+| `allowedMimePatterns` | string[] | no | — | Content types to accept, as RE2 regular expressions; empty accepts anything. |
+| `failureMode` | `hard` \| `soft` | no | `"hard"` | `hard` fails the step; `soft` returns an empty file and continues. ⚠️ A bad address, private address or storage failure fails the step even under `soft`. |
+| `method` | `GET` \| `POST` | no | `"GET"` when unset | GET (default), or POST for a service that needs it. ⚠️ A POST may be sent several times and cached, so use it only where it changes nothing. |
 | `query` | object | no | — | Query parameters for the address by name; an empty value omits one. |
+| `headers` | object | no | — | Headers by name; an empty value omits one; credentials go in `secret`. |
+| `body` | union | no | — | The request body, usually built by an earlier step. |
+| `bodyAs` | `json` \| `form` \| `text` | no | `"json"` when unset | How to send the body: `json` (default), `form` or `text`. ⚠️ Under `json` a string is sent quoted; for your own text use `text` and `contentType`. |
+| `contentType` | string, at most 128 characters | no | — | The content type of a `text` body. |
 | `secret` | string, at most 128 characters | no | — | The name of a stored request credential to send. ⚠️ Sent only over `https`; if the credential lists hosts, any other host fails. |
-| `timeoutMs` | integer, more than 0 | no | `30000` | HTTP request timeout in milliseconds. ⚠️ This limits the one request, not the step's own `timeoutMs` run setting. |
-| `userAgent` | `kipory` \| `browser` | no | — | `kipory`, the default, or `browser` for a site refusing Kipory's reader. |
+| `userAgent` | `kipory` \| `browser` | no | `"kipory"` when unset | `kipory`, the default, or `browser` for a site refusing Kipory's reader. |
 
 ### `body` — one of
 

@@ -269,10 +269,17 @@ Each item of `config`:
 | `exclusiveMinimum` | `number` | no | A number field's value must be greater than this. Absent when the field declares none. |
 | `maximum` | `number` | no | The largest value a number field accepts, itself allowed. Absent when the field declares none. |
 | `exclusiveMaximum` | `number` | no | A number field's value must be less than this. Absent when the field declares none. |
+| `format` | `string` | no | A text format the value must fit, as the type system names it (`email`, `uri`, `date-time`, …); for a setting that takes a value of the run, the value it resolves to. Absent when it declares none. |
+| `valueType` | `string` | no | For a setting that takes a value of the run: the type that value must have, as the type system names it (`string`, `number`, `string[]`, or a library type). Absent when any value is taken, or the type depends on the project. |
+| `fallback` | `string` | no | What the function uses when a step leaves this setting unset, as its own code decides, JSON-ENCODED like `default`. Unlike `default` it is never written into the step's config. Absent when unset means something the setting's description says instead. |
+| `unit` | `"bytes" \| "milliseconds" \| "seconds" \| "minutes" \| "pixels" \| "characters" \| "tokens"` | no | What a number setting counts: bytes, milliseconds, seconds, minutes, pixels, characters or tokens. Absent for a plain count. |
+| `modelType` | `"chat" \| "embedding" \| "transcription" \| "rerank" \| "decision"` | no | The kind of catalog model this setting names, by its model id (`GET /v1/ai-models?type=`). Absent when it names no model. |
 | `required` | `boolean` | yes | Whether a step using this function must set the field. |
 | `default` | `string` | no | The default, JSON-ENCODED — so a string default arrives quoted, e.g. "\"auto\"". Absent when the field has no default. |
 | `description` | `string` | no | What the field does, when the function's author wrote it down. |
 | `refKind` | `"table" \| "vocabulary" \| "flow" \| "relation" \| "field" \| "event" \| "event-category" \| "query"` | no | The kind of project object this field names — a table, a vocabulary, a flow or a relation by key, a field of a table by path, or one half of an event (`event-category` and `event`, two fields of one function that together name one of the project's events). Absent when the field names none. It is the KIND, not an instance: which one is configured per step. |
+| `fieldOf` | `string` | no | For a field of a table (`refKind: field`): the setting of the same step that names its table, so a client offers that table's fields. Absent when no one sibling setting names it. |
+| `enumWords` | `object` | no | Words for the values of a choice (or a list from a fixed set), by value, as an editor shows them: `{ desc: "Descending" }`. The value is still what a step stores. Absent when the values are their own words. |
 | `offerAs` | `string` | no | How this function reads with one object of `refKind`, its name in the placeholder: "Save to {table}", "Run {flow}". Offered as a choice when adding a step. Absent on a field that names none. |
 | `suggestOnMatchingType` | `true` | no | Set on the one table field whose `offerAs` is suggested for a table whose records have the added value's type. Absent elsewhere. |
 | `caution` | `string` | no | What goes wrong if this field is set wrong, and what it costs. Absent when the field carries no such cost. |

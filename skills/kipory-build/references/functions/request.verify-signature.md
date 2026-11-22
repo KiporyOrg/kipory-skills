@@ -18,20 +18,20 @@ Computes the HMAC of the text that was signed and compares it with the signature
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `algorithm` | `sha256` \| `sha1` \| `sha512` | no | — | The hash: sha256 (the default), sha1 or sha512. |
-| `encoding` | `hex` \| `base64` | no | — | How the signature is written: hex (the default) or base64. |
-| `format` | `plain` \| `timestamped` \| `standard` | no | — | `plain` (the default), `timestamped` for `t=…,v1=…` signatures, or `standard` for Standard Webhooks. |
-| `messageId` | union | no | — | Standard Webhooks only: the `webhook-id` header the caller sent. |
-| `onMismatch` | `refuse` \| `output` | no | — | `refuse` (the default) answers 401; `output` gives the flow true or false. |
 | `payload` | union | yes | — | The text that was signed, usually the call's raw body. |
-| `prefix` | string, at most 32 characters | no | — | Text before the signature to remove, such as `sha256=`. |
-| `secret` | union | no | — | The shared secret, such as a field of the call's record. |
 | `signature` | union | yes | — | The signature the caller sent, usually from a header. |
+| `secret` | union | no | — | The shared secret, such as a field of the call's record. |
 | `storedSecret` | string, at most 128 characters | no | — | Or the name of a signing secret stored on the Secrets page. |
+| `algorithm` | `sha256` \| `sha1` \| `sha512` | no | `"sha256"` when unset | The hash: sha256 (the default), sha1 or sha512. |
+| `encoding` | `hex` \| `base64` | no | `"hex"` when unset | How the signature is written: hex (the default) or base64. |
+| `prefix` | string, at most 32 characters | no | — | Text before the signature to remove, such as `sha256=`. |
+| `format` | `plain` \| `timestamped` \| `standard` | no | `"plain"` when unset | `plain` (the default), `timestamped` for `t=…,v1=…` signatures, or `standard` for Standard Webhooks. |
+| `messageId` | union | no | — | Standard Webhooks only: the `webhook-id` header the caller sent. |
 | `timestamp` | union | no | — | Standard Webhooks only: the `webhook-timestamp` header the caller sent. |
-| `toleranceSeconds` | integer, 1 to 86400 | no | — | How old a timed signature may be, in seconds; 300 unless set. |
+| `toleranceSeconds` | integer, 1 to 86400, in seconds | no | `300` when unset | How old a timed signature may be, in seconds; 300 unless set. |
+| `onMismatch` | `refuse` \| `output` | no | `"refuse"` when unset | `refuse` (the default) answers 401; `output` gives the flow true or false. |
 
-### `messageId` — one of
+### `payload` — one of
 
 - `string`
 - `number`
@@ -49,7 +49,7 @@ Computes the HMAC of the text that was signed and compares it with the signature
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `payload` — one of
+### `signature` — one of
 
 - `string`
 - `number`
@@ -85,7 +85,7 @@ Computes the HMAC of the text that was signed and compares it with the signature
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `signature` — one of
+### `messageId` — one of
 
 - `string`
 - `number`

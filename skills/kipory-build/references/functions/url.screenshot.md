@@ -25,12 +25,12 @@ Saves the page as a PNG or JPEG. Each fresh shot is paid; repeats within a day a
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `failureMode` | `hard` \| `soft` | no | `"hard"` | `hard` fails the step; `soft` returns an empty picture and continues. ⚠️ A refused key, an address that is not `http` or `https`, or a storage failure still fails the step. |
+| `viewportWidth` | integer, more than 0, in pixels | no | `1280` | Page width in CSS pixels; the whole page height is captured. |
 | `format` | `png` \| `jpeg` | no | `"png"` | Image format: PNG is lossless, JPEG is smaller. |
 | `jpegQuality` | integer, 1 to 100 | no | `85` | JPEG quality from 1 to 100; used only for JPEG. |
-| `maxBytes` | integer, more than 0, at most 100000000 | no | `10000000` | Largest image in bytes; a bigger one fails. |
-| `timeoutMs` | integer, more than 0 | no | `60000` | Milliseconds to wait for the provider; 1,000 to 80,000. ⚠️ This limits the one page read, not the step's own `timeoutMs` run setting. |
-| `viewportWidth` | integer, more than 0 | no | `1280` | Page width in CSS pixels; the whole page height is captured. |
+| `maxBytes` | integer, more than 0, at most 100000000, in bytes | no | `10000000` | Largest image in bytes; a bigger one fails. |
+| `timeoutMs` | integer, more than 0, in milliseconds | no | `60000` | Milliseconds to wait for the provider; 1,000 to 80,000. ⚠️ This limits the one page read, not the step's own `timeoutMs` run setting. |
+| `failureMode` | `hard` \| `soft` | no | `"hard"` | `hard` fails the step; `soft` returns an empty picture and continues. ⚠️ A refused key, an address that is not `http` or `https`, or a storage failure still fails the step. |
 
 ## Worked example
 
