@@ -1,7 +1,11 @@
 {
-  "source": "d540f0000c81a6758fd430994de4df35769a4919",
+  "source": "ad797666bd33847a64a52cc02d6f062ed85dd0ae",
   "since": "2026-08-19",
   "history": [
+    {"sha":"ad797666bd33","skills":"A record whose search indexing gave up is retried 15 minutes later, a refused AI call re-reads the platform keys, and the project is told when records stay unsearchable (#3811)"},
+    {"sha":"cf5444fba7fc"},
+    {"sha":"d63bb2201bc4"},
+    {"sha":"fad5d0438662"},
     {"sha":"d540f0000c81","skills":"A type's required field can no longer vanish from an endpoint's answer, and the engine-default embedding matches meaning only (format 12 sweep fixes) (#3807)"},
     {"sha":"e3230ccc09f6"},
     {"sha":"a3408ab4687d"},
@@ -997,10 +1001,6 @@
     {"sha":"9c2297e6abdf"},
     {"sha":"4256156c3eae"},
     {"sha":"3bd30adf8d5e"},
-    {"sha":"556d3e045f3c"},
-    {"sha":"799e6785d41d"},
-    {"sha":"9d6c1151ae82"},
-    {"sha":"e54a3da6ad89"},
-    {"sha":"b19d3601c775"}
+    {"sha":"556d3e045f3c"}
   ]
 }

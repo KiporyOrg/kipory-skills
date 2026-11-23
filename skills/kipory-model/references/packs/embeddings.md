@@ -119,12 +119,17 @@ accepted, and moves record search, never terms.
 
 ⚠️ **An indexing failure does not surface on the embedding, the table or the record.** When the
 embedding's model refuses (quota, outage), records stay `indexState: "never"` and the table's
-`?expand=vectorProgress` keeps a non-zero `remaining`. The cause is only in the AI-call list:
+`?expand=vectorProgress` keeps a non-zero `remaining`. Once a record has failed twice, the project's
+alerts say how many records are not searchable (`records-not-searchable`). That alert counts only the
+failures the platform still remembers; in the rare case it loses them, the alert clears while the
+records still read `indexState: "never"`, so `vectorProgress` is the count to trust. The cause is
+only in the AI-call list:
 `GET /v1/ai-calls?project={nodeId}&origins=projection&outcome=error` lists each failed embed with
 its `errorCode` (`quota-exhausted`, …), and `GET /v1/ai-calls/{id}`
 gives that call's `errorMessage`. A failed embed is retried three times within about fifteen
-seconds, then only by the daily re-index sweep (08:00 UTC). Moving to a working model is a new
-generation plus activate.
+seconds; a record still not indexed is tried again about fifteen minutes later, up to three more
+times, and after that only by the daily re-index sweep (08:00 UTC). Moving to a working model is a
+new generation plus activate.
 
 ## The sequence
 
