@@ -961,7 +961,7 @@ Read one query of a table. `GET /v1/tables/{id}/queries` lists them all.
 
 ### `PATCH /v1/tables/{id}/queries/{key}`
 
-Change a query: its whole `definition`, a new `key`, or both, at the `version` read (409 when it moved). `POST /v1/projects/{nodeId}/document` writes many at once, with the tables they read, and its `/plan` checks them first.
+Change a query: its whole `definition`, a new `key`, or both, at the `version` read (409 when it moved). Every endpoint answering from the query is listed in `contractChanges`: a property added is safe, one removed or retyped breaks its callers and is refused 409 `CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks` names the endpoint. `POST /v1/projects/{nodeId}/document` writes many at once, with the tables they read, and its `/plan` checks them first.
 
 **Path parameters**
 
@@ -983,6 +983,7 @@ Change a query: its whole `definition`, a new `key`, or both, at the `version` r
 | `version` | `integer` | yes | The version the change is made against: the row's `version` as read. A stale one is refused 409. |
 | `key` | `string` | no | A new key for the query: refused while a step, query, selection or endpoint names it; a project document renames it and moves them all. |
 | `definition` | `object` | no | The query's whole definition, replacing the one it holds. |
+| `acceptBreaks` | `object` | no | The endpoints whose callers this edit may break. An edit that changes what an endpoint answers from the query (a property removed or retyped) is listed in `contractChanges` and refused 409 `CONTRACT_BREAK_NOT_ACCEPTED` until this names the endpoint; only an admin of the project may accept (403 `CONTRACT_BREAK_FORBIDDEN` otherwise). A name the project does not have is 422. |
 
 **Response `200`**
 
@@ -993,6 +994,29 @@ Change a query: its whole `definition`, a new `key`, or both, at the `version` r
 | `key` | `string` | yes | The query's key in its table; `<table>.<key>` names it from elsewhere. |
 | `version` | `integer` | yes | Moves on every save of the query; a PATCH states it. |
 | `definition` | `object` | yes | The query, as the document writes it. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+| `consequences` | `object[]` | no | On a table's row: what the change does to the table's stored records, each with a count. The write carries each one out. A count never refuses the write; one consequence can: a `stream-migration` on a table whose stream is already being migrated is refused with 409 `STREAM_MIGRATING`. Absent on an endpoint's row and when nothing stored is affected. |
+
+Each item of `touched`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `resource` | `string` | yes | Which design resource the row belongs to, spelled as the bootstrap read spells its sections — `tables`, `types`, `relations`, … — or, for `terms`, which the bootstrap does not carry, as its route does (`/v1/terms/{id}`). |
+| `id` | `string` | yes | The row's id. |
+| `version` | `integer` | yes | The row's optimistic-lock version AFTER this write. Replace the version you cached for this row with it; a PATCH sent with the old one is refused with 409. |
 
 ### `DELETE /v1/tables/{id}/queries/{key}`
 
@@ -1176,7 +1200,7 @@ Read one selection of a table. `GET /v1/tables/{id}/selections` lists them all.
 
 ### `PATCH /v1/tables/{id}/selections/{key}`
 
-Change a selection: its whole `definition`, a new `key`, or both, at the `version` read (409 when it moved). `POST /v1/projects/{nodeId}/document` writes many at once, with the tables they read, and its `/plan` checks them first.
+Change a selection: its whole `definition`, a new `key`, or both, at the `version` read (409 when it moved). Every endpoint answering from the selection is listed in `contractChanges`: a property added is safe, one removed or retyped breaks its callers and is refused 409 `CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks` names the endpoint. `POST /v1/projects/{nodeId}/document` writes many at once, with the tables they read, and its `/plan` checks them first.
 
 **Path parameters**
 
@@ -1198,6 +1222,7 @@ Change a selection: its whole `definition`, a new `key`, or both, at the `versio
 | `version` | `integer` | yes | The version the change is made against: the row's `version` as read. A stale one is refused 409. |
 | `key` | `string` | no | A new key for the selection: refused while a step, query, selection or endpoint names it; a project document renames it and moves them all. |
 | `definition` | `object` | no | The selection's whole definition, replacing the one it holds. |
+| `acceptBreaks` | `object` | no | The endpoints whose callers this edit may break. An edit that changes what an endpoint answers from the selection (a property removed or retyped) is listed in `contractChanges` and refused 409 `CONTRACT_BREAK_NOT_ACCEPTED` until this names the endpoint; only an admin of the project may accept (403 `CONTRACT_BREAK_FORBIDDEN` otherwise). A name the project does not have is 422. |
 
 **Response `200`**
 
@@ -1208,6 +1233,29 @@ Change a selection: its whole `definition`, a new `key`, or both, at the `versio
 | `key` | `string` | yes | The selection's key in its table; `<table>.<key>` names it from elsewhere. |
 | `version` | `integer` | yes | Moves on every save of the selection; a PATCH states it. |
 | `definition` | `object` | yes | The selection, as the document writes it. |
+| `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
+| `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
+
+Each item of `contractChanges`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
+| `key` | `string` | yes | The endpoint's or table's key. |
+| `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
+| `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
+| `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
+| `accepted` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` names it. |
+| `consequences` | `object[]` | no | On a table's row: what the change does to the table's stored records, each with a count. The write carries each one out. A count never refuses the write; one consequence can: a `stream-migration` on a table whose stream is already being migrated is refused with 409 `STREAM_MIGRATING`. Absent on an endpoint's row and when nothing stored is affected. |
+
+Each item of `touched`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `resource` | `string` | yes | Which design resource the row belongs to, spelled as the bootstrap read spells its sections — `tables`, `types`, `relations`, … — or, for `terms`, which the bootstrap does not carry, as its route does (`/v1/terms/{id}`). |
+| `id` | `string` | yes | The row's id. |
+| `version` | `integer` | yes | The row's optimistic-lock version AFTER this write. Replace the version you cached for this row with it; a PATCH sent with the old one is refused with 409. |
 
 ### `DELETE /v1/tables/{id}/selections/{key}`
 

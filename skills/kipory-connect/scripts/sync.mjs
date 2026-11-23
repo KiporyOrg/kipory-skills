@@ -150,6 +150,8 @@ const LAYERS = [
     label: "functions",
     path: "/v1/functions",
     withKey: true,
+    // Paged by key: every page is read, its functions and hashes joined.
+    paged: true,
     pick: (json) => json?.version,
     documented: (json) => {
       if (!Array.isArray(json?.functions)) return undefined;
@@ -533,10 +535,45 @@ const getOnce = (path, withKey) => {
   if (!fetched.has(key)) fetched.set(key, get(path, withKey));
   return fetched.get(key);
 };
+// A paged list (`GET /v1/functions`): follow `nextCursor` until it is null,
+// joining each page's `functions` and `hashes`; the rest is whole on every
+// page. A page that fails, or a walk past MAX_PAGES, is the read's error.
+const MAX_PAGES = 100;
+const getAllPages = async (path, withKey) => {
+  const first = await getOnce(path, withKey);
+  if (first.error || typeof first.json?.nextCursor !== "string") return first;
+  const json = {
+    ...first.json,
+    functions: [...(first.json.functions ?? [])],
+    // A page without per-item hashes stays "cannot say which" (`items`).
+    hashes: isHashMap(first.json.hashes) ? { ...first.json.hashes } : null,
+  };
+  let cursor = first.json.nextCursor;
+  for (let page = 1; typeof cursor === "string"; page += 1) {
+    if (page >= MAX_PAGES) return { error: `more than ${MAX_PAGES} pages` };
+    const next = await get(
+      `${path}?after=${encodeURIComponent(cursor)}`,
+      withKey,
+    );
+    if (next.error) return next;
+    if (!Array.isArray(next.json?.functions)) {
+      return { error: "a later page carries no functions list" };
+    }
+    json.functions.push(...next.json.functions);
+    if (json.hashes !== null && isHashMap(next.json.hashes)) {
+      Object.assign(json.hashes, next.json.hashes);
+    } else json.hashes = null;
+    cursor = next.json.nextCursor;
+  }
+  return { json };
+};
 const layerReads = Promise.all(
   LAYERS.map(async (layer) => {
     if (layer.withKey && !apiKey) return { error: "set KIPORY_API_KEY" };
-    const res = await getOnce(layer.path, layer.withKey);
+    const res = await (layer.paged ? getAllPages : getOnce)(
+      layer.path,
+      layer.withKey,
+    );
     if (res.error) return { error: res.error };
     // A deployment that answers in a shape this script does not read (a null
     // row, a missing list) is a layer not compared, never a crash.

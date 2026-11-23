@@ -11,7 +11,7 @@
 "Show me what is new from the things I follow" is, first, a declared query: `myShelf` in [queries.md](queries.md) (§11) reads the follows as a set inside the same statement, as the caller, with no 1,000-value cap and no extra step. The inline form below is for when the query cannot say it — here, a parent that matches through a link to a followed child, which a set (`field` clauses only) does not reach. It is three steps in a line. The follows are a per-user table; the feed is one `record.query` whose values come from earlier steps.
 
 ```
-follows: record.list (my follows)  →  followed: value.transform (follows.records)  →  page: record.query
+follows: record.query (my follows)  →  followed: value.transform (follows.records)  →  page: record.query
 ```
 
 The transform's value `followed` is an object with one field: `{ "ids": [ … ] }`. `cursor` is an optional flow input carrying the `nextCursor` a previous page answered, read `optional`. Its first run has no `cursor` input, the root absent, so it reads page one. A read's `cursor` bound in `with` to a path whose root ran or was given (another read's page) with nothing at the path (that page's `nextCursor` after its last page) means the list ended, and it answers an empty page; the root absent (the first run, an optional input left out), or no `cursor` bound, reads page one. `""` is a value, so page one too.
@@ -26,7 +26,7 @@ The follows read takes every page, so a person following more than one page of t
 }
 ```
 
-`max: 10` is 1,000 follows; a person with more fails the step `RECORD_READ_HAS_MORE` rather than silently missing the rest — which also fits the 1,000-value bound on `in` below. Without `pages` the save warns `RECORD_LIST_CURSOR_UNREAD`, because no step reads the follows page's `nextCursor`. The feed query itself stays one page: its cursor goes back to the caller.
+`max: 10` is 1,000 follows; a person with more fails the step `RECORD_READ_HAS_MORE` rather than silently missing the rest — which also fits the 1,000-value bound on `in` below. Without `pages` the save warns `RECORD_CURSOR_UNREAD`, because no step reads the follows page's `nextCursor`. The feed query itself stays one page: its cursor goes back to the caller.
 
 The relation is declared once, from the child's field: an `item` points at its `collection`, so the relation `in-collection` states `from: item.collectionId` and `to: collection`. The `uses` of `item` carry what the clauses filter by:
 
@@ -96,7 +96,7 @@ The query is asked of the parent, with the link coming IN:
 | `link`     | `relation`, optional `direction` (`outgoing` by default, `incoming` or `either`), optional `where[]`, `count` (`{ op, n }` with `op` one of `>=`, `>`, `=`, `<`, `<=`; omitted means at least one) and `peer[]` | records linked by a relation stated from a field: a field of the table, or, for `incoming` and `either`, a field of a table that points at it; `peer` holds `field`, `term` and `semantic` clauses on the record at the other end, one hop |
 | `stream`   | `field`, optional `window` (`from`, `to`), optional `where[]` and `count` (`"exists"` by default, `"none"`, or `{ op, n }`)                                                                                     | event rows of a field that carries a `stream` use, inside a time window                                                                                                                                                                    |
 
-A text `field` clause finds a value of any length with `eq` and `in`; `lt`/`lte`/`gt`/`gte` compare only values up to 2,000 bytes, and the clause's explanation row says how many records it left out (`longTextSkipped`). Keep a field you range over short (`maxLength` 500 or fewer); find long text by meaning with `semantic`. `record.list` and `record.count` take no range on a text field: saving one is refused `RECORD_FILTER_TEXT_RANGE`.
+A text `field` clause finds a value of any length with `eq` and `in`; `lt`/`lte`/`gt`/`gte` compare only values up to 2,000 bytes, and the clause's explanation row says how many records it left out (`longTextSkipped`). Keep a field you range over short (`maxLength` 500 or fewer); find long text by meaning with `semantic`. `record.count` takes no range on a text field: saving one is refused `RECORD_FILTER_TEXT_RANGE`.
 
 A `where[]` entry is `{ property, op, value }` over a filter the relation or the stream declares. Only a query without a `semantic` clause pages (`cursor`); `limit` is 1 to 100. `POST /v1/records/query` asks the same clauses from outside a flow (`kipory-data`).
 

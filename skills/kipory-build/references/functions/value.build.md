@@ -6,7 +6,7 @@ Give each field of a value its own short expression.
 
 Nothing is fetched and no model is called. For logic over the whole value, use Reshape values.
 
-- **Group:** utility · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** values · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `object`
 - **Also found as:** build an object, shape result, map fields, field by field, response shape, assemble

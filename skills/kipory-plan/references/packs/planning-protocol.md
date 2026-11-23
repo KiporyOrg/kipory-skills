@@ -40,7 +40,7 @@ you are actually building on, which is the entire point — a pack can only tell
 never what currently exists.
 
 This is not caution for its own sake. A snapshot of the function catalog once went on naming a key
-after the running deployment had already merged it into `value.first-non-empty`; the plan built on
+after the running deployment had already merged it into another key; the plan built on
 it burned real calls before anyone noticed. **A remembered function key is not admissible in a
 build sheet.**
 

@@ -6,7 +6,7 @@ Look up a public Telegram channel: its name, members, description, and picture.
 
 A recent answer is reused; otherwise it waits for a fresh one. A failed lookup returns the reason.
 
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
+- **Group:** social · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TelegramChannelResolution`
 - **Also found as:** telegram group, channel info, telegram profile

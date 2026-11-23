@@ -12,8 +12,8 @@
 
 ⛔ **What does not exist is a WALK of any depth.** The per-relation link read takes one hop and has
 no `depth` parameter, and recursive traversal is out of scope. What does exist is a read that
-BRINGS linked records with each record, two levels deep: `linked` on a flow's `record.read`,
-`record.list` and `record.query`, and on `POST /v1/records/query`. "Each book with its author and
+BRINGS linked records with each record, two levels deep: `linked` on a flow's `record.read`
+and `record.query`, and on `POST /v1/records/query`. "Each book with its author and
 the author's publisher" is one step, not a loop of calls.
 
 Links themselves arrive on more than one surface, and picking the wrong one is where the cost goes:
@@ -792,7 +792,7 @@ NOT read is a short reason list as a clean bill of health.
 ## Linked records in one read
 
 `linked` is a map from a name you choose to a linked read. It is the same option on `record.read`,
-`record.list`, `record.query` and the body of `POST /v1/records/query`. A `record.list` that brings
+`record.query` and the body of `POST /v1/records/query`. A `record.query` that brings
 each order's customer and its five latest line items:
 
 ```json
@@ -833,12 +833,12 @@ and an `items` member (a list, `[]` when none), each item carrying its own `prod
   A read the save accepted never fails `RECORD_LINKED_TOO_MANY`; with `onMore: "stop"` every full
   list is cut and marked. For a list of `limit₁` with a list of `limit₂` inside, keep
   `limit₁ × (1 + limit₂)` at 100 or less and a 200-id read fits. A `record.read` whose ids come from
-  another step's value is counted at 200 unless the flow says that value holds fewer: it reads a `record.list` or
+  another step's value is counted at 200 unless the flow says that value holds fewer: it reads a
   `record.query`'s `records` (or their `id`s) with a fixed `limit` — `limit` times the most `pages` it reads — or the
   step giving it declares an output type that is a list with `maxItems`. Then it is counted at that, and the run
   holds it: a step returning more items than its type's `maxItems` fails, naming the value.
 - **With `pages`, the budget is per page.** The save counts one page (the read's `limit`), and each
-  page of a `record.list` or `record.query` that reads every page brings up to 20,000 linked records
+  page of a `record.query` that reads every page brings up to 20,000 linked records
   of its own: `pages` does not multiply the check. The whole answer is still bounded by `pages`’ `max`
   and the value size.
 - **`fields` narrows what each linked record carries.** Absent or empty is every field; `["id"]` is
@@ -846,7 +846,7 @@ and an `items` member (a list, `[]` when none), each item carrying its own `prod
   processing state and created and updated times; on a computed table, when its values were
   computed and whether they are being computed again), enough to know the link is there.
 - **`include: { vocabularies: true }` brings each linked record's vocabulary terms**, as a plain read
-  of its table carries them. Only `record.read` and `record.list` can; on `record.query` and the
+  of its table carries them. Only `record.read` can; on `record.query` and the
   records API it is refused `LINKED_VOCABULARIES_UNAVAILABLE`. So a second read for the linked
   records' terms is not needed:
   `"author": { "relation": "written-by", "fields": ["name"], "include": { "vocabularies": true } }`.
@@ -902,7 +902,7 @@ and an `items` member (a list, `[]` when none), each item carrying its own `prod
 - **Records the run wrote itself.** A `record.read` of a record this run created or changed brings
   its outgoing linked record through the field that produces the link, so create-then-read-back in
   one run works. A link the run made with `record.link-assert` is not followed until the run ends;
-  `record.list` and `record.query` read only what earlier runs committed.
+  `record.query` reads only what earlier runs committed.
 - **A linked read follows links as they stand; it does not follow a merge's redirect itself.** A
   merge moves every reference naming the merged record to the survivor, and each moved field's link
   then leads to the survivor, so a linked read through that field brings the survivor. While a

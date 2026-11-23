@@ -6,7 +6,7 @@ Run a flow once for each person, as that person.
 
 Each run acts for its person; the project pays. They start once this run saves; a failed run starts nobody.
 
-- **Group:** flow · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** run · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own start, so a new run starts everyone's runs again.
 - **I/O:** `people and inputs` → `PeopleStartResult`
 - **Also found as:** for each person, run for everyone, per user, start flow for people, everyone's own run

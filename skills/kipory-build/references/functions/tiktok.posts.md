@@ -7,7 +7,7 @@ List the recent videos a TikTok account has posted.
 Give a handle or profile link. Each video has its caption, time, cover and engagement counts.
 
 - **Origin:** `ability`
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** social · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`
 - **Also found as:** tiktok feed, recent videos, account videos, uploads

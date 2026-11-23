@@ -3,7 +3,7 @@
 <!-- field-ok: userInfo — an ambient value the platform fills, not a request field -->
 
 The vocabularies pack covers the configuration — what a vocabulary is, which resolver it binds, how
-a value reaches a record. This page covers the two functions that sit inside a resolver flow and the
+a value reaches a record. This page covers what runs inside a resolver flow and the
 one that reads the vocabulary back, none of which are part of that configuration.
 
 ## Where the thresholds are actually decided
@@ -17,9 +17,9 @@ processing flow:  vocabulary.resolve → term.upsert
                   (a proposal per vocabulary, each dispatched to the resolver; then save)
 resolver flow:    term.search          → candidate terms, best first, each with a score
                                          (vocabulary: { path: vocabulary }, text: "proposalSlug")
-                  term.threshold-gate  → { kind: "resolved", resolution } · { kind: "tiebreak" }
-                  if gate.kind is tiebreak:
-                    text.decide        → the tiebreak, on that branch only
+                  the platform's gate  → match · create-new · tiebreak
+                  on a tiebreak only:
+                    text.decide        → the tiebreak
 ```
 
 `term.search` takes the proposed value as text and the vocabulary's key, and answers the closest terms
@@ -29,9 +29,9 @@ project is indexed with — a resolver has no model to choose and no vector to p
 so a second record proposing the same thing reuses the candidate instead of coining its twin.
 Its function page in `kipory-build` has the whole configuration.
 
-`term.threshold-gate` compares the top candidate's score against the vocabulary's two thresholds.
-Its output has two kinds: `resolved`, carrying the finished `resolution` whose `outcome` is `match`
-or `create-new`, and `tiebreak`, carrying nothing. By score:
+The gate is a step of the platform's own resolver flows, not a function you write. It compares the
+top candidate's score against the vocabulary's two thresholds. Its decision is `resolved`, with an
+`outcome` of `match` or `create-new`, or `tiebreak`. By score:
 
 | Top candidate's score       | Output                            | Meaning                                             |
 | --------------------------- | --------------------------------- | --------------------------------------------------- |
@@ -45,23 +45,10 @@ ambiguous — the middle band is strictly between them.
 
 **The middle band is the point of the gate.** A single threshold forces every borderline value into
 one of two wrong answers: a near-duplicate term, or a wrong match that quietly merges two things.
-The gate refuses to guess and hands the decision to a `text.generate` tiebreak step instead
-(where the deployment offers a decision model, the same yes/no is one `text.decide` probability
-field — `kipory-build`'s `references/models.md`). That
-step runs only on a close score **because you put it in a branch**. After the gate step (keyed
-`gate` here), an `if` holds the model step in a branch that tests the first condition, and the step
-that carries the decisive resolution in a branch that tests the second, or in its `else`:
+The gate refuses to guess and hands the decision to a model tiebreak instead, which runs only on a
+close score: the model call is paid for only by the values that genuinely needed arbitrating.
 
-```yaml
-- test: { eq: [gate.kind, { literal: tiebreak }] }
-- test: { eq: [gate.kind, { literal: resolved }] }
-```
-
-A flow missing either branch carries the error `TERMS_THRESHOLD_GATE_BRANCH_MISSING` — and with
-both, the model call is paid for only by the values that genuinely needed arbitrating.
-
-The thresholds come from the vocabulary's own `resolutionParams`, fed to the gate through the
-resolver flow's `params` input (`with: { thresholds: params }`) rather than written into the step. A vocabulary with no explicit
+The thresholds come from the vocabulary's own `resolutionParams`. A vocabulary with no explicit
 resolver is bound to a platform default at creation and carries `lowThreshold: 0.3`,
 `highThreshold: 0.8`: at or above the high one the match is reused, at or below the low one the
 value is new (`mint` decides what that means), between them the model decides. The band is wide
@@ -110,12 +97,6 @@ needs no record reads, and is already scoped correctly.
   step that saves the terms fails; when the run's writes are saved together at the end, the run
   fails with nothing written and `GET /v1/runs/{runId}/change-set` reads `rejected`,
   `rejection.cause.kind: "one-term-vocabulary"`, naming `vocabulary` and the `terms`.
-- **The gate does not check that the vocabulary exists.** It stamps the vocabulary onto its
-  decision; whether that vocabulary is real is checked when the terms are saved. A typo surfaces one
-  step later than you would expect.
-- **A `tiebreak` that nothing handles is a value that never lands.** The branch rule is a
-  whole-flow check on the saved flow: an edit that inserts the gate before its branches exist is
-  not refused, so read `GET /v1/flows/{id}/health` after adding both branches.
 - **`mint: candidate` reuses its candidates, as well as the match allows.** A `candidate` vocabulary
   searches its active terms and its own candidates, so a second record proposing the same thing
   lands on the candidate the first one coined and the candidate's record count grows. The

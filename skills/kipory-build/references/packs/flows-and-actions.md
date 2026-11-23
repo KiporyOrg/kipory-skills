@@ -97,12 +97,12 @@ flows:
         description: Per member due, 1 when a note was sent and 0 when the member has no email.
     steps:
       - key: dueMembers
-        function: record.list
+        function: record.query
         with:
           table: member
           limit: 100
-          fieldFilters:
-            - { field: renewsOn, op: eq, value: day }
+          clauses:
+            - { kind: field, field: renewsOn, op: eq, value: day }
       - key: perMember
         each: dueMembers.records
         as: clubMember
@@ -166,7 +166,7 @@ support` would pick the address bound to `support` in the document's `project.ma
 
 ```text
 flow renew-members (day, dryRun?) → notes
-  dueMembers: record.list
+  dueMembers: record.query
   perMember: each as clubMember
     hasEmail: if
       when #1
@@ -286,7 +286,7 @@ person's records (each row names its person as `ownerId`). Guard a required read
     - test: { has: userInfo }
       steps:
         - key: mine
-          function: record.list
+          function: record.query
           with: { table: box, limit: 20 }
 ```
 
@@ -316,7 +316,7 @@ list's order.
 
 - **`maxParallel`** caps how many elements run at once. Left out, elements run together when they
   cannot affect one another, one at a time otherwise. When a step inside changes or deletes a
-  record, makes another lasting change, emits an event or writes run state, the elements run one at
+  record, makes another lasting change or emits an event, the elements run one at
   a time whatever `maxParallel` says, and the save warns `EACH_RUNS_ONE_AT_A_TIME` (set
   `maxParallel: 1` to say so on purpose). A write to the element's own record is fine.
 - **`maxItems`** is your guard, not a cut: a run handed more fails the step with
@@ -329,9 +329,7 @@ list's order.
   list — and the run ends `partial`. Left out, the first failure fails the block. At least one
   element must succeed: the allowance is the stated one or one fewer than the elements, whichever is
   less, so `maxFailedShare: 1` over 3 elements still fails the block when all 3 fail. A platform
-  failure (its engine, a spend cap, a cancel) or a refusal is never tolerated. Refused when a step
-  inside reads or writes run state (`EACH_TOLERANCE_SHARED_RUN_STATE`): a dropped element cannot take
-  back what it wrote there.
+  failure (its engine, a spend cap, a cancel) or a refusal is never tolerated.
 
 ### `repeat` — passes until a condition holds
 
@@ -347,7 +345,7 @@ list's order.
     onMax: stop
   steps:
     - key: page
-      function: record.list
+      function: record.query
       with: { table: member, limit: 100, cursor: cursor }
 ```
 
@@ -376,7 +374,7 @@ children that may change the same record warn `PARALLEL_EFFECTS_MAY_CONFLICT`: t
 either order. Use `parallel` for independent fetches or model calls whose results a later step
 combines; written order already runs everything else one after another.
 
-A child that runs `request.refuse` or `request.verify-signature` starts first; the other children
+A child that refuses — a `fail` with `refuse: true`, or `request.verify-signature` — starts first; the other children
 start only once it ended, and start nothing when it refused. A refusal is the block's answer before
 any other child's failure:
 
@@ -426,7 +424,7 @@ A run whose `try` caught a failure closes `partial`, not `succeeded`, and counts
 There is no other failure tolerance on a step: no "continue on failure", no failure value.
 
 ⛔ **`try` catches only the flow's own failures.** A platform failure (its engine, a spend cap, a
-cancel) and a refusal (`request.refuse`, a failed signature check) are never caught. What the `try`
+cancel) and a refusal (a `fail` with `refuse: true`, a failed signature check) are never caught. What the `try`
 staged is still dropped, `catch` does not run, and the failure goes on up:
 
 ```yaml
@@ -434,9 +432,8 @@ staged is still dropped, `catch` does not run, and the failure goes on up:
   try:
     steps:
       - key: deny
-        function: request.refuse
-        with:
-          { status: 403, code: NOT_YOURS, message: { literal: "Not yours." } }
+        fail:
+          { code: NOT_YOURS, message: "Not yours.", status: 403, refuse: true }
   catch:
     steps: []
 ```
@@ -478,8 +475,32 @@ The save holds a `fail` to what a caller can be answered with, each refusal with
 - `status` 405, 408 or 426 (or anything outside 400–499) is refused;
   that is `FAIL_STATUS_INVALID`, whose fixes answer 422 or 409.
 
+`message` is fixed text or a value read while the flow runs: `{expr: "..."}`, or
+`{path: x, optional: true}` / `{path: x, default: ...}`. A value that gives no text says "The request
+was refused."; one past 500 characters is cut. To fail only sometimes, put the `fail` inside an `if`.
+
 Inside an `each` or a `repeat`, a `fail` fails that element or that pass, which the block's tolerance
 then judges.
+
+`refuse: true` refuses the call instead. No `try` catches it, no `each` carries past it, and nothing
+the run has not started runs. Inside a `parallel` it starts before its siblings:
+
+<!-- field-ok: memberCheck — a step key of the example, project-authored -->
+
+```yaml
+- key: memberCheck
+  if:
+    - test: { not: { has: clubMember } }
+      steps:
+        - key: deny
+          fail:
+            code: NOT_A_MEMBER
+            message: { expr: "'No member has the email ' & email & '.'" }
+            status: 404
+            refuse: true
+```
+
+A `try` around `memberCheck` does not catch it: the call is answered 404.
 
 Blocks nest at most `design.block-depth` deep (`BLOCK_DEPTH_EXCEEDED`); move a part into a flow of
 its own and call it.
@@ -523,7 +544,7 @@ with no cursor at that path. Everything else reads page one:
 - the cursor is `""`, a fixed value, or an expression that gives nothing;
 - a `default` stands in for a missing value. The default is the value given, so `default: ""` reads
   page one. A read whose `nextCursor` nothing
-  reads warns `RECORD_LIST_CURSOR_UNREAD` (`details.stepKey` names it); `pages: {max: 1, onMore:
+  reads warns `RECORD_CURSOR_UNREAD` (`details.stepKey` names it); `pages: {max: 1, onMore:
 "stop"}` says one page on purpose.
 
 There are no fan-out, merge, loop or dispatch functions: `each`, `repeat` and `if` are how a flow
@@ -566,6 +587,8 @@ calls, endpoint fields. `""`, `[]` and `{}` are **values**:
   `[]` gives `[]`.
 - `{path, default}` and `$default(x, y)` fill only nothing. `$ifEmpty(x, y)` fills nothing **or**
   empty.
+- `$firstFile(list, typePrefix?)` answers the first file in a list or a list of lists, optionally
+  of a media type: `$firstFile([post.images, post.attachments], "image/")`.
 - **An index read needs a test before it.** `found.records[0].id` is refused
   (`STEP_INPUT_MAY_BE_ABSENT`) even after `has`, since a list may be `[]`: guard it with
   `{filled: found.records}`, which proves `[0]`, `[first]` and `[last]`. `[1]` and beyond need
@@ -661,7 +684,7 @@ wants (`[]`, 0 for a count, a label), never an id, an owner, an amount or a stat
 
 **Functions whose value may be nothing.** Fetches and lookups that can find nothing —
 `url.fetch`, `url.scrape`, `url.metadata`, `web.search`, `place.details`, `location.resolve`,
-`text.decide`, `value.first-non-empty`, the social profile, post and transcript reads, file and image
+`text.decide`, the social profile, post and transcript reads, file and image
 metadata among them. Some may only under some settings: `url.fetch` answers text (`""` at worst)
 by default and may answer nothing with `responseAs: json`. The finding names the step that gives the
 value and why. For `value.transform`
@@ -926,8 +949,8 @@ both, and answers one of three: `{ok: true, value}`, `{ok: true, absent: true}` 
 nothing on these values), or `{ok: false, failure: {code, message, location}}` — the failure a run
 would meet, `location` naming the binding or field of an expression where it failed. It is the
 quickest way to see what a `value.transform` answers before saving it. A function that reads only
-its inputs (`value.transform`, `value.first-non-empty`, `list.concat`, `text.interpolate`) runs free
-at EDITOR; a record read (`record.list`, `record.read`, `record.query` without a meaning search) is
+its inputs (`value.transform`, `list.concat`, `text.interpolate`) runs free
+at EDITOR; a record read (`record.read`, `record.query` without a meaning search) is
 billed as design-time work and needs ADMIN; any other function is refused
 (`STEP_EVALUATE_UNSUPPORTED`): preview the flow. The preview route takes `attachments`, a map from
 the name the step reads to a list of file ids (at most 12 files in all), and `modelId` to try
@@ -1013,7 +1036,9 @@ and you read it as any run (`GET /v1/runs/{runId}`, `/timeline`, `/trace`, `/cha
 routes answer 404 until the worker writes its first frame, so poll. `POST /v1/flows/{id}/preview/stream`
 streams the same run as it goes: a `step-started` frame when a function step begins and a `step-ended` frame
 with the same `stepKey`, `outcome`, `notRun` and `answeredNothing`; an `each`'s own `step-ended`
-carries `each` (how many elements it was handed and how many it ran). A `step-failed` row on the
+carries `each` (how many elements it was handed and how many it ran). The last frame,
+`preview-complete`, carries `branches`, `flowOutput`, `outputValidation` and the token totals, as
+the answer above does. A `step-failed` row on the
 timeline carries its `phase` and a `message` cut to 500 characters — the function's own error text,
 which can quote what it was processing.
 

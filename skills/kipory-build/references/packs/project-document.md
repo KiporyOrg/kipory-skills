@@ -184,7 +184,7 @@ its `order` and `pageSize`, and the selection its rows take under `select` — a
 one `record.query` step, `with: { query: book.myShelf }`. A step is outside every table, so it always
 names the query as `<table>.<key>`. A `GET` endpoint over that flow declares only its path: its typed
 query, paging and `ETag` come from the query (anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)).
-Write the clauses in place in a `record.list` or `record.query` step only when a value comes from an
+Write the clauses in place in a `record.query` step only when a value comes from an
 earlier step. A table's `selections` hold its named answer shapes.
 
 <!-- field-ok: authorId — one project's example field name, not a platform field -->
@@ -268,7 +268,8 @@ What no schema says:
   holding an `any` clause is refused at save, `QUERY_ANY_UNSUPPORTED`: OR one field's values with
   `in`, or ask the OR in a `record.query` step written in place. A query's `order` may be
   `{ by: created, direction: asc }` for oldest created first (newest first is the
-  default), or name a number, true/false or text field with a `filter` use; a text field needs
+  default), `{ by: updated }` for the most recently changed first (`direction: asc` for the
+  least), or name a number, true/false or text field with a `filter` use; a text field needs
   the type's `maxLength` of at most 500
   (`QUERY_ORDER_TEXT_UNBOUNDED`).
 - **The exclusion runs before the page is cut**, so a base query that drops what the caller hid
@@ -292,7 +293,16 @@ What no schema says:
   serves it).
 - **A selection is the answer's type.** A selected row carries `id` and exactly the named properties; a
   linked one-record property is absent when nothing is linked. The step's value, the endpoint's
-  answer and the OpenAPI component (`BookCard`) are derived from it, so they cannot disagree.
+  answer and the OpenAPI component (`BookCard`) are derived from it, so they cannot disagree. A
+  property is a field's name or `{ field, values?, default? }`: `values` maps every value of a text
+  `enum` field to the value answered (`SELECTION_VALUES_INCOMPLETE`, `SELECTION_VALUES_NOT_ENUM`),
+  `default` is answered when the record has no value (`SELECTION_DEFAULT_TYPE`); a nullable field
+  takes `null` as its default, and a map or a default over the record's own `status` is judged
+  against its processing statuses. An endpoint names a selection `<table>.<key>` in its `answer`
+  (`Box.boxCard` for a table keyed with a capital). A property may be
+  named `status`, `createdAt` or `updatedAt` and filled from any field (`status: state`): the answer
+  carries the field, not the record's own. An endpoint that is no query endpoint answers in a
+  selection with `answer: { select: <table>.<selection>, list? }`.
 - **What a query cannot say yet** — OR across clauses, an order by a linked record's value, a set
   over `link` or `term` clauses, a computed property — stays a flow step after the `record.query`.
 
@@ -309,8 +319,11 @@ none for a query that reads no person's records), the `params`, a cursor (`after
 `items`, `nextCursor`, `prevCursor` and `paging: null`, beside `itemSchema` (one row's JSON Schema),
 `tables` (every table the read reaches) and `clauses` (what it ran, params and base merged in). It
 needs the viewer role, and writes, charges and runs nothing. `GET /v1/tables/{id}/queries` and
-`GET /v1/tables/{id}/selections` list a table's rows. A plan steers reads to queries: clauses
-written in place in a `record.list` or `record.query` step equal to a declared query warn
+`GET /v1/tables/{id}/selections` list a table's rows. `PATCH` on one row (`…/queries/{key}`,
+`…/selections/{key}`) is judged as a plan judges it: it answers `contractChanges` for every
+endpoint answering from the row, and a breaking one is refused 409 `CONTRACT_BREAK_NOT_ACCEPTED`
+until the body's `acceptBreaks` names it. A plan steers reads to queries: clauses
+written in place in a `record.query` step equal to a declared query warn
 `READ_REPEATS_QUERY`, and a `GET` endpoint whose flow is only one such read warns
 `ENDPOINT_IS_A_QUERY`; neither refuses.
 

@@ -7,7 +7,7 @@ Look up one Reddit post and its numbers.
 Give the post's link. Returns title, text, author, subreddit, time, score and comment count.
 
 - **Origin:** `ability`
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** social · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost`
 - **Also found as:** reddit thread, post details, reddit link

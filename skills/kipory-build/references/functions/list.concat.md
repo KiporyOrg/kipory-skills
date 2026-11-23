@@ -6,7 +6,7 @@ Join several values or lists into one list.
 
 A value becomes one item; a list adds each item. Use it when no fan-out needs merging.
 
-- **Group:** utility · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** values · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `list+` → `a list of the first input's element type`
 - **Also found as:** combine lists, merge lists, concatenate, flatten, append lists

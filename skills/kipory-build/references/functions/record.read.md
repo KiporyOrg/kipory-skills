@@ -107,7 +107,7 @@ each entry › `include`:
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `vocabularies` | boolean | no | `false` | Carry each linked record's vocabulary terms, as a plain read does; only `record.read` and `record.list` can. |
+| `vocabularies` | boolean | no | `false` | Carry each linked record's vocabulary terms, as a plain read does; only `record.read` can. |
 
 each entry › `when` — one of:
 
@@ -148,7 +148,7 @@ each entry › `linked` › each entry › `include`:
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `vocabularies` | boolean | no | `false` | Carry each linked record's vocabulary terms, as a plain read does; only `record.read` and `record.list` can. |
+| `vocabularies` | boolean | no | `false` | Carry each linked record's vocabulary terms, as a plain read does; only `record.read` can. |
 
 each entry › `linked` › each entry › `when` — one of:
 

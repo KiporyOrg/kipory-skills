@@ -6,7 +6,7 @@ Turn speech in an audio file into text.
 
 Leaving the model empty uses the project's transcription setting. The same file, model and language reuse the previous transcript.
 
-- **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string`
 - **Also found as:** speech to text, transcription, voice to text, dictation, subtitles

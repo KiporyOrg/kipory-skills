@@ -7,7 +7,7 @@ Look up one ad in the Google ad library.
 Give the ad's library link. Returns format, headline, text, image, destination, regions and when it was last shown.
 
 - **Origin:** `ability`
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** social · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd`
 - **Also found as:** google advert, ad details, search ad

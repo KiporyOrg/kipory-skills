@@ -6,7 +6,7 @@ Make retrieved text safe to put into an AI prompt.
 
 Wraps each item in a tagged block, strips control tokens and caps the length.
 
-- **Group:** text · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** values · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `object`
 - **Also found as:** clean text, prompt injection, escape text

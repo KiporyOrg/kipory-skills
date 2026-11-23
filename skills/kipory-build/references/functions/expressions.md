@@ -2,7 +2,7 @@
 
 # Expression functions
 
-Every expression a flow holds — a `value.transform`, a `value.build` field, an `{expr: …}` argument, a condition — and a table's computed-field formula may call JSONata 2.2's own functions and these 30 the platform adds. An expression cannot define a function another action calls; reach for one of these before writing a helper. A name you bind with `:=` hides the platform's for that expression (the plan warns `JSONATA_SHADOWS_BUILTIN`).
+Every expression a flow holds — a `value.transform`, a `value.build` field, an `{expr: …}` argument, a condition — and a table's computed-field formula may call JSONata 2.2's own functions and these 31 the platform adds. An expression cannot define a function another action calls; reach for one of these before writing a helper. A name you bind with `:=` hides the platform's for that expression (the plan warns `JSONATA_SHADOWS_BUILTIN`).
 
 No value means missing, `null`, empty text or an empty list: a function given none answers nothing (the action's slot stays empty) unless its entry says otherwise. A wrong type fails the action at the call. No function reads the clock, the host's time zone or its locale: `runInfo.now` is the time, and a date or locale function takes its zone and locale as arguments (UTC and `en` when left out).
 
@@ -26,6 +26,15 @@ The fallback when the value is missing, null, empty text, `[]` or `{}`; else the
 - **Signature:** `<xx:x>`
 - `$ifEmpty(post.brief, post.text)` over `{"post":{"brief":"","text":"Full text"}}` → `"Full text"`
 - `$ifEmpty(tags, ["untagged"])` over `{"tags":["news"]}` → `["news"]`
+
+### `$firstFile(list, typePrefix)`
+
+The first file in a list, or in a list of lists, such as `$firstFile([post.cover, post.images], "image/")`; with a type prefix, the first whose type starts with it, in any case. A single file is a list of one; anything that is not a file is passed over.
+
+- **No value:** Nothing when no file matches.
+- **Signature:** `<xs?:x>`
+- `$firstFile([cover, images], "image/")` over `{"cover":{"key":"k1","name":"brief.pdf","mime":"application/pdf"},"images":[{"key":"k2","name":"a.png","mime":"image/png"}]}` → `{"key":"k2","name":"a.png","mime":"image/png"}`
+- `$firstFile(attachments)` over `{"attachments":[{"key":"k1","name":"brief.pdf","mime":"application/pdf"}]}` → `{"key":"k1","name":"brief.pdf","mime":"application/pdf"}`
 
 ## Lists
 

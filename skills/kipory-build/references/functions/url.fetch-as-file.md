@@ -6,7 +6,7 @@ Download a web address and save it as a file.
 
 Keeps the file on the record and returns a reference to it.
 
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
+- **Group:** web · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
 - **Not undone when a run fails:** `file` — The file's bytes are stored while the step runs. A later attempt of the run stores them again under its own key; a file no record keeps is removed by the platform later. Doing it twice is not harmless; a failed run lists it in `closing.unstagedEffects`.
 - **I/O:** `string` → `file`

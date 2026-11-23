@@ -157,12 +157,13 @@ flows:
     outputs: { outcome: string }
     steps:
       - key: found
-        function: record.list
+        function: record.query
         with:
           table: chargeAttempt
           limit: 1
           pages: { max: 1, onMore: stop }
-          fieldFilters: [{ field: attemptKey, op: eq, value: attemptKey }]
+          clauses:
+            [{ kind: field, field: attemptKey, op: eq, value: attemptKey }]
       - key: known
         if:
           - test: { not: { filled: found.records } }

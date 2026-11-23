@@ -6,7 +6,7 @@ Start this flow again from where this run stopped.
 
 The next run starts once this run saves, from the read's cursor. An empty cursor ends the job.
 
-- **Group:** flow · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** run · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own next page, so a run started again stages it again; the page's own writes skip what is already there.
 - **I/O:** `cursor and inputs` → `ContinueResult`
 - **Also found as:** next page, continue, paginate, batch, large job, process in chunks

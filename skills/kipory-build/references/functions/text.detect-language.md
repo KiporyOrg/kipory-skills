@@ -6,7 +6,7 @@ Tell which language a text is written in.
 
 Answers with a two-letter code, or nothing rather than a wrong guess. No model is called.
 
-- **Group:** text · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** values · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
 - **Also found as:** which language, language code, identify language

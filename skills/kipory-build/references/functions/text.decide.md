@@ -2,9 +2,9 @@
 
 # `text.decide` — Answer typed questions
 
-Answer typed questions about a value: yes/no, pick one, or score.
+Answer typed questions about a value: chance of yes, one of a set, or a score.
 
-One call answers every output field as a probability, an option or a number. Text and yes/no fields are refused.
+Each question is a probability (yes/no), a choice, or a number with levels; text and true/false fields are refused.
 
 - **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`

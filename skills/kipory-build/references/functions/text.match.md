@@ -1,12 +1,12 @@
 <!-- generated: kipory-skills references · source: the deployment's function catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `text.extract` — Pull out matching text
+# `text.match` — Pull out matching text
 
 Pull every piece of text that matches a pattern.
 
 Duplicates are removed by default. Use a capture group to keep only part of each match, such as an id.
 
-- **Group:** text · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** values · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string+` → `string[]`
 - **Also found as:** regex, find emails, find links, pattern match, extract

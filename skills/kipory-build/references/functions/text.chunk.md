@@ -6,7 +6,7 @@ Split long text into smaller pieces, to handle one at a time.
 
 For steps that handle one part at a time. Neighbouring parts can share text; same input, same parts.
 
-- **Group:** text · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** values · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string[]`
 - **Also found as:** split text, chunks, paragraphs, break up text

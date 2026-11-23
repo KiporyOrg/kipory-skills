@@ -6,7 +6,7 @@ Pick the right terms for a record in each vocabulary you choose.
 
 Reuses a matching term or coins a new one when allowed. Wire the output into one `term.upsert` step.
 
-- **Group:** records · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** vocabularies · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record context` → `TermResolution[]`
 - **Also found as:** tag, auto tag, categorise record, assign terms

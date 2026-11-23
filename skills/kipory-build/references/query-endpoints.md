@@ -43,4 +43,5 @@ Write these as a flow step after the named read (the endpoint then answers what 
 - **Order by a linked record's value** ("collections by their newest item") — keep that value on the record ([records-and-endpoints.md](records-and-endpoints.md), §10) and order by it.
 - **A set over `link` or `term` clauses** — a set holds `field` clauses and sets only.
 - **A value the run computes** — a query reads no flow value; a filter built by an earlier step is an inline `record.query` ([record-query.md](record-query.md), §9).
-- **Computed answer properties** — a selection renames and links; a `value.transform` after the read computes.
+- **Computed answer properties** — a selection renames, maps an enum's values, gives a default and links; a `value.transform` after the read computes.
+- **A contract that pages by another name** (`?cursor=`) or a page of a read with clauses written in place — return the `record.query` page from the flow and declare `answer: { select: <table>.<selection>, list: true }` on the endpoint: it answers `{ items, nextCursor }` in the selection with no expression step ([endpoint-answers.md](endpoint-answers.md), §8).

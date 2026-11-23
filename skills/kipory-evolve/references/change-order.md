@@ -100,18 +100,18 @@ POST /v1/records/bulk   { project, items: [ { id, version, merge: { <the new fie
 - `validateOnly: true` rehearses it.
 - A bulk re-indexes but never re-runs the processing flow.
 
-A flow can do the same write for up to 100 records a run: `record.list` over the table (`limit` up
+A flow can do the same write for up to 100 records a run: `record.query` over the table (`limit` up
 to 100, filtered to the rows still to change) → an `each`
 over its `records` whose steps hold the `record.update` (`maxItems` caps the elements). Past 100, run it again and the filter picks up the rest (`kipory-data`).
 
 ### A change callers meet
 
-Every design write — a type, a flow, an endpoint or a table, on its own route or in a document, a
-rename, a checkpoint restore, connecting or disconnecting the end-user profile type, creating or
+Every design write — a type, flow, endpoint, table, query or selection, on its own route or in a document, a
+rename, a checkpoint restore, (dis)connecting the end-user profile type, creating or
 deleting a config namespace (they reshape `UserInfo` and `ProjectInfo`) — is checked for each endpoint and flow-backed table it reaches: what
-their callers meet, before and after the whole write. An endpoint answering a named query takes its
-query string, paging and items from the live query: an edit of the query, a selection, a table, type
-or relation it reads, or of its flow's steps, reaches it. Labels are no change (`title`, `description`,
+their callers meet, before and after the whole write. An endpoint answering a query or a
+declared `answer` takes its items live from its query or selection: an edit of either, of a table,
+type or relation it reads, its flow's steps or `answer.list` reaches it. Labels are no change (`title`, `description`,
 `examples`, field order, `x-record-ref`). The side decides:
 
 - **safe**: an optional input, output or field added; an input made optional or accepting more (a

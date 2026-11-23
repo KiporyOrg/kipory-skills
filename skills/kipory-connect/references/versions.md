@@ -6,13 +6,13 @@ Every page under `references/api/`, `references/functions/` and `references/pack
 
 | Source | Version | Served live as |
 | --- | --- | --- |
-| packs | `25f076011db8` | `version` on `GET /v1/capability-packs` |
-| functions | `35023b2ccbc5dd257dfd8e679acca90378b6449803351efc321636c1d9a6d08a` | `version` on `GET /v1/functions` |
-| api | `c043b707ac0a` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
-| codes | `e7edb153ebeb` | `info["x-kipory-refusal-codes-version"]` on `GET /v1/openapi.json` |
+| packs | `e302686a9733` | `version` on `GET /v1/capability-packs` |
+| functions | `6fee973fe331302487a22e47cbd0dad5779818b80f29a5545313ab506cece6c1` | `version` on `GET /v1/functions` |
+| api | `6c47ecf989d6` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
+| codes | `1c87b0ccc819` | `info["x-kipory-refusal-codes-version"]` on `GET /v1/openapi.json` |
 
-Function pages: 123 customer functions, key set `8eb626fff6a1`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`.
+Function pages: 115 customer functions, key set `5a667025f392`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`, `term.threshold-gate`.
 
-Kipory's seeded abilities: 54 rows, set `3fecec05a5d5`; their pages say `Origin: ability`.
+Kipory's seeded abilities: 54 rows, set `f74669b748d5`; their pages say `Origin: ability`.
 
 Document format: `12` — the `kipory:` version these skills write. The deployment serves the one it reads as `documentFormat.version` on `GET /v1/platform-status`; when they differ, every document in this bundle's format is refused with `DOCUMENT_VERSION_UNSUPPORTED`.

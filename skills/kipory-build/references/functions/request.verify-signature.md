@@ -6,7 +6,7 @@ Check a call was signed with your shared secret; refuse it with 401 if not.
 
 Computes the HMAC of the text that was signed and compares it with the signature sent, in constant time.
 
-- **Group:** flow · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** run · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `signed text` → `boolean`
 - **Also found as:** webhook signature, hmac, verify webhook, signed request, shared secret, standard webhooks

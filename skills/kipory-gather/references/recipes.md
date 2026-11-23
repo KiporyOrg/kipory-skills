@@ -78,7 +78,7 @@ cut and an `each`; each value looks its item up, then creates or updates it:
     - test: { filled: fetch }
       steps:
         - key: blocks
-          function: text.extract
+          function: text.match
           with: { text: fetch, pattern: "<item[\\s\\S]*?</item>", flags: [i] }
         - key: perItem
           each: blocks
@@ -95,12 +95,19 @@ cut and an `each`; each value looks its item up, then creates or updates it:
                 - test: { filled: item.link }
                   steps:
                     - key: found
-                      function: record.list
+                      function: record.query
                       with:
                         table: post
                         limit: 1
-                        fieldFilters:
-                          [{ field: link, op: eq, value: item.link }]
+                        clauses:
+                          [
+                            {
+                              kind: field,
+                              field: link,
+                              op: eq,
+                              value: item.link,
+                            },
+                          ]
                     - key: write
                       if:
                         - test: { filled: found.records }
@@ -120,7 +127,7 @@ cut and an `each`; each value looks its item up, then creates or updates it:
 ```
 
 - **`url.fetch` returns the feed as one string**, whatever content type the server names, so
-  `text.extract` reads the XML as text. Leave `responseAs` unset: `json` on XML fails the step.
+  `text.match` reads the XML as text. Leave `responseAs` unset: `json` on XML fails the step.
 - **Two size limits.** A body over the step's `maxBytes` (5,000,000 by default) fails the step. A
   body under it but over the value cap (500,000 characters unless the deployment set another) is
   cut to fit and ends in `[TRUNCATED]`, with only a `slot-truncated` warning on the run — so a
@@ -131,7 +138,7 @@ cut and an `each`; each value looks its item up, then creates or updates it:
 - **Set the fetch step's own cache.** `url.fetch` reuses an answer for 24 hours by default, so a
   poll that leaves `reuseResultsForMinutes` alone reads the same XML all day.
 - **The cut is by tag.** RSS wraps an item in `<item>`, Atom in `<entry>` — use
-  `<entry[\\s\\S]*?</entry>` there. `text.extract` returns every match as a list of strings.
+  `<entry[\\s\\S]*?</entry>` there. `text.match` returns every match as a list of strings.
 - **Read a field with `$match`**, as in `item`. The link is `<link>…</link>` in RSS and the `href`
   attribute of `<link …/>` in Atom. Strip `<![CDATA[` … `]]>` where the feed uses it.
 - **Look the link up before you write.** There is no upsert function, and a `key` use does not turn

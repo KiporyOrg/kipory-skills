@@ -7,7 +7,7 @@ List ads by company, page or keyword from the Facebook ad library.
 Also covers Instagram. Each ad comes with its advertiser, copy, media links, destination and run dates.
 
 - **Origin:** `ability`
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** social · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd[]`
 - **Also found as:** facebook adverts, meta ads, competitor ads

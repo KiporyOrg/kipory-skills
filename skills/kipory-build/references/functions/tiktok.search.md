@@ -7,7 +7,7 @@ Find TikTok videos that match a search.
 Each video comes with its caption, author, time and engagement counts.
 
 - **Origin:** `ability`
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** social · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`
 - **Also found as:** find tiktok videos, tiktok hashtag, trending videos

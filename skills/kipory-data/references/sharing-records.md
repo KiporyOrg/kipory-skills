@@ -76,10 +76,10 @@ schedule, a trigger) may share with any team of the project.
 
 ## What a read tells you
 
-Every read of a sharing table as a person — `record.read`, `record.list`, `record.query`,
+Every read of a sharing table as a person — `record.read`, `record.query`,
 `record.aggregate` and `record.count`, linked reads, a search (a `record.query` semantic clause), and a
 query endpoint called by that person — answers their own records and every record shared with them or with a team they are a
-member of. Each record `record.read`, `record.list`, `record.query` (its search hits included), a linked read or
+member of. Each record `record.read`, `record.query` (its search hits included), a linked read or
 a query without a selection answers them carries (a query with a selection answers its selection's properties only):
 
 - `access` — what they may do: `owner`, `read`, `write`, `delete` or `manage` (their best path, a
@@ -88,7 +88,7 @@ a query without a selection answers them carries (a query with a selection answe
 
 So one `record.read` with `failIfEmpty` answers "may this person see it" (a 404 when not) and "what may
 they do" — no lookup of your own. Branch on `access` to hide a button, to refuse an owner-only field
-(`request.refuse` with 403), or to leave a field out of the answer. A read made for nobody (a schedule,
+(a `fail` with `status: 403` and `refuse: true`), or to leave a field out of the answer. A read made for nobody (a schedule,
 a trigger) carries neither field.
 
 A share or a revoke counts on the next read: a query endpoint's ETag and a live query move with it. A search finds
@@ -97,7 +97,7 @@ the run that shared it. While many shares of one record keep landing, the index 
 and then leaves the rest to the next reconcile: the daily one, unless a save that changes what the
 project indexes starts one sooner. A revoked record is never answered, even before that.
 
-`record.list` takes `whose`:
+`record.query` takes `whose`:
 
 | `whose`  | Answers                                                                                |
 | -------- | -------------------------------------------------------------------------------------- |
@@ -105,8 +105,8 @@ project indexes starts one sooner. A revoked record is never answered, even befo
 | `own`    | only their own records                                                                 |
 | `shared` | only what is shared with them and not theirs, newest share first, each with `sharedAt` |
 
-`shared` pages by cursor like any list and takes `statuses` and `limit`; it takes no other sort or
-filter. A share made again moves the record to the front, so a walk already past the front does not
+`shared` pages by cursor like any list and takes `statuses` and `limit`; it takes no clauses, order or
+creation window. A share made again moves the record to the front, so a walk already past the front does not
 meet it again.
 
 ## Granting, revoking and listing, inside a flow
@@ -117,11 +117,11 @@ user id or a team record's id), with `level` beside them in its `with`. `record.
 apply with the run's change set, so a run that fails shares nothing. Each record a run shares or unshares also
 stages one change for its search index, once per record however many shares, and that change counts
 toward the run's limit of changes (`runs.change-set-effects`). The run's later steps still read the shares as
-they were when it began: share a record and write to it as the new sharee in two runs, not one. `record.grants` lists a record's
+they were when it began: share a record and write to it as the new sharee in two runs, not one. `record.shares` lists a record's
 shares: whom, the level, a member's own level and when, oldest first. The record's owner may do all
 three, and so may anyone holding `manage` on it. A run that acts for nobody (a schedule, a trigger, a
 key's call) acts for the project and may on any record of a sharing table. Each function's page is in
-`kipory-build` under `references/functions/` (`record.grant.md`, `record.revoke.md`, `record.grants.md`).
+`kipory-build` under `references/functions/` (`record.grant.md`, `record.revoke.md`, `record.shares.md`).
 
 ## What is refused
 
@@ -135,9 +135,9 @@ level the act needs, is refused **403**:
 | `RECORD_SHARE_LEVEL_TOO_LOW`     | 403    | updating, appending to, linking or unlinking below `write`; deleting below `delete`                                                                                         |
 | `RECORD_GRANT_NOT_ALLOWED`       | 403    | sharing, revoking or listing shares, by someone who sees the record but holds no `manage`                                                                                   |
 | `RECORD_GRANT_ABSENT`            | 404    | `record.revoke` with `ifAbsent: "refuse"`, and the record is not shared with them                                                                                           |
-| `RECORD_GRANT_NOT_SHARING`       | 422    | the record's table does not share (`record.grant`, `record.revoke`, `record.grants`, asked by its owner or the project's automation; anyone else gets the 404)              |
+| `RECORD_GRANT_NOT_SHARING`       | 422    | the record's table does not share (`record.grant`, `record.revoke`, `record.shares`, asked by its owner or the project's automation; anyone else gets the 404)              |
 | `RECORD_GRANT_PRINCIPAL_INVALID` | 422    | whom you share with (`record.grant`'s second input) is neither a person of the project nor a team record (of a sharing table) they can see; or `member` given to a team     |
-| `RECORD_LIST_WHOSE_NOT_SHARING`  | save   | `whose` other than `all` on a table that does not share                                                                                                                     |
+| `RECORD_WHOSE_NOT_SHARING`       | save   | `whose` other than `all` on a table that does not share                                                                                                                     |
 | `QUERY_COUNT_REACHES_SHARED`     | 422    | a count-only link clause, or `record.link-counts`, reaches a sharing table: the count would include records the run may not read. Filter the far records of a query instead |
 | `RECORD_SHARED_NO_FILES`         | 422    | an update through a share tries to attach files                                                                                                                             |
 
@@ -146,12 +146,12 @@ A merge stays the owner's: no level lets a person merge someone else's record.
 
 A refusal's own code rides as `details.reason` beside the status's envelope code (`FORBIDDEN`,
 `NOT_FOUND`); `QUERY_COUNT_REACHES_SHARED` is the envelope's `code` itself. A save-time refusal answers 422 `VALIDATION_FAILED` and names its code in the message: a table's leads
-it (`TABLE_FIELD_RESERVED_BY_SHARING: …`), a step's follows the step's key (`list: RECORD_LIST_WHOSE_NOT_SHARING: …`).
+it (`TABLE_FIELD_RESERVED_BY_SHARING: …`), a step's follows the step's key (`list: RECORD_WHOSE_NOT_SHARING: …`).
 When your product wants a 404 where the built-in answers 403 (say, "anyone but the recipient gets 404"),
-check `access` first and answer with `request.refuse`.
+check `access` first and answer with a `fail` step with `refuse: true`.
 
 Check the shared record before anything else the request names. "Only the owner may move a note into a
-folder" is a `record.read` of the note (404 to a stranger), then `request.refuse` 403 when its `access`
+folder" is a `record.read` of the note (404 to a stranger), then a `fail` with `status: 403` and `refuse: true` when its `access`
 is not `owner`, and only then a read of the folder. A folder read first, as the editor, finds nothing
 of theirs and answers 404, where the editor should be told 403.
 

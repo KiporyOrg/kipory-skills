@@ -6,7 +6,7 @@ Look up a YouTube video's details, numbers, and thumbnail.
 
 Takes a video link or id. Each part costs one daily quota unit.
 
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** social · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `YoutubeVideo`
 - **Also found as:** video views, video stats, youtube link

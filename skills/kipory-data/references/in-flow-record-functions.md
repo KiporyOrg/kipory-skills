@@ -13,8 +13,7 @@ runs as **the run's principal**. That single difference explains most of what su
 | `record.create`          | writes a new record                                                  | record mutation        |
 | `record.update`          | changes fields on one                                                | record mutation        |
 | `record.read`            | reads one by id                                                      | read                   |
-| `record.list`            | lists them                                                           | read                   |
-| `record.query`           | finds them by fields, terms, links or meaning in one question        | read                   |
+| `record.query`           | lists them, or finds them by fields, terms, links or meaning         | read                   |
 | `record.count`           | counts without reading                                               | read                   |
 | `record.links`           | reads a record's links, grouped by relation                          | read                   |
 | `record.link-counts`     | counts the links of one relation reaching each record, from everyone | read                   |
@@ -23,20 +22,19 @@ runs as **the run's principal**. That single difference explains most of what su
 | `record.append`          | adds events to a record's stream field                               | record mutation        |
 | `record.delete`          | deletes by id                                                        | record mutation        |
 | `record.merge`           | folds a duplicate into the record that stays                         | record mutation        |
-| `record.teardown`        | strips generated files and term assignments                          | idempotent side effect |
 | `record.enqueue-process` | hands the record to its processing flow                              | idempotent side effect |
 
 `record.create`, `record.update` and `record.enqueue-process` are covered where record creation
 is taught, in `kipory-build`, and `record.query`'s clauses on its function page there. Reading every
-page and bringing linked records, which the three reads share, comes first below; the rest follow; every field of each is on its function page in `kipory-build`.
+page and bringing linked records, which the reads share, comes first below; the rest follow; every field of each is on its function page in `kipory-build`.
 
 ## Reading every page, and the linked records
 
-`record.list`, and a `record.query` with no `semantic` clause over one table, answer ONE page
+A `record.query` with no `semantic` clause over one table answers ONE page
 (`limit`, 100 at most) and a `nextCursor` when more remain. Two settings make a read whole:
 
 - **`pages: { "max": N }` reads every page in this one step** — the records in the read's order,
-  each once, as one `RecordPage`. When records remain after `N` pages, or the next page would pass
+  each once, as one page. When records remain after `N` pages, or the next page would pass
   the size of one value (about 2,400 short records; a record counts whole), the step fails
   `RECORD_READ_HAS_MORE`: the run's failure names it as `reason` (and `error` does, in a `catch`), and a
   flow endpoint answers `422 VALIDATION_FAILED` with it as `details.reason`. `"onMore": "stop"`
@@ -55,25 +53,25 @@ page and bringing linked records, which the three reads share, comes first below
   more on `nextCursor` is `pages: { max: 10 }` on one step, and the `repeat` goes.
 - **A one-page read on purpose is `"pages": { "max": 1, "onMore": "stop" }`.** A read without
   `pages` whose `nextCursor` no step reads and no flow output passes on carries the warning
-  `RECORD_LIST_CURSOR_UNREAD` at save and on health (`details.stepKey` names the read): the flow is treating the first page as every
+  `RECORD_CURSOR_UNREAD` at save and on health (`details.stepKey` names the read): the flow is treating the first page as every
   record. It never blocks the save; either setting above silences it, whatever the read's order.
 - Saving refuses `pages` with `max` above 1 where a record could move across the cursor while the
   pages are read: ordered by update time, by a field that is not a date with a `filter` use, or by
   a date processing fills (`READ_PAGES_SORT_NOT_DATE`); `max: 1` reads no second page, so it takes
   any order; and on a `record.query` with a phrase, a phrase on a `peer`, or
   `tables`.
-- Saving refuses a greater-than or less-than on a text field in `record.list` and `record.count`
+- Saving refuses a greater-than or less-than on a text field in `record.count`
   (`RECORD_FILTER_TEXT_RANGE`): a range on text compares only values up to 2,000 bytes, and only
   `record.query` says how many it left out (`longTextSkipped` on its clause row). `eq` and `in`
-  find a text value of any length in all three.
+  find a text value of any length in both.
 - `record.query` also takes `contains` on a text field (text anywhere, ignoring case, at least 3
   characters with a word in them, not signs alone: a search-speed limit), an `any` clause (2 to 8 field, term, link or stream alternatives, one level deep, an
   OR), and an `order` by a number, true/false or text field with a `filter` use. A text order needs
   the type's `maxLength` of at most 500 on the field (`QUERY_ORDER_TEXT_UNBOUNDED`), and reading
   every page (`pages` above 1) still needs a date or `created` order.
 
-`linked` brings each record's linked records with it — on `record.read`, `record.list` and
-`record.query` alike:
+`linked` brings each record's linked records with it — on `record.read` and `record.query`
+alike:
 
 ```json
 {
@@ -100,7 +98,7 @@ linked records over all its linked reads, checked at save: per linked read, the 
 a list of `b` inside fits a 200-id read when `a × (1 + b)` is 100 or less. With `pages`, the budget is per page: the
 check counts one page (the read's `limit`), and each page brings up to 20,000 linked records of its own — `pages` does
 not multiply it. A `record.read` fed ids from a value counts
-as 200 unless the value is bounded: ids read off a `record.list`'s `records` with a fixed `limit` count as
+as 200 unless the value is bounded: ids read off a `record.query`'s `records` with a fixed `limit` count as
 `limit` × `pages.max`, and a writer whose output type is a list with `maxItems` counts as that (a step returning more fails at run, naming it). One more level
 of `linked` is allowed, not two.
 
@@ -134,8 +132,8 @@ Two things that follow from the run's principal:
 
 ## Counting
 
-`record.count` answers a number and reads no record. It takes a `table` and the same
-narrowing a list does: `fieldFilters` (each entry's `value` a path, a `{literal}` or an
+`record.count` answers a number and reads no record. It takes a `table` and its own
+narrowing: `fieldFilters` (each entry's `value` a path, a `{literal}` or an
 `{expr}`), `vocabularyFilter`, `linkFilters`, `statuses`, `createdAfter` and `createdBefore`.
 
 - **A field filter needs a `filter` use on the field.** One without it fails the step when it
@@ -225,7 +223,7 @@ yours". It never tells you which.
 
 Every writer here takes an optional `userId`, the two link functions included. In a run that
 acts for nobody — a schedule, a trigger — it names the person the write is for: a create is owned
-by them; an update, delete, append or teardown reaches their records and the pool; a link may join
+by them; an update, delete or append reaches their records and the pool; a link may join
 their records and the pool. The person
 must be an active member of the project (`PERSON_NOT_IN_PROJECT` otherwise, with one answer
 whatever the reason). In a run that acts for a person it may name only that person
@@ -242,21 +240,14 @@ lists and queries leave it out, and reading it by id answers `keep`. Over HTTP i
 `POST /v1/records/{id}/merge` with `{ into }`. Merging the same pair again is harmless; there is no
 unmerge.
 
-`record.teardown` is the one people reach for when they mean "reprocess this". It strips a record's
-**generated** files and its term assignments — `targets` defaults to both — and leaves the record
-itself alone. Files that were submitted rather than generated are not touched. It reports one count
-per target actually run, and a target you did not ask for is **absent** rather than zero, so a
-reader can tell "not asked" from "nothing to delete".
-
 ## Running a record's processing flow again
 
-`record.enqueue-process` and its three `replay` modes — what the run keeps, and who it reaches: `in-flow-reprocess.md`.
+"Reprocess this" is `record.enqueue-process` with `replay: "clean"`: it removes the record's terms and replaces its generated files when the run succeeds. Its three `replay` modes — what the run keeps, and who it reaches: `in-flow-reprocess.md`.
 
 ## The scoping that catches people
 
 **These functions run as the run's user, not as your key.** `record.delete` reaches that user's own
-records and the project's pool — only the pool when no one is signed in; `record.teardown` reaches
-only the user's own and fails outright with no user. A record belonging to another user matches
+records and the project's pool — only the pool when no one is signed in. A record belonging to another user matches
 nothing. A step that appears to do nothing is usually operating on records it cannot see,
 and it reports that as an ordinary empty result rather than a permission error.
 
@@ -270,8 +261,8 @@ records.
 **On a table that shares, a person reaches more.** A read answers their own records and every
 record shared with them or a team of theirs, each carrying `access` (what they may do) and
 `ownerId`; an update, an append or a link reaches a record shared at `write` or above, a delete at
-`delete` or above, and a lower level answers 403 by itself. `record.list` takes `whose: "own"` or
-`"shared"` (newest share first). `record.grant`, `record.revoke` and `record.grants` share, unshare
+`delete` or above, and a lower level answers 403 by itself. `record.query` takes `whose: "own"` or
+`"shared"` (newest share first). `record.grant`, `record.revoke` and `record.shares` share, unshare
 and list the shares (`references/sharing-records.md`).
 
 This is the opposite of the HTTP routes in this skill, which run with your key's grant and reach

@@ -57,8 +57,10 @@ flow writes into your new project. Check each endpoint's `auth` too: `none` woul
 make it public, callable with no credential, and a public endpoint is unlimited until
 `project.credits.publicEndpointsLimit` sets a cap. No shipped template declares one, so every
 endpoint a template gives you needs a key or a session until you decide otherwise. An endpoint there is written as on
-`POST /v1/api-endpoints`, `responseType` and a `from: "patch"` input included: read `responseType`
-to know an endpoint answers CSV or other text rather than JSON. A template file may leave out a
+`POST /v1/api-endpoints`, `responseType`, `answer` and a `from: "patch"` input included: read `responseType`
+to know an endpoint answers CSV or other text rather than JSON, and `answer` to know it answers in one
+of the template's selections, named `<table>.<key>` (the table key may start with a capital). A
+template file may leave out a
 parameter's `type` and `required`, a path parameter's entry and an endpoint's `inputs`, as any
 project document may; the project it creates stores them whole. A template's people tables (`owner:
 user`) are read as any document's are: a run that acts for nobody reaches every person's records,
@@ -101,7 +103,9 @@ Four things to know about the result:
 A template is written in the current document format (`kipory: 12`), so its flows are stated as
 `steps` in written order, and they are judged as a document's are: a step the save refuses — a read
 it cannot prove, a condition whose list key is misspelled — refuses the project's creation, and
-nothing is made.
+nothing is made. A template's flows use today's catalog: a list read is `record.query` (with its
+status, owner and include settings, and `order: { by: updated }`, where it needs them), and a refusal
+is a `fail` step with `refuse: true`.
 
 ## A template on a project that already exists
 

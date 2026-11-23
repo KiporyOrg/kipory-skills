@@ -79,6 +79,25 @@ defused). For a download name, set `headers: {"Content-Disposition": "<output>"}
 holding `attachment; filename="week.csv"`. One URL answers one type: a project that wants JSON and
 CSV makes two endpoints.
 
+`answer: { "select": "<table>.<selection>" }` answers the `responseBody` output, or the flow's only
+output, in one of the project's selections instead of as the flow built it. Without `list` the
+output is one record — a `record.read` row returned as `found[0]` after a write, or a record read by
+id — and the body is its `id` and the selection's properties. With `"list": true` the output is the
+page a `record.query` step gives, and the body is `{ "items": [...], "nextCursor": "…" | null }`;
+the flow's cursor input takes whatever name the contract pages by (`cursor` from `?cursor=`). A
+property the record has no value for answers `null`, and a selection may answer `status` or
+`createdAt` from another field (`"status": "state"`), which is how a contract's reserved names are
+answered. The published 200 is the selection's component (`Box_boxCard`), or the page around it.
+The table key may start with a capital (`Box.boxCard`), as a table key may. The save refuses
+`answer` on an asynchronous or streamed endpoint, on a query endpoint (its query's `select` shapes
+it), beside `responseType`, `redirect`, `statusOutput` or `status: 204` (`ANSWER_ENDPOINT_KIND`);
+with no `responseBody` over several outputs (`ANSWER_OUTPUT_UNKNOWN`); over an output typed as a
+list or a plain value, or typed as one record under `list` or as a page without it
+(`ANSWER_OUTPUT_TYPE`; an output typed only `object` is judged when it answers, 502 on the wrong
+kind); naming a selection the project lacks (`ANSWER_SELECTION_UNKNOWN`) or one with `linked`
+properties (`ANSWER_SELECTION_LINKED`). A changed `default`, or a value map moved within the same
+values, changes what callers read, so it is a contract change like a property removed.
+
 **A field a declared type marks optional is in the answer, `null` when it has no value** — at every
 depth: an optional output the `return` left out, an optional field a returned object lacks, list
 items, and a query endpoint's items. The published OpenAPI document lists every field as required,
@@ -298,7 +317,7 @@ minute, up to 86,400 paid calls a day), and what bounds the spend: the project's
 `credits.publicEndpointsLimit` when one is set, otherwise only that rate and the wallet.
 Making an endpoint public when its flow spends needs ADMIN, on the row API and in a document; an
 editor may still make public an endpoint whose flow spends nothing.
-It also warns `PUBLIC_ENDPOINT_NAMES_PERSON` when a `record.query`, `record.count`, `record.list`
+It also warns `PUBLIC_ENDPOINT_NAMES_PERSON` when a `record.query`, `record.count`
 or `record.aggregate` of a person-owned table takes its `userId` from the request, and
 `PUBLIC_ENDPOINT_READS_PEOPLE` when the flow reads a person-owned table naming no person: either
 way anyone can read everyone's records. Read a fixed person, return only what is public, or keep
@@ -309,7 +328,7 @@ seconds to be served.
 
 **A public endpoint can be a webhook receiver or a link someone clicks.** Bind the signature header
 and `rawBody`, and check them with `request.verify-signature` (below); answer a click with a
-`redirect`. A public endpoint's own refusals — a `request.refuse`, a bad signature — reach the
+`redirect`. A public endpoint's own refusals — a `fail` with `refuse: true`, a bad signature — reach the
 caller as written, 403 included. An endpoint whose `publicRpm` you set above the project's
 per-address figure lets one address make up to that many calls a minute to it, at most 120, and
 hold more of the project's public calls running at once in the same proportion (at most four
@@ -319,7 +338,17 @@ failed-calls alert.
 
 ## Refusing a call, and shaping the answer
 
-**A flow refuses with the status it means** through a `request.refuse` step, inside an `if`
+**A `fail` step** ends the flow with your own error,
+`{key, fail: {code, message, status?, retryAfterSeconds?, refuse?}}`; the caller gets `status` (any
+4xx except 405, 408 and 426; 422 when left out) with the body `{code, message, details}`: the
+platform's word for the status as `code` (`FORBIDDEN`, `GONE`, `RATE_LIMITED`…; `REQUEST_REFUSED`
+for one with no word of its own, such as 400 or 418), your message, your code as `details.reason`.
+With `status: 429`, `retryAfterSeconds` adds `Retry-After`. `message` is fixed text or a value read
+while the flow runs (`{expr: "..."}`, or `{path, optional: true}`); a value that gives no text says
+"The request was refused.", and one past 500 characters is cut. The run fails, so nothing it would
+have written is kept.
+
+**A flow refuses with the status it means** through a `fail` with `refuse: true`, inside an `if`
 branch so it runs only when the call must be refused:
 
 ```yaml
@@ -328,28 +357,16 @@ branch so it runs only when the call must be refused:
     - test: { not: { has: userInfo } }
       steps:
         - key: refuseAnonymous
-          function: request.refuse
-          with:
-            {
-              status: 401,
-              code: SIGN_IN_REQUIRED,
-              message: { literal: "Sign in first." },
-            }
+          fail:
+            code: SIGN_IN_REQUIRED
+            message: "Sign in first."
+            status: 401
+            refuse: true
 ```
 
-`message` is an argument, so fixed text is a `literal`; a bare string is a path. The status is one
-of 401, 403, 404, 409, 410, 413, 415, 422 or 429; `retryAfterSeconds` adds `Retry-After`. The
-caller gets that status, the platform's word for it as `code` (`FORBIDDEN`, `GONE`,
-`RATE_LIMITED`…), your code as `details.reason` and your message. The run fails, so nothing it
-would have written is kept, and a `try` does not catch a refusal. Steps run in written order, so
-put the refusal and a signature check before any costly step (an AI call, a fetch, a sub-flow): a
-forged call then spends nothing.
-
-**A `fail` step** ends the flow with your own error, `{key, fail: {code, message, status?}}`; the
-caller gets `status` (any 4xx except 405, 408 and 426; 422 when left out) with the body `{code, message, details}`: the
-platform's word for the status as `code` (`REQUEST_REFUSED` for one with no word of its own, such as 400 or 418), your message, your code as `details.reason` — the shape a refusal
-answers. Unlike a refusal, a `try` around it catches it; use `request.refuse` when nothing may
-catch it or the answer needs `Retry-After`.
+A plain `fail` is caught by a `try` around it; a refusal is not, no `each` carries past it, and
+nothing the run has not started runs. Steps run in written order, so put the refusal and a signature
+check before any costly step (an AI call, a fetch, a sub-flow): a forged call then spends nothing.
 
 **A signed webhook** is checked by `request.verify-signature`:
 `{ "payload": "raw", "signature": "sig", "secret": "shop.record.data.paymentSecret" }`, with `raw`
@@ -467,7 +484,7 @@ which is what stops a caller claiming to be a different user.
 
 **An endpoint declares no output mapping, and this is deliberate.** Its response shape comes from one
 place — the flow as it is now (below) — so there is nothing to configure on the way out.
-Records are read through the `record.read` / `record.list` functions inside a flow, so a
+Records are read through the `record.read` / `record.query` functions inside a flow, so a
 record-shaped response is a flow output like any other, given by its `return`.
 
 The practical consequence for an architect: **to change what an endpoint returns, change the

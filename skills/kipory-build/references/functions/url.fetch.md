@@ -6,7 +6,7 @@ Download the text behind a web address.
 
 Reads JSON, plain text or an XML feed. A 4xx answer fails the step; its failure value carries the `httpStatus`.
 
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** web · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
 - **Also found as:** http, api call, json, rest api, get request, download text

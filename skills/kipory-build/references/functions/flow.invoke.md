@@ -6,7 +6,7 @@ Run another flow, passing values in and taking results back.
 
 It hands the other flow its inputs and reads back what that flow returns.
 
-- **Group:** flow · **Phase:** `control` · **Effect class:** `read`
+- **Group:** run · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `the values its inputs read` → `the called flow's outputs`
 - **Also found as:** call a flow, subflow, reuse a flow, run flow

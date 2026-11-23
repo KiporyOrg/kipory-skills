@@ -7,7 +7,7 @@ List the comments on a Reddit post.
 Top-level comments with the replies the thread shows. Each has its text, author, time and score.
 
 - **Origin:** `ability`
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** social · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialComment[]`
 - **Also found as:** reddit replies, thread comments, discussion

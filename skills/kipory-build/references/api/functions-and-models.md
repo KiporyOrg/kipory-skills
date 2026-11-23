@@ -72,13 +72,16 @@ Each item of `models`:
 
 ### `GET /v1/functions`
 
-Every function this deployment runs — what each reads, emits and accepts as config — with a `version` hash to cache on. Code functions and abilities (functions whose contract is data, added with no deploy, `origin: ability`) are one list; an ability is listed once shown, and `version` moves when one changes. Pass `?project=` to have each function's declared types resolved against that project's type registry (VIEWER on the project), which is what a step editor needs when picking a function; without it the catalog is the same for every caller. One function with its worked example is `GET /v1/functions/{key}`. A hidden function is left out — on a project's list, unless that project's own steps use it, where it stays marked `run.hidden` — and `GET /v1/functions/{key}` still answers for it.
+Every function this deployment runs — what each reads, emits and accepts as config — with a `version` hash to cache on, paged by key on `after`: one page may not hold the whole catalog (a connection with hundreds of operations goes past the default page), so follow `nextCursor` until it is null. Code functions and abilities (functions whose contract is data, added with no deploy, `origin: ability`) are one list; an ability is listed once shown, and `version` moves when one changes. Pass `?project=` for the project's own functions — Kipory's and those of the connections it may use — each with its declared types resolved against that project's type registry (VIEWER on the project), which is what a step editor needs when picking a function; without it the catalog is the same for every caller. One function with its worked example is `GET /v1/functions/{key}`. A hidden function is left out, and a project's list also leaves out the platform's own functions (`run.platformOnly`, which a project's step cannot use); a project's list keeps either kind when that project's own steps use it, still marked, and `GET /v1/functions/{key}` still answers for it.
 
 **Query**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `project` | `string` | no | Resolve each function's declared types against this project's type registry — its id, as `POST /v1/projects` answered it. Omit for the deployment's catalog alone. Requires VIEWER on the project. |
+| `project` | `string` | no | Resolve each function's declared types against this project's type registry — its id, as `POST /v1/projects` answered it — and list the project's functions: Kipory's and those of the connections it may use. Omit for the deployment's catalog alone. Requires VIEWER on the project. |
+| `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
+| `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
+| `limit` | `integer` | no | Functions per page, by key; at most 1000, 500 when left out. |
 
 **Response `200`**
 
@@ -86,13 +89,16 @@ Every function this deployment runs — what each reads, emits and accepts as co
 | --- | --- | --- | --- |
 | `version` | `string` | yes | Content hash of the catalog — a stable cache key. Two deployments serving the same functions hash identically, and any change (a new function, a config field, a copy edit) changes it. |
 | `hashes` | `object` | yes | One content hash per function key, over what `GET /v1/functions/{key}` answers. A function's hash moves only when that function changes, so a cached copy of one function can be checked without re-reading the rest. |
-| `functions` | `object[]` | yes | Every function this deployment registers, sorted by key. With `?project=`, each also carries `contractUnresolved`, `configDefaults`, `configDefaultsValid` and `freeFormInput`, resolved against that project's types; without it those are absent. |
+| `functions` | `object[]` | yes | This page's functions, sorted by key (walk the rest with `nextCursor`). With `?project=`, each also carries `contractUnresolved`, `configDefaults`, `configDefaultsValid` and `freeFormInput`, resolved against that project's types; without it those are absent. |
 | `groups` | `object[]` | yes | Every picker group, IN DISPLAY ORDER, with the one sentence that says what it is for. Order is meaningful: it runs roughly from what a flow produces toward what it is plumbed with. |
 | `valueKinds` | `object[]` | yes | The whole closed list of value kinds, each with its words, its parent and the type it sits on. Every kind named anywhere in this response is one of these. |
 | `expressionFunctions` | `object[]` | yes | Every function the platform adds to JSONata, callable in any expression a flow holds and in a table's computed-field formulas. Besides these, every JSONata 2.2 function works except the ones in `forbiddenExpressionFunctions`. |
 | `forbiddenExpressionFunctions` | `object[]` | yes | JSONata functions an expression may not call: a save naming one is refused. |
 | `askAi` | `object` | yes | The function for free instructions, named by the platform. |
 | `vendors` | `object[]` | yes | The name and mark of every vendor a listed function's credential names (`credential.purpose`, `providers.options[].credential.purpose`), by id, from the vendor's row. Not covered by `version`. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
+| `paging` | `object` | yes | Where this page sits among the functions, by key. `functions`, `hashes` and `vendors` are this page's; `groups`, `valueKinds` and the rest are whole on every page. |
 
 Each item of `functions`:
 
@@ -105,12 +111,13 @@ Each item of `functions`:
 | `description` | `string` | yes | What it does. |
 | `detailedDescription` | `string` | yes | What the one sentence in `description` left out: caveats, cost, failure and ordering. A short paragraph, drawn apart from `description`. |
 | `icon` | `string` | yes | A name for the glyph that stands for this function, authored beside it on its own descriptor. An OPEN vocabulary: a client resolves it through a table with a fallback and must render something for a name it does not know. |
-| `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "records" \| "outbound" \| "flow" \| "utility"` | yes | The picker group it belongs to — one of `groups[]`. |
+| `group` | `"ai" \| "values" \| "web" \| "social" \| "files" \| "records" \| "vocabularies" \| "run" \| "send" \| "connections"` | yes | The group it belongs to — one of `groups[]`. |
+| `family` | `string` | yes | The family it belongs to, a key of its group's `families` (`posts-of-an-account`). A family with one member is drawn as that function. |
 | `phase` | `"ingest" \| "inline" \| "control"` | yes | When in a run this function executes. It constrains where a step using it can sit in a flow. |
 | `effectClass` | `"read" \| "idempotent-side-effect" \| "record-mutation"` | yes | What kind of effect running it has — whether it writes anything durable, and what. Whether a re-run repeats the write is `run.retry`. |
 | `editor` | `object` | yes | What a step editor must ask the operator for this function: which work surface to show, whether a prompt and a model are required, and where this function's inputs and output slot come from. Always fully populated — a function that declares nothing is served the platform defaults, so a client never applies a default of its own. |
 | `glance` | `object` | yes | What goes in, what the step does, what comes out — in plain words. |
-| `groupWord` | `string` | yes | The word this function's group is shown by ("Tables" for `records`), the same as on `groups[]`. |
+| `groupWord` | `string` | yes | The word this function's group is shown by ("Records" for `records`), the same as on `groups[]`. |
 | `searchWords` | `string[]` | yes | The words a customer types for what this function does — tasks, outcomes, everyday terms. Match them to find a function by intent; they may be shown. |
 | `searchProductNames` | `string[]` | yes | Other products' names a customer may type for what this function does ("chatgpt"). Match them; never show them. Empty when none. |
 | `essentials` | `object[]` | yes | The settings that matter, in reading order: every required one, then those that change the result. Empty when none is worth a card. |
@@ -143,9 +150,10 @@ Each item of `groups`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "records" \| "outbound" \| "flow" \| "utility"` | yes | The group this sentence is about. |
-| `word` | `string` | yes | The word the group is shown by ("Tables"); typing it finds the group's functions. |
+| `group` | `"ai" \| "values" \| "web" \| "social" \| "files" \| "records" \| "vocabularies" \| "run" \| "send" \| "connections"` | yes | The group this sentence is about. |
+| `word` | `string` | yes | The word the group is shown by ("Records"); typing it finds the group's functions. |
 | `note` | `string` | yes | What this group is for, in one sentence, at any size. |
+| `families` | `object[]` | yes | The group's families, in display order. `connections` lists the families of the project's connected services, one per OpenAPI tag or MCP server, else one per connection; none without a project. |
 
 Each item of `valueKinds`:
 
@@ -208,12 +216,13 @@ Any authenticated caller; the answer is the same for everyone.
 | `description` | `string` | yes | What it does. |
 | `detailedDescription` | `string` | yes | What the one sentence in `description` left out: caveats, cost, failure and ordering. A short paragraph, drawn apart from `description`. |
 | `icon` | `string` | yes | A name for the glyph that stands for this function, authored beside it on its own descriptor. An OPEN vocabulary: a client resolves it through a table with a fallback and must render something for a name it does not know. |
-| `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "records" \| "outbound" \| "flow" \| "utility"` | yes | The picker group it belongs to — one of `groups[]`. |
+| `group` | `"ai" \| "values" \| "web" \| "social" \| "files" \| "records" \| "vocabularies" \| "run" \| "send" \| "connections"` | yes | The group it belongs to — one of `groups[]`. |
+| `family` | `string` | yes | The family it belongs to, a key of its group's `families` (`posts-of-an-account`). A family with one member is drawn as that function. |
 | `phase` | `"ingest" \| "inline" \| "control"` | yes | When in a run this function executes. It constrains where a step using it can sit in a flow. |
 | `effectClass` | `"read" \| "idempotent-side-effect" \| "record-mutation"` | yes | What kind of effect running it has — whether it writes anything durable, and what. Whether a re-run repeats the write is `run.retry`. |
 | `editor` | `object` | yes | What a step editor must ask the operator for this function: which work surface to show, whether a prompt and a model are required, and where this function's inputs and output slot come from. Always fully populated — a function that declares nothing is served the platform defaults, so a client never applies a default of its own. |
 | `glance` | `object` | yes | What goes in, what the step does, what comes out — in plain words. |
-| `groupWord` | `string` | yes | The word this function's group is shown by ("Tables" for `records`), the same as on `groups[]`. |
+| `groupWord` | `string` | yes | The word this function's group is shown by ("Records" for `records`), the same as on `groups[]`. |
 | `searchWords` | `string[]` | yes | The words a customer types for what this function does — tasks, outcomes, everyday terms. Match them to find a function by intent; they may be shown. |
 | `searchProductNames` | `string[]` | yes | Other products' names a customer may type for what this function does ("chatgpt"). Match them; never show them. Empty when none. |
 | `essentials` | `object[]` | yes | The settings that matter, in reading order: every required one, then those that change the result. Empty when none is worth a card. |
@@ -312,8 +321,8 @@ Each item of `servedBy`:
 
 ### `GET /v1/functions/search`
 
-Ask, in your own words, whether Kipory can do something — "get the latest posts from an X account", "count orders per customer" — and get the functions that do it, best first, at most 5: why each matched, what it takes, what it answers, and the smallest step to paste into a flow. When none is close enough, `verdict` is `cannot`: Kipory cannot do this yet, `nearest` lists the closest functions in case one is enough, and `report` is a body to file with `POST /v1/reports` so Kipory hears it is missing.
-`text` is the whole answer as plain text. Pass `?project=` (VIEWER on it) to search the functions your organization connected too.
+Ask, in your own words, whether Kipory can do something — "get the latest posts from an X account", "count orders per customer" — and get the functions that do it in `lanes`: Kipory's own functions first, then, with `?project=`, the operations of the services that project connected, each lane best first and at most 5, with why each matched, what it takes, what it answers and the smallest step to paste into a flow. When no lane has one close enough, `verdict` is `cannot`: Kipory cannot do this yet, each lane's `nearest` lists its closest functions in case one is enough, and `report` is a body to file with `POST /v1/reports` so Kipory hears it is missing. An ask naming a service the project has not connected is `cannot` too, naming it in `notConnected`, with no report.
+`text` is the whole answer as plain text, both lanes under their headings. Pass `?project=` (VIEWER on it) to search the connections that project may use too.
 The whole catalog is `GET /v1/functions`; one function's page with a worked example is `GET /v1/functions/{key}`.
 Each ask counts against your own request limit.
 
@@ -322,51 +331,28 @@ Each ask counts against your own request limit.
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `q` | `string` | yes | What you want to do, in your own words — "get the latest posts from an X account", "count orders per customer". At least 3 letters or digits; read lowercased, its first 200 characters. |
-| `project` | `string` | no | Node id of the project you are building. Needs VIEWER on it, and adds the functions your organization connected to the search. |
+| `project` | `string` | no | Node id of the project you are building. Needs VIEWER on it, and adds the connections this project may use — its own and its organization's — to the search, answered in their own lane. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `query` | `string` | yes | Your ask, as it was read. |
-| `verdict` | `"found" \| "cannot"` | yes | `found` — `matches` lists functions that do it; `cannot` — Kipory cannot do this yet, and `nearest` lists the closest functions in case one is enough. |
-| `matches` | `object[]` | yes | The functions that do it, best first, each once, at most 5. Empty when the verdict is `cannot`. |
-| `nearest` | `object[]` | yes | On `cannot`: the 3 closest functions, none close enough to be a match. Empty when the verdict is `found`. |
-| `report` | `object \| null` | yes | On `cannot`: a report to file; null when the verdict is `found`. |
+| `verdict` | `"found" \| "cannot"` | yes | `found` — a lane lists functions that do it; `cannot` — Kipory cannot do this yet (no lane found one, or the ask names a service this project has not connected, `notConnected`), and each lane's `nearest` lists the closest functions in case one is enough. |
+| `lanes` | `object[]` | yes | `kipory` always, then `connections` when the search covered at least one of this project's connections — absent, not empty, for a project with none or an ask without `project`. |
+| `notConnected` | `string[]` | yes | The services your ask names that this project has not connected, by name. Not empty: the verdict is `cannot` — connect the service (`POST /v1/projects/{nodeId}/connections`, or its organization's `POST /v1/nodes/{nodeId}/connections`) or ask without naming it. |
+| `report` | `object \| null` | yes | On `cannot`: a report to file; null when the verdict is `found`, and when the ask names a service this project has not connected (`notConnected`) — that is the project's to connect, not something Kipory lacks. |
 | `text` | `string` | yes | The whole answer as plain text, to read as it is. |
 | `version` | `string` | yes | The function catalog's version the answer was made from, as `GET /v1/functions` reports it. |
 
-Each item of `matches`:
+Each item of `lanes`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `key` | `string` | yes | The function key, as a step names it. |
-| `title` | `string` | yes | Its display name. |
-| `origin` | `"code" \| "ability" \| "platform"` | yes | `code` — one of Kipory's own functions; `ability` — a function whose contract is data, Kipory's or one your organization connected; `platform` — something Kipory does that is not a step: a command, a call or a part of the project document, said in `how`. |
-| `score` | `number` | yes | How close your ask came to it in meaning, from 0 to 1. |
-| `why` | `string` | yes | Why it was listed: the phrasing it matched, and how. |
-| `takes` | `object[]` | yes | A function's inputs, then the settings that matter, required first. Empty for `platform`. |
-| `answers` | `object \| null` | yes | What the step answers; null for `platform`. |
-| `step` | `object \| null` | yes | The smallest step that runs the function, in the project document's format; null for `platform`. |
-| `stepYaml` | `string \| null` | yes | The same step as YAML, ready to paste into a flow's `steps`; null for `platform`. |
-| `how` | `object \| null` | yes | For `platform`: how to do it. Null for a function. |
-| `detail` | `string` | yes | Where to read more: a function's whole page, or the documentation that explains the feature. |
-
-Each item of `nearest`:
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `key` | `string` | yes | The function key, as a step names it. |
-| `title` | `string` | yes | Its display name. |
-| `origin` | `"code" \| "ability" \| "platform"` | yes | `code` — one of Kipory's own functions; `ability` — a function whose contract is data, Kipory's or one your organization connected; `platform` — something Kipory does that is not a step: a command, a call or a part of the project document, said in `how`. |
-| `score` | `number` | yes | How close your ask came to it in meaning, from 0 to 1. |
-| `why` | `string` | yes | Why it was listed: the phrasing it matched, and how. |
-| `takes` | `object[]` | yes | A function's inputs, then the settings that matter, required first. Empty for `platform`. |
-| `answers` | `object \| null` | yes | What the step answers; null for `platform`. |
-| `step` | `object \| null` | yes | The smallest step that runs the function, in the project document's format; null for `platform`. |
-| `stepYaml` | `string \| null` | yes | The same step as YAML, ready to paste into a flow's `steps`; null for `platform`. |
-| `how` | `object \| null` | yes | For `platform`: how to do it. Null for a function. |
-| `detail` | `string` | yes | Where to read more: a function's whole page, or the documentation that explains the feature. |
+| `lane` | `"kipory" \| "connections"` | yes | `kipory` — Kipory's own functions and platform answers; `connections` — the operations of the services this project connected. |
+| `verdict` | `"found" \| "cannot"` | yes | `found` — `matches` lists this lane's functions that do it; `cannot` — none in this lane is close enough, and `nearest` lists its closest. |
+| `matches` | `object[]` | yes | This lane's functions that do it, best first, at most 5. Empty on `cannot`. |
+| `nearest` | `object[]` | yes | On `cannot`: this lane's 3 closest functions. Empty on `found`. |
 
 ### `GET /v1/nodes/{nodeId}/model-prices`
 

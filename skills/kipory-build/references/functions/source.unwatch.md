@@ -6,7 +6,7 @@ Let go of a channel's watch for one holder; the last one switches it off.
 
 Removes one record's watch. The last one switches the source off, never deletes it; deleting the record does the same.
 
-- **Group:** sources · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** social · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `channel and holder` → `SourceUnwatch`
 - **Also found as:** unfollow channel, unsubscribe, stop watching, release watch

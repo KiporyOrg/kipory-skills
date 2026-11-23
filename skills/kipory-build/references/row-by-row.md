@@ -56,12 +56,14 @@ A step of any kind also takes `description`: a note for people reading the flow,
   "steps": [
     {
       "key": "due",
-      "function": "record.list",
+      "function": "record.query",
       "with": {
         "table": "member",
         "limit": 100,
         "pages": { "max": 10, "onMore": "fail" },
-        "fieldFilters": [{ "field": "renewsOn", "op": "eq", "value": "day" }]
+        "clauses": [
+          { "kind": "field", "field": "renewsOn", "op": "eq", "value": "day" }
+        ]
       }
     },
     {
@@ -147,7 +149,7 @@ Read it top down: `due` lists the members renewing on the input `day`; `perMembe
 - **Nothing is skipped at run time.** A step whose required input is missing fails the run with a typed error; a step given `[]` runs with `[]`. To go on past a failure, wrap the steps in `try` and say in `catch` what happens; inside `catch`, `error` is `{code, message, step}`.
 - **An endpoint's error is a `fail` step** (a limit on an input goes on the input's type instead, and needs no step): `{key: refuse, fail: {code: BOX_PACKED, message: "A packed box cannot change.", status: 422}}` ends the flow and answers that status (any 4xx except 405, 408 and 426; 422 when left out): `code` `VALIDATION_FAILED`, your message, `details.reason` `BOX_PACKED`. A status with no word of its own, such as 400, 402 or 418, answers `code` `REQUEST_REFUSED`.
 - **Only `return` gives outputs.** A flow with required outputs and a path that ends without `return` or `fail` is refused `FLOW_PATH_HAS_NO_END`.
-- **A list read is one page.** `record.list` and `record.query` read one page unless `pages` says more; `onMore: "fail"` fails the run when rows remain instead of dropping them. The save warns `RECORD_LIST_CURSOR_UNREAD` when nothing reads the next page. A read's `cursor` bound in `with` to a path whose root ran or was given (another read's page) with nothing at the path (that page's `nextCursor` after its last page) means the list ended, and it answers an empty page; the root absent (the first run, an optional input left out), or no `cursor` bound, reads page one. `""` is a value, so page one too.
+- **A list read is one page.** `record.query` reads one page unless `pages` says more; `onMore: "fail"` fails the run when rows remain instead of dropping them. The save warns `RECORD_CURSOR_UNREAD` when nothing reads the next page. A read's `cursor` bound in `with` to a path whose root ran or was given (another read's page) with nothing at the path (that page's `nextCursor` after its last page) means the list ended, and it answers an empty page; the root absent (the first run, an optional input left out), or no `cursor` bound, reads page one. `""` is a value, so page one too.
 - **An `each` runs one value at a time when its steps change something another value could meet** (`EACH_RUNS_ONE_AT_A_TIME`, a warning). Say `maxParallel: 1` to mean it.
 - ⛔ **Preview costs money and writes.** `apply` defaults to true; `apply: false` still runs every step and every model call. `checking.md` §6.
 - **Pinning `modelId` takes one step out of the project's model choice, silently.** `models.md`.

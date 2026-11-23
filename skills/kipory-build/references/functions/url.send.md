@@ -6,7 +6,7 @@ Tell an outside system something, once the run is saved.
 
 Sends after the run is saved; previews never send. The flow never sees the answer, so cannot branch on it.
 
-- **Group:** outbound · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** send · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own request, so a new run of the same input sends it again.
 - **I/O:** `string` → `boolean`
 - **Also found as:** webhook, http post, post to a url, call an api, notify a system, send data, sign a webhook, signed request, hmac, signature header

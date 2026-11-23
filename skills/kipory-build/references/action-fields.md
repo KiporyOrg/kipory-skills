@@ -43,7 +43,7 @@ An **action** is the kind of step that runs a function. This page has every fiel
 
 `with` holds, by name:
 
-- **the function's settings** — the config table on its page (`functions/<key>.md`): `table`, `limit`, `fieldFilters`, `onKeyTaken`, …;
+- **the function's settings** — the config table on its page (`functions/<key>.md`): `table`, `limit`, `clauses`, `onKeyTaken`, …;
 - **the values it reads** — the inputs its page names (`url.fetch` reads `url`, `text.decide` reads `message`, `audio.transcribe` reads `audio`), each an argument (§3);
 - **a model step's prompt** — `text.generate` takes `prompt` and `system`, `text.interpolate` takes `template`: plain text. A placeholder is `{{name}}`, `{{name.field}}` or `{{name[0]}}`, and the save reads it like any other read. One item's field (`{{found[0].fruit}}`) is not a placeholder (`TEMPLATE_PLACEHOLDER_UNREAD`): compute it in a step first and write `{{thatStep}}`. A placeholder that names a whole object or list (`{{order}}` where `order` is an object, `{{items}}` where it is a list) is refused at save, `INTERPOLATE_BARE_STRUCTURED_SLOT`: it would render empty. Name a field (`{{order.total}}`), write `{{order | json}}`, or loop over a list with `{{#items}}…{{/items}}`.
 
@@ -90,20 +90,20 @@ Wherever a step reads a value, it takes an argument:
 
 ## 4. A setting that names a field says `field`
 
-A filter, a sort or a check names a field of the records it reads by its plain name under `field`, never as a read:
+A clause, an order or a check names a field of the records it reads by its plain name under `field`, never as a read:
 
 ```yaml
 with:
   table: member
-  dataNullChecks: [{ field: email, op: isNull }]
-  fieldFilters: [{ field: renewsOn, op: eq, value: day }]
+  clauses: [{ kind: field, field: renewsOn, op: eq, value: day }]
+  order: { by: field, field: renewsOn }
 ```
 
 `field` is a name; `value` is an argument (here a path to the flow's input `day`). A read where a field name belongs (`field: {path: email, optional: true}`) is refused `STEP_FIELD_NAME_IS_PATH`, with a fix that writes the name itself.
 
 ## 5. The step's value
 
-A step has one value, read by its key: `save.recordId`, `boxes.records`, `line`. A function's extra results are fields of that value — `record.create` answers `recordId` (and `keyTaken` under `onKeyTaken: skip`), `record.list` answers `records` and `nextCursor`, `record.read` a list of records.
+A step has one value, read by its key: `save.recordId`, `boxes.records`, `line`. A function's extra results are fields of that value — `record.create` answers `recordId` (and `keyTaken` under `onKeyTaken: skip`), `record.query` answers `records` and `nextCursor`, `record.read` a list of records.
 
 **Some values may be nothing, and the save knows which**: the value of `text.decide`, `url.fetch`, `url.scrape`, `url.metadata`, `web.search`, `place.details`, `youtube.video`, `file.stats`, `image.metadata`, the social profile and post reads and others; a field the type marks optional; an expression it cannot prove answers a value. A step that reads such a value as required is refused `STEP_INPUT_MAY_BE_ABSENT` (a field: `STEP_INPUT_FIELD_MAY_BE_ABSENT`); a `return` of a required output, `FLOW_OUTPUT_MAY_BE_NOTHING`. Fail first when it is missing (an `if` on `{not: {has: x}}` that fails with your own code), read it inside `if: [{test: {has: x}, …}]`, or as `{path: x, optional: true}` — each finding carries the fix. A `default` (`$default(…, …)` in an expression) only for a real fallback the product wants (`[]`, 0 for a count, a label), never an id, owner, amount or status.
 

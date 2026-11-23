@@ -40,7 +40,7 @@ First check you need a flow at all; usually you don't. A vocabulary whose `match
 | `references/action-fields.md`                                      | a function step's fields: `function`, `with`, arguments, run settings         |
 | `references/action-inputs.md`                                      | types, what a step reads, when a step runs, what a setting takes              |
 | `references/patterns.md`                                           | the shapes (pipeline, sub-flow, `repeat`, branch, `try`) and the map of pages |
-| `references/fan-out.md`                                            | the `each` and `parallel` blocks, run state across elements                   |
+| `references/fan-out.md`                                            | the `each` and `parallel` blocks, totals across elements                      |
 | `references/utilities.md`                                          | the small utility functions and `value.transform`'s JSONata habits            |
 | `references/records-and-endpoints.md`                              | a record's processing flow, roll-ups                                          |
 | `references/endpoint-answers.md`                                   | what an endpoint answers: rows, 404, 422, 403, natural-key collisions         |

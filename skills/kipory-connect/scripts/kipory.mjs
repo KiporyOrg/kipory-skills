@@ -27,8 +27,9 @@
 //   preview <flow> [--as <user|nobody|me>] [--input <json>] [--apply] [--fan-out-cap <n|uncapped>]
 //                              run a flow in the sandbox, print each write
 //   preview --schedule <key> [--input <json>] [--apply]   a schedule's flow, as it fires
-//   find <words…> [--report]   can Kipory do this? the functions that do it, or an honest
-//                              "cannot" with the nearest (--report files the miss)
+//   find <words…> [--report]   can Kipory do this? Kipory's functions and your connections'
+//                              that do it, or an honest "cannot" with the nearest, naming
+//                              a service you have not connected (--report files the miss)
 //   docs <words…>              the best-matching section of these skills
 //
 // <doc> is a .json or .yaml file, or a .mjs/.js file whose standard output is
@@ -1353,8 +1354,8 @@ const PAGE_MAX = 20;
 
 /**
  * A page's list and cursor: at the top, or under the one key that holds them.
- * A view endpoint answers `items`; a flow that returns a `record.query` or
- * `record.list` value answers `records`.
+ * A view endpoint answers `items`; a flow that returns a `record.query`
+ * value answers `records`.
  */
 const pageOf = (json) => {
   if (!json || typeof json !== "object" || Array.isArray(json))
@@ -2523,8 +2524,12 @@ const printCaps = async (runId, run) => {
 
 /**
  * "Can Kipory do X?" in one call: the capability search route answers the
- * functions that do it, each with a ready step, or `cannot` with the nearest
- * and a report to file. Its `text` is the whole answer, written to be read.
+ * functions that do it in two lanes — Kipory's functions, then the project's
+ * connections, each ranked within itself — each with a ready step, or
+ * `cannot` with each lane's nearest and a report to file. An ask naming a
+ * service the project has not connected is `cannot` naming it
+ * (`notConnected`), with no report. Its `text` is the whole answer, both
+ * lanes under their headings, written to be read.
  */
 const find = async (query) => {
   const q = query.join(" ").trim();
@@ -2547,7 +2552,12 @@ const find = async (query) => {
   else out(String(answer?.text ?? "").trimEnd());
   if (flags.get("report") === true) {
     if (answer?.verdict !== "cannot" || !answer?.report) {
-      if (!asJson) out("(found: nothing to report)");
+      if (!asJson)
+        out(
+          (answer?.notConnected?.length ?? 0) > 0
+            ? "(not connected: connect the service instead of reporting)"
+            : "(found: nothing to report)",
+        );
       return;
     }
     ok(await api("POST", "/v1/reports", answer.report), "filing the report");

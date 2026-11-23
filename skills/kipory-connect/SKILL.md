@@ -237,16 +237,16 @@ schedules:
 ```
 
 - **A flow is its steps, in the order they run.** A step is a function (`function` + `with`), `return`, `fail`, or a block: `if`/`else`, `each`, `repeat`, `try`/`catch` (all in `close-overdue`) and `parallel` (steps at once, none reading another). A step's key names its value (`save.recordId`); a value made inside a block is read outside only through the block's `out` (a `repeat`'s is its `vars`), and an `each` gives the list of its passes' `out`. A flow gives outputs only through `return`, never inside an `each`, `repeat` or `parallel`.
-- **What steps give.** A row (from `record.read`, `record.list`, `record.query`) is its fields at the top level plus `id`, `status`, `createdAt`, `updatedAt` (ISO times), `processing` (and `ownerId` on a per-user table), none of which makes a project row new (below); a field with no value is left out. `record.list` gives `{ records, nextCursor }` (`nextCursor` while more remain), `record.query` the same plus `bounded` and `explanation`, `record.read` a list of rows, `record.create` `{ recordId, table, keyTaken }`, `record.update` `true`, or `false` when nothing matched.
-- **A run is all or nothing**: its writes are saved together when it ends, and a failed step or a `fail` keeps none of them; mail and requests leave only after the save. So a `record.list` or `record.query` later in the run does not see the rows it created; a `record.read` by id does. A failure inside `try`, a `fail` too, drops what `try` staged and runs `catch`; a failed `each` pass fails the block unless `maxFailedBranches` or `maxFailedShare` lets it go, and gives no `out`.
+- **What steps give.** A row (from `record.read`, `record.query`) is its fields at the top level plus `id`, `status`, `createdAt`, `updatedAt` (ISO times), `processing` (and `ownerId` on a per-user table), none of which makes a project row new (below); a field with no value is left out. `record.query` gives `{ records, nextCursor, bounded, explanation }` (`nextCursor` while more remain), `record.read` a list of rows, `record.create` `{ recordId, table, keyTaken }`, `record.update` `true`, or `false` when nothing matched.
+- **A run is all or nothing**: its writes are saved together when it ends, and a failed step or a `fail` keeps none of them; mail and requests leave only after the save. So a `record.query` later in the run does not see the rows it created; a `record.read` by id does. A failure inside `try`, a `fail` too, drops what `try` staged and runs `catch`; a failed `each` pass fails the block unless `maxFailedBranches` or `maxFailedShare` lets it go, and gives no `out`.
 - **Endpoint inputs.** Leave `inputs` out and each flow input binds by its name: a `{part}` of the path, else the query on GET and DELETE, the body on POST and PATCH; one the flow gains later binds too, unless it states `internal: true`; a plan warns when an endpoint starts accepting an input. An object or list never comes from the query. State `inputs` for another name or source, each `{ from: … }`: `path.<p>`, `query.<p>` (declared in `params`), `header.<name>` (lower case, an optional text input), `rawBody` (the exact text, for `request.verify-signature`), `patch`, `body`. Stated, an unlisted input is not bound. An input's type is `string`, `number`, `boolean`, `object`, `file`, `probability`, a library type (`RecordRead`) or a type of yours: `title: Title`, `dueOn: string?` (optional), `tags: string[]` (a list); the long form is `{ type, list, optional, internal, description }`; there is no `integer`.
 - **An input's limits go on its type.** `minLength`, `maxLength`, `minimum`, `maximum`, `pattern` and `enum` on the type an input names (`Title`; never beside the input) are checked at the endpoint before any step runs: `422 VALIDATION_FAILED`, `details.reason` `FLOW_INPUT_INVALID`. Write no step that only checks an input. A start by another flow, a schedule or a trigger checks only a non-empty rule (`minLength: 1`).
 - **An argument** is exactly one of: a path (`title`, `rows.records`), `{ literal: … }`, `{ expr: "<JSONata>" }`, `{ path: x, optional: true }`, `{ path: x, default: … }`. Never mix their keys: a default for an expression goes inside it, `{ expr: "$default(limit, 20)" }`. A setting that names a thing (`table`, `query`, `flow`) is a plain value. A test is one of `has`, `filled`, `eq`, `in`, `gt`, `gte`, `lt`, `lte`, `before`, `after`, `startsWith`, `contains`, `matches`, `expr`, combined with `and`, `or`, `not`. An expression reads `runInfo.now`, `runInfo.nonce`, and `userInfo.userId` (the caller); `$now()` and `$random()` are refused.
-- **An endpoint answers its flow's outputs by name** (`{ "note": {…} }`); `responseBody: note` on the endpoint answers that one output bare, `redirect: { location: url }` answers a redirect to an output.
-- **A list over HTTP is a named query**: written under its table (`tables.note.queries.mine`) and read by one `record.query` step with `query: note.mine`; the flow declares `<step>After`, `<step>Before`, `<step>Limit`; the endpoint answers `{ items, nextCursor }` and pages by `?after=`. A query orders by `created`, or by a field with a `filter` use (a text one needs `maxLength` ≤ 500). Any other list a caller pages is `record.list` (`limit: { path: limit, default: 50 }`; `order: asc` is oldest first by `createdAt`). Use `record.query` with its clauses written in place for a text range, meaning, or a text or number order; there `order: { by: created, direction: asc }` is oldest first (newest is the default), and `createdAt` is never a `by: field`.
+- **An endpoint answers its flow's outputs by name**; `responseBody: note` answers one bare, `redirect: { location: url }` a redirect, `answer: { select: note.card }` a record in a selection (`list: true`: a page; `endpoint-answers.md`).
+- **A list over HTTP is a named query**: written under its table (`tables.note.queries.mine`) and read by one `record.query` step with `query: note.mine`; the flow declares `<step>After`, `<step>Before`, `<step>Limit`; the endpoint answers `{ items, nextCursor }` and pages by `?after=`. A query orders by `created`, or by a field with a `filter` use (a text one needs `maxLength` ≤ 500). Any other list a caller pages is a `record.query` with its clauses written in place (`limit: { path: limit, default: 50 }`); `order: { by: created, direction: asc }` is oldest first (newest is the default), `{ by: updated }` most recently changed first, and `createdAt` is never a `by: field`.
 - **People's data** lives on `owner: user` tables, no owner field or check: a person's run sees their rows, a run for nobody (schedule, trigger, public endpoint) all. Sharing is `sharing: true` on the table plus `record.grant`. On `owner: project` identical data is one record (two equal transfers at once share one id): give a row that may repeat a field telling it apart, `ref: { expr: "runInfo.nonce" }`. A once-only row uses `key`, next.
 - **Once, by the platform**: a field with the `key` use, then `record.create` with `onKeyTaken: skip` answers `keyTaken: true` instead of a second row. A counter is `record.update` with `add: { views: { literal: 1 } }`. Calls at once apply in turn (a refused save, or a create a racing call beat, runs again): add no lock or retry; a `record.count` quota holds; on `keyTaken`, answer that `recordId` (a replay succeeds, not a 409). Unique across people: `{ "kind": "key", "scope": "project" }`.
-- **`null` at an endpoint.** An answer carries every field its declared type marks optional, `null` when it has no value — so type a record output with its table's own type (`outputs: { link: Link }`), never plain `object`. An optional input sent as `null` means not sent. To clear vs keep on an update, bind one object input `{"from": "patch"}` (its type's fields all optional) and pass it to `record.update` as `data`: a field sent `null` is removed, one left out is kept; `$exists(changes.x)` is true when `x` was sent. In a flow, clear a field with `{literal: null}` in `record.update`'s `fields` (a merge removes it; under `mode: replace`, leave it out).
+- **`null` at an endpoint.** An answer carries every field its declared type marks optional, `null` when it has no value — type a record output with its table's type (`link: Link`), never `object`. An optional input sent as `null` means not sent. To clear vs keep on an update, bind one object input `{"from": "patch"}` (its type's fields all optional) and pass it to `record.update` as `data`: a field sent `null` is removed, one left out is kept; `$exists(changes.x)` is true when `x` was sent. In a flow, clear a field with `{literal: null}` in `record.update`'s `fields` (a merge removes it; under `mode: replace`, leave it out).
 - **CSV**: return a `text.csv` step's text (`rows`, `columns`) as a required output, named in the endpoint's `responseBody` with `responseType: "text/csv"`; errors stay JSON.
 - **A daily job runs as nobody**: `expire-notices` sees every row, people's too (`clauses: []`: all). A start for everyone (`flow.start-per-person`, `people: { kind: project }`) starts real people only and answers `testUsersLeftOut`: while you test, `PATCH /v1/projects/{nodeId}/settings {"testUsersInStarts": true}`, off before real people use it.
 - **Mail sends from the project's own address**, its name at the environment's mail domain, when `email.send` names none. Another is claimed once with `POST /v1/managed-email-addresses { node, localPart, domain, grade: "relay" }`, bound in `project.mail.senders` (`support: support@example.com`) and named as `sender: support`. A test user receives no mail. A model call is `text.generate` (a `prompt`, `outputSchema` for a typed answer) or `text.decide` for yes/no, a pick or a score (`kipory-build`'s `references/models.md`).
@@ -260,7 +260,7 @@ schedules:
 4. **`fail.status` is 400–499**, but not 405, 408 or 426 (left out, 422); there is no 5xx of your own (`FAIL_STATUS_INVALID`). `fail.code` is capitals, digits and underscores, starting with a capital (`BOX_PACKED`); the caller gets it as `details.reason`.
 5. **Text is `{ literal: … }`**: a bare string is always a path, and an unknown one is `STEP_READS_UNKNOWN`.
 6. **A function's settings are its own** (its catalog lines below): one it does not take is `STEP_SETTING_UNKNOWN`; `record.delete` takes `ids`, not `table`.
-7. **Queried, ordered or totalled fields carry a `filter` use** on the table; on a table that already holds records, apply the new use before planning the steps that read it. An expression names a record's fields exactly as its type has them (`JSONATA_FIELD_UNKNOWN`). `record.list`, `record.count` and `record.aggregate` compare text only with `eq` or `in`; a range on text is `record.query`'s.
+7. **Queried, ordered or totalled fields carry a `filter` use** on the table; on a table that already holds records, apply the new use before planning the steps that read it. An expression names a record's fields exactly as its type has them (`JSONATA_FIELD_UNKNOWN`). `record.count` and `record.aggregate` compare text only with `eq` or `in`; a range on text is `record.query`'s.
 8. **Expressions**: wrap a list one builds in `$list(…)` (JSONata gives one item as the item, none as nothing); `x != "v"` is false when `x` is missing, so write `$not(x = "v")`; a yes/no pattern test is `$contains(s, /re/)`, not `$match`; read a `cursor` from the previous page's `nextCursor` or an input, never a value step.
 9. **Keys**: step, table and input keys are camelCase, and no two steps of a flow share a key at any depth (`STEP_KEY_TAKEN`); flow and relation keys are kebab-case; type keys are PascalCase. Record fields never use `id`, `status`, `createdAt`, `updatedAt`, `processing` or `statusError`.
 10. **Blocks nest at most 4 deep** (move the inside to a flow and `flow.invoke` it); `repeat.max` is at most 50; a schedule's `failurePolicy` is `pause` or `keep-running`. A credential goes in `url.send`'s or `url.fetch`'s `secret`, never in `headers`.
@@ -275,7 +275,7 @@ schedules:
 
 <!-- generated: the function catalog, one line each, from the deployment's catalog; regenerated on every publish, so an edit inside this block is overwritten -->
 
-**ai** — Model calls: answer typed questions (the cheapest), generate text, or rank a list.
+**Ask a model** (`ai`) — Model calls. Paid; the answer is cached unless told not to.
 
 - text.decide — Answer typed questions · message* model outputSchema → the step's outputSchema
 - text.generate — Generate text · prompt* system → the step's outputSchema
@@ -288,239 +288,188 @@ schedules:
   - gives: The model's answer: text, or a value of the declared shape. A misfit is never repaired: the model is asked once more, and a second miss fails the try.
   - e.g. `with: {"prompt":"Summarize in three sentences:\n\n{{article}}"}`
 - text.rerank — Rank by relevance · queryStreams* documentItems* model topN maxDocuments maxDocumentChars → RerankHit[]
-
-**text** — Work on text without a model: split, match, fill a template, clean.
-
-- text.chunk — Split text into chunks · text* encoding chunkTokens overlapTokens maxChunks → string[]
-- text.csv — Make CSV text · rows* columns* defuseFormulas bom → CSV text
-- text.detect-language — Detect language · text* minAccuracy minLetters minScriptShare minMinorityScriptShare minScriptMargin → string
-- text.extract — Pull out matching text · text* pattern flags dedupe group → string[]
-- text.interpolate — Fill a template · template* → string
-- text.sanitize — Make text safe for a prompt · items* idField textField nonce maxCharsPerItem truncationMarker outputShape → object
-
-**sources** — Fetch data from outside — pages, videos, feeds, places. Can be slow and cost money.
-
-- facebook.ad — Fetch a Facebook ad · source* → SocialAd
-- facebook.ads — Fetch Facebook ads · source* maxItems by activeOnly country → SocialAd[]
-- facebook.page — Fetch a Facebook page · source* withLastPost → FacebookPage
-- facebook.posts — Fetch a Facebook page's posts · source* maxItems → SocialPost[]
-- google.ad — Fetch a Google ad · source* → SocialAd
-- google.ads — Fetch Google ads · source* maxItems details format country → SocialAd[]
-- instagram.comments — Fetch an Instagram post's comments · source* maxItems includeReplies → SocialComment[]
-- instagram.post — Fetch an Instagram post · source* → SocialPost
-- instagram.posts — Fetch an Instagram account's posts · source* maxItems → SocialPost[]
-- instagram.profile — Fetch an Instagram profile · source* → SocialProfile
-- instagram.search — Search Instagram posts · source* maxItems → SocialPost[]
-- instagram.search-profiles — Search Instagram accounts · source* maxItems → SocialProfile[]
-- instagram.transcript — Fetch an Instagram transcript · source* → string
-- linkedin.ad — Fetch a LinkedIn ad · source* → SocialAd
-- linkedin.ads — Fetch LinkedIn ads · source* maxItems by → SocialAd[]
-- linkedin.company — Fetch a LinkedIn company page · source* → SocialProfile
-- linkedin.post — Fetch a LinkedIn post · source* → SocialPost
-- linkedin.posts — Fetch a LinkedIn company's posts · source* maxItems → SocialPost[]
-- linkedin.profile — Fetch a LinkedIn profile · source* → SocialProfile
-- location.resolve — Find a place from a map point · location* language → Place
-- place.details — Fetch a place · place* language maxImages → PlaceCard
-- place.reviews — Fetch place reviews · place* maxReviews sort since language origin includeReviewerDetails → PlaceReviews
-- place.search — Search for places · query* maxItems language location includeClosed detail → PlaceCard[]
-- reddit.comments — Fetch a Reddit post's comments · source* maxItems → SocialComment[]
-- reddit.post — Fetch a Reddit post · source* → SocialPost
-- reddit.posts — Fetch a subreddit's posts · source* maxItems sort timeframe → SocialPost[]
-- reddit.search — Search Reddit posts · source* maxItems sort timeframe → SocialPost[]
-- source.unwatch — Stop watching a source · provider* channel* holder* userId → SourceUnwatch
-- source.watch — Watch a source · provider* channel* holder* userId → SourceWatch
-- telegram.resolve-channel — Fetch a Telegram channel · handle* freshnessMinutes maxWaitMs pollIntervalMs → TelegramChannelResolution
-- telegram.search-channels — Search Telegram channels · terms* maxChannels maxChannelsPerSearchTerm minMembers skipScam → TelegramChannelSearchResults
-- telegram.stats — Read Telegram member count · channel* → TelegramChannelStats
-- threads.post — Fetch a Threads post · source* → SocialPost
-- threads.posts — Fetch a Threads account's posts · source* maxItems → SocialPost[]
-- threads.profile — Fetch a Threads profile · source* → SocialProfile
-- threads.search — Search Threads posts · source* maxItems → SocialPost[]
-- tiktok.ads — Fetch TikTok ads · source* maxItems by → SocialAd[]
-- tiktok.audience — Fetch a TikTok account's audience · source* → SocialAudience
-- tiktok.comments — Fetch a TikTok video's comments · source* maxItems → SocialComment[]
-- tiktok.followers — Fetch a TikTok account's followers · source* maxItems → SocialProfile[]
-- tiktok.following — Fetch who a TikTok account follows · source* maxItems → SocialProfile[]
-- tiktok.post — Fetch a TikTok video · source* → SocialPost
-- tiktok.posts — Fetch a TikTok account's videos · source* maxItems region → SocialPost[]
-- tiktok.profile — Fetch a TikTok profile · source* → SocialProfile
-- tiktok.search — Search TikTok videos · source* maxItems → SocialPost[]
-- tiktok.transcript — Fetch a TikTok transcript · source* language aiFallback → string
-- url.fetch — Fetch text from a web address · url* timeoutMs maxBytes maxRedirects method query headers body bodyAs contentType secret userAgent responseAs → string
-- url.fetch-as-file — Fetch a web address as a file · url* maxBytes timeoutMs maxRedirects allowedMimePatterns failureMode method query headers body bodyAs contentType secret userAgent → file
-- url.metadata — Fetch a page's title and preview · url* timeoutMs maxBytes maxRedirects userAgent → UrlMeta
-- url.scrape — Fetch a web page · url* onlyMainContent excludeTags includeTags mainContentFallbackMinChars timeoutMs → ScrapedPage
-- url.screenshot — Take a page screenshot · url* viewportWidth format jpegQuality maxBytes timeoutMs failureMode → file
-- web.rankings — Fetch top websites · country* category limit → TopSiteRanking
-- web.search — Search the web · query* maxResults maxPages countryCode languageCode resultsLanguage since after before sites excludeSites includeUrlContains excludeUrlContains → WebSearchResults
-- web.traffic — Fetch website traffic · source* → SiteTrafficMetrics
-- x.posts — Fetch X posts · source* maxItems sort → XPost[]
-- x.profile — Fetch an X profile · source* → SocialProfile
-- x.transcript — Fetch an X transcript · source* → string
-- youtube.channel — Fetch a YouTube channel · channel* parts listUploads uploadsLimit → YoutubeChannel
-- youtube.comments — Fetch a YouTube video's comments · source* maxItems sort → SocialComment[]
-- youtube.posts — Fetch a YouTube channel's videos · source* maxItems content sort → SocialPost[]
-- youtube.search — Search YouTube videos · source* maxItems sort uploaded → SocialPost[]
-- youtube.transcript — Fetch a YouTube transcript · video* lang includeTimestamps → string
-- youtube.trending — Fetch trending YouTube channels · region* maxResults videoCategoryIds includeChannelDetails → YoutubeTrendingChannels
-- youtube.video — Fetch a YouTube video · url* parts → YoutubeVideo
-
-**files** — Read what a file holds — metadata, text, transcripts — make a resized or rendered copy, or a download link.
-
-- audio.metadata — Extract audio details · audio* duration → AudioMetadata
 - audio.transcribe — Transcribe audio · audio* model language maxBytes → string
-- file.copy — Copy a file · file* maxBytes → file
+
+**Shape values and text** (`values`) — No model and no outside call. Most value logic is an expression in any setting.
+
+- **Reshape a value** — One expression (transform), one expression per field (build), or join lists
+  - list.concat — Join into one list · inputs* strategy → a list of the first input's element type
+  - value.build — Build a value field by field · fields* examples → object
+  - value.transform — Reshape values · expression* examples → object
+- text.interpolate — Fill a template · template* → string
+- **Work on text** — Split, match a pattern, detect the language, make safe for a prompt, make CSV
+  - text.chunk — Split text into chunks · text* encoding chunkTokens overlapTokens maxChunks → string[]
+  - text.csv — Make CSV text · rows* columns* defuseFormulas bom → CSV text
+  - text.detect-language — Detect language · text* minAccuracy minLetters minScriptShare minMinorityScriptShare minScriptMargin → string
+  - text.match — Pull out matching text · text* pattern flags dedupe group → string[]
+  - text.sanitize — Make text safe for a prompt · items* idField textField nonce maxCharsPerItem truncationMarker outputShape → object
+
+**Web and maps** (`web`) — Read public pages, search the web, look up places. Can be slow and cost money.
+
+- **Read a web page** — Raw JSON, text or a feed (fetch); a page rendered in a browser (scrape); its head (metadata); a picture; its file
+  - url.fetch — Fetch text from a web address · url* timeoutMs maxBytes maxRedirects method query headers body bodyAs contentType secret userAgent responseAs → string
+  - url.fetch-as-file — Fetch a web address as a file · url* maxBytes timeoutMs maxRedirects allowedMimePatterns failureMode method query headers body bodyAs contentType secret userAgent → file
+  - url.metadata — Fetch a page's title and preview · url* timeoutMs maxBytes maxRedirects userAgent → UrlMeta
+  - url.scrape — Fetch a web page · url* onlyMainContent excludeTags includeTags mainContentFallbackMinChars timeoutMs → ScrapedPage
+  - url.screenshot — Take a page screenshot · url* viewportWidth format jpegQuality maxBytes timeoutMs failureMode → file
+- web.search — Search the web · query* maxResults maxPages countryCode languageCode resultsLanguage since after before sites excludeSites includeUrlContains excludeUrlContains → WebSearchResults
+- **Site rankings and traffic** — A country's top sites; a site's visits
+  - web.rankings — Fetch top websites · country* category limit → TopSiteRanking
+  - web.traffic — Fetch website traffic · source* → SiteTrafficMetrics
+- **Places** — Find places, a listing, its reviews; coordinates to a city
+  - location.resolve — Find a place from a map point · location* language → Place
+  - place.details — Fetch a place · place* language maxImages → PlaceCard
+  - place.reviews — Fetch place reviews · place* maxReviews sort since language origin includeReviewerDetails → PlaceReviews
+  - place.search — Search for places · query* maxItems language location includeClosed detail → PlaceCard[]
+
+**Social and channels** (`social`) — Public accounts, posts, comments and ads on a network. Paid, cached. Pick the family, then the network.
+
+- **Posts of an account** — Recent posts of one account, page or channel
+  - `<network>.posts` · source* maxItems → SocialPost[] · facebook, instagram, linkedin, reddit +sort +timeframe, threads, tiktok +region, x +sort → XPost[], youtube +content +sort
+- **One post** — One post, reel or video by its link
+  - `<network>.post` · source* → SocialPost · instagram, linkedin, reddit, threads, tiktok
+  - youtube.video — Fetch a YouTube video · url* parts → YoutubeVideo
+- **One profile** — Account details and counts
+  - `<network>.profile` · source* → SocialProfile · instagram, linkedin, threads, tiktok, x
+  - facebook.page — Fetch a Facebook page · source* withLastPost → FacebookPage
+  - linkedin.company — Fetch a LinkedIn company page · source* → SocialProfile
+  - youtube.channel — Fetch a YouTube channel · channel* parts listUploads uploadsLimit → YoutubeChannel
+- **Followers and audience** — Who follows, whom it follows, where its audience is
+  - tiktok.audience — Fetch a TikTok account's audience · source* → SocialAudience
+  - tiktok.followers — Fetch a TikTok account's followers · source* maxItems → SocialProfile[]
+  - tiktok.following — Fetch who a TikTok account follows · source* maxItems → SocialProfile[]
+- **Comments** — Comments on a post or video
+  - `<network>.comments` · source* maxItems → SocialComment[] · instagram +includeReplies, reddit, tiktok, youtube +sort
+- **Search a network** — Posts or accounts matching words
+  - `<network>.search` · source* maxItems → SocialPost[] · instagram, reddit +sort +timeframe, threads, tiktok, youtube +sort +uploaded
+  - instagram.search-profiles — Search Instagram accounts · source* maxItems → SocialProfile[]
+- **Transcripts** — Spoken words in a video
+  - `<network>.transcript` · → string · instagram +source*, tiktok +source* +language +aiFallback, x +source*, youtube +video* +lang +includeTimestamps
+- **Ad libraries** — A company's or a keyword's ads, or one ad
+  - `<network>.ad` · source* → SocialAd · facebook, google, linkedin
+  - `<network>.ads` · source* maxItems → SocialAd[] · facebook +by +activeOnly +country, google +details +format +country, linkedin +by, tiktok +by
+- youtube.trending — Fetch trending YouTube channels · region* maxResults videoCategoryIds includeChannelDetails → YoutubeTrendingChannels
+- **Telegram channels** — Find channels, look one up, watch it or stop watching
+  - source.unwatch — Stop watching a source · provider* channel* holder* userId → SourceUnwatch
+  - source.watch — Watch a source · provider* channel* holder* userId → SourceWatch
+  - telegram.resolve-channel — Fetch a Telegram channel · handle* freshnessMinutes maxWaitMs pollIntervalMs → TelegramChannelResolution
+  - telegram.search-channels — Search Telegram channels · terms* maxChannels maxChannelsPerSearchTerm minMembers skipScam → TelegramChannelSearchResults
+
+**Files** (`files`) — What a file holds, a new file made from it, or a link to it.
+
+- **Read a file** — The text of a text file or a PDF; QR codes in an image
+  - file.read-text — Read a text file · file* maxBytes → string
+  - image.decode-qr — Scan QR codes · image* requireUrl → string[]
+  - pdf.parse — Extract text from a PDF · file* maxPages → PdfDocument
+- **File details** — Size, hash, dates; image size and EXIF; audio length and tags
+  - audio.metadata — Extract audio details · audio* duration → AudioMetadata
+  - file.stats — Extract file details · file* → FileStats
+  - image.metadata — Extract image details · image* segments includeRawDebug → FileMetadata
+- **Make a file** — A smaller image, a PDF page as an image, a copy
+  - file.copy — Copy a file · file* maxBytes → file
+  - image.resize — Resize an image · image* maxWidth maxHeight fit format quality autoOrient maxInputBytes maxInputPixels → file
+  - pdf.screenshot — Save a PDF page as an image · file* page format jpegQuality viewportScale maxInputBytes maxOutputBytes → file
 - file.download-url — Create a download link · file* neverExpires ttlSeconds → string
-- file.read-text — Read a text file · file* maxBytes → string
-- file.stats — Extract file details · file* → FileStats
-- image.decode-qr — Scan QR codes · image* requireUrl → string[]
-- image.metadata — Extract image details · image* segments includeRawDebug → FileMetadata
-- image.resize — Resize an image · image* maxWidth maxHeight fit format quality autoOrient maxInputBytes maxInputPixels → file
-- pdf.parse — Extract text from a PDF · file* maxPages → PdfDocument
-- pdf.screenshot — Save a PDF page as an image · file* page format jpegQuality viewportScale maxInputBytes maxOutputBytes → file
 
-**search** — Find the terms of a vocabulary closest in meaning to a phrase.
+**Records** (`records`) — Read and change the project's records: their fields, links and shares. Tagging one with terms is in Vocabularies.
 
-- term.search — Search terms by meaning · vocabulary* text* parentTermId status topK minScore → TermHit[]
-
-**records** — Read and change the project's records and terms. Only these steps can change a record.
-
-- record.aggregate — Total records · table* measures* clauses groupBy order limit timeZone userId → RecordAggregate
-- record.append — Add events to a record · table* field* recordId* event* userId eventId → string
-- record.count — Count records · table* userId statuses linkFilters createdAfter createdBefore vocabularyFilter fieldFilters → number
-- record.create — Create a record → RecordCreate
-  - `table*: string` — The table to create a record in.
-  - `userId: value` — The person a run that acts for nobody writes for.
-  - `data: value` — The new record's data object, whole; or use `fields`.
-  - `fields: object` — The new record's fields, each a slot path, fixed value or expression.
-  - `fileIds: value` — The uploaded file ids to attach to the new record.
-  - `onKeyTaken: refuse|skip` — What to do when another record already holds the natural key. ⚠ With `skip`, a key another record holds adds nothing and answers `keyTaken`; two payloads claiming one key fail.
-  - gives: A `RecordCreate`: the new record's id, reused on a retry under the same key. With `userId` or `skip`, a `RecordCreateForPerson`, whose id may be absent.
-  - e.g. `with: {"table":"item","data":"submission"}`
-- record.delete — Delete records · ids* userId → boolean
+- **Read records** — By id (read), or by fields, terms, links, meaning or a table's query (query)
+  - record.query — Query records → RecordQueryPage
+    - `query: string` — A table's query to read instead of clauses, as `<table>.<key>`.
+    - `table: string` — The table to query; set exactly one of this and `tables`.
+    - `tables: string[] 2–8 items` — 2 to 8 tables ranked in one answer, in place of `table`.
+    - `clauses: [{kind*: field, field*: string, op*: eq|lt|lte|gt|gte|in|not-in|contains, value*: value} or {kind*: term, vocabulary*: string, slug*: value} or {kind*: link, relation*: string, direction: outgoing|incoming|either, where: [{…}] 1–16 items, count: {…}, peer: [{kind: field, …} or {kind: term, …} or {kind: semantic, …}] 1–16 items} or {kind*: stream, field*: string, window: {…}, where: [{…}] 1–16 items, count: {…} or exists or none} or {kind*: semantic, field: string, text: value, likeRecordId: value, likeTable: string, topK: integer 1–200, minScore: number -1–1, passage: boolean} or {kind*: any, of*: [{kind: field, …} or {kind: term, …} or {kind: link, …} or {kind: stream, …}] 2–8 items}] ≤16 items` — Clauses every record must match; none matches every record the run reaches.
+    - `limit: value` — Rows per page, 1 to 100; otherwise 50.
+    - `order: {by*: created, direction: asc|desc} or {by*: updated, direction: asc|desc} or {by*: meaning} or {by*: field, field*: string, direction: asc|desc = desc}` — `created` (newest first; `direction: asc`, oldest), `meaning`, or a filterable field.
+    - `cursor: value` — A prior answer's cursor; empty for the first page.
+    - `userId: value` — The person whose records to query; empty means the signed-in user.
+    - `fields: string[]` — Which fields each row carries; empty means all of them.
+    - `pages: {max*: integer 1–500, onMore: fail|stop = fail}` — Read every page of an exact question, from `cursor` if set.
+    - `linked: {‹name›: {relation*: string, direction: outgoing|incoming = outgoing, peerTable: string, fields: string[], include: {…}, limit: integer 1–100, sortField: string, order: desc|asc, onMore: fail|stop, when: value, linked: {‹name›: {…}}}}` — Linked records each record carries, under `linked.<name>`.
+    - `statuses: [PENDING|PROCESSING|READY|FAILED|DELETING|MERGED] ≥1 item` — Keep only records with these statuses; omit it for every status.
+    - `createdAfter: string` — Keep only records created at or after this fixed ISO-8601 date.
+    - `createdBefore: string` — Keep only records created at or before this date.
+    - `whose: all|own|shared` — `all` (default), `own`, or `shared` (newest share first) on a sharing table.
+    - `include: {vocabularies: boolean, links: boolean, files: boolean, cost: boolean}` — Extra details per row; each is off unless set.
+    - `scalars: {statusError: boolean, fileCount: boolean}` — Extra values per row: failure summary and file count.
+    - gives: A `RecordQueryPage`: the records satisfying every clause, a `nextCursor` when an exact-only query has more, and `bounded` plus `explanation` on every answer.
+    - e.g. `with: {"table":"person","userId":"userInfo.userId","clauses":[{"kind":"term","vocabulary":"language","slug":{"literal":"hebrew"}},{"kind":"link","relation":"friend-of","where":[{"property":"tag","op":"eq","value":{"literal":"close"}}]},{"kind":"semantic","text":{"literal":"loves hiking"}}]}`
+  - record.read — Read records → RecordRead[]
+    - `ids*: value` — A list of ids, or a path like `hits[].recordId`.
+    - `table*: string` — The table to read.
+    - `userId: value` — The person whose records to read; empty reads as the run.
+    - `fields: string[]` — Which fields each row carries; empty means all of them.
+    - `include: {vocabularies: boolean = true, links: boolean, files: boolean, cost: boolean}` — Extra details per row; terms come by default, the rest opt-in.
+    - `scalars: {statusError: boolean, fileCount: boolean}` — Extra values per row: failure summary and file count.
+    - `dataNullChecks: [{field*: string, op*: isNull|isNotNull}] ≥1 item` — Keep rows by whether a field inside `data` is empty or filled.
+    - `failIfEmpty: boolean` — Fail when nothing is found instead of returning an empty list.
+    - `linked: {‹name›: {relation*: string, direction: outgoing|incoming = outgoing, peerTable: string, fields: string[], include: {…}, limit: integer 1–100, sortField: string, order: desc|asc, onMore: fail|stop, when: value, linked: {‹name›: {…}}}}` — Linked records each record carries, under `linked.<name>`.
+    - `redirect: follow|report = follow` — A merged id: `follow` reads its survivor; `report` fails the read. ⚠ With `follow`, two ids merged into one record read as that record once.
+    - gives: A `RecordRead` per record, its fields flattened to the top level, in the order asked and deduplicated; unresolved ids drop, and a merged id reads its survivor.
+    - e.g. `with: {"ids":"candidates","table":"item"}`
+- **Count and total** — Count, sum, average, group by
+  - record.aggregate — Total records · table* measures* clauses groupBy order limit timeZone userId → RecordAggregate
+  - record.count — Count records · table* userId statuses linkFilters createdAfter createdBefore vocabularyFilter fieldFilters → number
+- **Change records** — Create, update, delete, add history events, merge a duplicate
+  - record.append — Add events to a record · table* field* recordId* event* userId eventId → string
+  - record.create — Create a record → RecordCreate
+    - `table*: string` — The table to create a record in.
+    - `userId: value` — The person a run that acts for nobody writes for.
+    - `data: value` — The new record's data object, whole; or use `fields`.
+    - `fields: object` — The new record's fields, each a slot path, fixed value or expression.
+    - `fileIds: value` — The uploaded file ids to attach to the new record.
+    - `onKeyTaken: refuse|skip` — What to do when another record already holds the natural key. ⚠ With `skip`, a key another record holds adds nothing and answers `keyTaken`; two payloads claiming one key fail.
+    - gives: A `RecordCreate`: the new record's id, reused on a retry under the same key. With `userId` or `skip`, a `RecordCreateForPerson`, whose id may be absent.
+    - e.g. `with: {"table":"item","data":"submission"}`
+  - record.delete — Delete records · ids* userId → boolean
+  - record.merge — Merge records · keep* merge* userId → RecordMerge
+  - record.update — Update a record → boolean
+    - `recordId*: value` — The id of the record to patch.
+    - `userId: value` — The person a run that acts for nobody writes for.
+    - `fileIds: value` — The file ids to attach to the record.
+    - `data: value` — The new fields as one object, or use `fields`; empty changes nothing.
+    - `fields: object` — The fields to write, each a slot path, fixed value or expression.
+    - `derived: value` — The new derived output; empty leaves it alone.
+    - `mode: merge|replace = merge` — `merge` (default) merges over existing values; `replace` overwrites them. ⚠ In `merge`, a key set to `null` is removed from the record.
+    - `clearDerived: boolean` — Empty the record's derived output in the same write.
+    - `setStatus: PENDING|PROCESSING|READY|FAILED` — Set the record to this status, clearing any earlier error. ⚠ Setting it to pending does not start processing on its own — a separate `record.enqueue-process` step does that.
+    - `requireStatus: PENDING|PROCESSING|READY|FAILED` — Only write when the record currently has this status.
+    - `failIfPreconditionUnmet: boolean` — Fail with a conflict when nothing matched, instead of reporting no change.
+    - `ifChangedMeanwhile: start-again|apply` — When another run changed the record since this run read it. ⚠ On a conflict `start-again` writes nothing, while `apply` (merge only) overwrites what another run wrote to these fields meanwhile.
+    - `add: object` — Numbers to add to declared number fields, not fixed lists; negative subtracts.
+    - gives: A bare boolean — `true` iff a row was patched, `false` when the record was absent, foreign, or failed the status precondition (mirrors `record.delete`).
+    - e.g. `with: {"recordId":"patch.recordId","data":"patch.data","mode":"merge"}`
+- **Links** — Link, unlink, read links, count links
+  - record.link-assert — Link two records · sourceRecordId* targetRecordId* relationKey* actor* userId → RelationAssertion
+  - record.link-counts — Count a record's links · relationKey* recordIds* direction → RecordLinkCount[]
+  - record.link-retract — Remove a link · sourceRecordId* targetRecordId* relationKey* actor* userId → RelationRetraction
+  - record.links — Read a record's links · recordId* relationKey limit includeExpired → RecordLink[]
+- **Sharing** — Share, list shares, stop sharing
+  - record.grant — Share a record · recordId* principal* level memberLevel userId → boolean
+  - record.revoke — Stop sharing a record · recordId* principal* ifAbsent userId → boolean
+  - record.shares — List a record's shares · recordId* userId → RecordShare[]
 - record.enqueue-process — Queue for processing · recordId* userId mode replay → boolean
-- record.grant — Share a record · recordId* principal* level memberLevel userId → boolean
-- record.grants — List a record's shares · recordId* userId → RecordShare[]
-- record.link-assert — Link two records · sourceRecordId* targetRecordId* relationKey* actor* userId → RelationAssertion
-- record.link-counts — Count a record's links · relationKey* recordIds* direction → RecordLinkCount[]
-- record.link-retract — Remove a link · sourceRecordId* targetRecordId* relationKey* actor* userId → RelationRetraction
-- record.links — Read a record's links · recordId* relationKey limit includeExpired → RecordLink[]
-- record.list — List records (dataEqualsPath+dataEquals together; dataContainsPath+dataContains together) → RecordPage
-  - `table*: string` — The table to list.
-  - `userId: value` — The person whose records to read; empty reads as the run.
-  - `cursor: value` — A previous page's cursor; empty for the first page.
-  - `limit: value` — Rows per page, 1 to 100; otherwise 50.
-  - `statuses: [PENDING|PROCESSING|READY|FAILED|DELETING|MERGED] ≥1 item` — Keep only rows with these statuses; omit it for every status.
-  - `sort: createdAt|updatedAt = createdAt` — Order by when a row was created (default) or last changed.
-  - `sortField: string` — Order by one of the table's queryable fields instead of `sort`.
-  - `order: asc|desc = desc` — Sort direction: `desc` (default, newest first) or `asc`.
-  - `vocabularyFilter: [{vocabulary*: string, slug*: string, parentSlug: string}] ≥1 item` — Keep only rows tagged with all of these vocabulary terms.
-  - `dataEqualsPath: string` — Keep only rows whose value at this `data` path equals `dataEquals`.
-  - `dataEquals: value` — The value to compare: text, number or true/false.
-  - `dataContainsPath: string` — Keep only rows whose list at this `data` path contains `dataContains`.
-  - `dataContains: value` — The object to look for in that list.
-  - `dataNullChecks: [{field*: string, op*: isNull|isNotNull}] ≥1 item` — Keep rows by whether a field inside `data` is empty or filled.
-  - `fieldFilters: [{field*: string, op*: eq|lt|lte|gt|gte|in, value*: value}] ≥1 item` — Filters on the table's queryable fields, including ranges.
-  - `linkFilters: [{relationKey*: string, peerRecordId: value}] ≥1 item` — Keep only rows carrying a link of these relations.
-  - `createdAfter: string` — Keep only rows created at or after this fixed ISO-8601 date.
-  - `createdBefore: string` — Keep only rows created at or before this date.
-  - `fields: string[]` — Which fields each row carries; empty means all of them.
-  - `include: {vocabularies: boolean = true, links: boolean, files: boolean, cost: boolean}` — Extra details per row; terms come by default, the rest opt-in.
-  - `scalars: {statusError: boolean, fileCount: boolean}` — Extra values per row: failure summary and file count.
-  - `pages: {max*: integer 1–500, onMore: fail|stop = fail}` — Read every page, from `cursor` if set; unset reads one page.
-  - `linked: {‹name›: {relation*: string, direction: outgoing|incoming = outgoing, peerTable: string, fields: string[], include: {…}, limit: integer 1–100, sortField: string, order: desc|asc, onMore: fail|stop, when: value, linked: {‹name›: {…}}}}` — Linked records each record carries, under `linked.<name>`.
-  - `whose: all|own|shared = all` — Sharing tables: `all` (default), `own`, or `shared` (newest share first).
-  - gives: A `RecordPage`: the rows, newest first, each record's fields flattened to the top level, and a cursor when more remain — with `pages`, only under `onMore: "stop"`.
-  - e.g. `with: {"table":"item","userId":"userInfo.userId","limit":50}`
-- record.merge — Merge records · keep* merge* userId → RecordMerge
-- record.query — Query records → RecordQueryPage
-  - `query: string` — A table's query to read instead of clauses, as `<table>.<key>`.
-  - `table: string` — The table to query; set exactly one of this and `tables`.
-  - `tables: string[] 2–8 items` — 2 to 8 tables ranked in one answer, in place of `table`.
-  - `clauses: [{kind*: field, field*: string, op*: eq|lt|lte|gt|gte|in|not-in|contains, value*: value} or {kind*: term, vocabulary*: string, slug*: value} or {kind*: link, relation*: string, direction: outgoing|incoming|either, where: [{…}] 1–16 items, count: {…}, peer: [{kind: field, …} or {kind: term, …} or {kind: semantic, …}] 1–16 items} or {kind*: stream, field*: string, window: {…}, where: [{…}] 1–16 items, count: {…} or exists or none} or {kind*: semantic, field: string, text: value, likeRecordId: value, likeTable: string, topK: integer 1–200, minScore: number -1–1, passage: boolean} or {kind*: any, of*: [{kind: field, …} or {kind: term, …} or {kind: link, …} or {kind: stream, …}] 2–8 items}] ≤16 items` — Clauses every record must match; none matches every record the run reaches.
-  - `limit: value` — Rows per page, 1 to 100; otherwise 50.
-  - `order: {by*: created, direction: asc|desc} or {by*: meaning} or {by*: field, field*: string, direction: asc|desc = desc}` — `created` (newest first; `direction: asc`, oldest), `meaning`, or a filterable field.
-  - `cursor: value` — A prior answer's cursor; empty for the first page.
-  - `userId: value` — The person whose records to query; empty means the signed-in user.
-  - `fields: string[]` — Which fields each row carries; empty means all of them.
-  - `pages: {max*: integer 1–500, onMore: fail|stop = fail}` — Read every page of an exact question, from `cursor` if set.
-  - `linked: {‹name›: {relation*: string, direction: outgoing|incoming = outgoing, peerTable: string, fields: string[], include: {…}, limit: integer 1–100, sortField: string, order: desc|asc, onMore: fail|stop, when: value, linked: {‹name›: {…}}}}` — Linked records each record carries, under `linked.<name>`.
-  - gives: A `RecordQueryPage`: the records satisfying every clause, a `nextCursor` when an exact-only query has more, and `bounded` plus `explanation` on every answer.
-  - e.g. `with: {"table":"person","userId":"userInfo.userId","clauses":[{"kind":"term","vocabulary":"language","slug":{"literal":"hebrew"}},{"kind":"link","relation":"friend-of","where":[{"property":"tag","op":"eq","value":{"literal":"close"}}]},{"kind":"semantic","text":{"literal":"loves hiking"}}]}`
-- record.read — Read records → RecordRead[]
-  - `ids*: value` — A list of ids, or a path like `hits[].recordId`.
-  - `table*: string` — The table to read.
-  - `userId: value` — The person whose records to read; empty reads as the run.
-  - `fields: string[]` — Which fields each row carries; empty means all of them.
-  - `include: {vocabularies: boolean = true, links: boolean, files: boolean, cost: boolean}` — Extra details per row; terms come by default, the rest opt-in.
-  - `scalars: {statusError: boolean, fileCount: boolean}` — Extra values per row: failure summary and file count.
-  - `dataNullChecks: [{field*: string, op*: isNull|isNotNull}] ≥1 item` — Keep rows by whether a field inside `data` is empty or filled.
-  - `failIfEmpty: boolean` — Fail when nothing is found instead of returning an empty list.
-  - `linked: {‹name›: {relation*: string, direction: outgoing|incoming = outgoing, peerTable: string, fields: string[], include: {…}, limit: integer 1–100, sortField: string, order: desc|asc, onMore: fail|stop, when: value, linked: {‹name›: {…}}}}` — Linked records each record carries, under `linked.<name>`.
-  - `redirect: follow|report = follow` — A merged id: `follow` reads its survivor; `report` fails the read. ⚠ With `follow`, two ids merged into one record read as that record once.
-  - gives: A `RecordRead` per record, its fields flattened to the top level, in the order asked and deduplicated; unresolved ids drop, and a merged id reads its survivor.
-  - e.g. `with: {"ids":"candidates","table":"item"}`
-- record.revoke — Stop sharing a record · recordId* principal* ifAbsent userId → boolean
-- record.teardown — Clear generated data · recordId* userId targets → object
-- record.update — Update a record → boolean
-  - `recordId*: value` — The id of the record to patch.
-  - `userId: value` — The person a run that acts for nobody writes for.
-  - `fileIds: value` — The file ids to attach to the record.
-  - `data: value` — The new fields as one object, or use `fields`; empty changes nothing.
-  - `fields: object` — The fields to write, each a slot path, fixed value or expression.
-  - `derived: value` — The new derived output; empty leaves it alone.
-  - `mode: merge|replace = merge` — `merge` (default) merges over existing values; `replace` overwrites them. ⚠ In `merge`, a key set to `null` is removed from the record.
-  - `clearDerived: boolean` — Empty the record's derived output in the same write.
-  - `setStatus: PENDING|PROCESSING|READY|FAILED` — Set the record to this status, clearing any earlier error. ⚠ Setting it to pending does not start processing on its own — a separate `record.enqueue-process` step does that.
-  - `requireStatus: PENDING|PROCESSING|READY|FAILED` — Only write when the record currently has this status.
-  - `failIfPreconditionUnmet: boolean` — Fail with a conflict when nothing matched, instead of reporting no change.
-  - `ifChangedMeanwhile: start-again|apply` — When another run changed the record since this run read it. ⚠ On a conflict `start-again` writes nothing, while `apply` (merge only) overwrites what another run wrote to these fields meanwhile.
-  - `add: object` — Numbers to add to declared number fields, not fixed lists; negative subtracts.
-  - gives: A bare boolean — `true` iff a row was patched, `false` when the record was absent, foreign, or failed the status precondition (mirrors `record.delete`).
-  - e.g. `with: {"recordId":"patch.recordId","data":"patch.data","mode":"merge"}`
-- term.threshold-gate — Decide: match or new term · vocabulary candidates thresholds proposalSlug proposalLabel parentTermId → GateDecision
-- term.upsert — Save terms · resolutions* → nothing
+
+**Vocabularies** (`vocabularies`) — Tag records with terms and read by them.
+
+- **Tag a record** — Pick terms for a record, then save them
+  - term.upsert — Save terms · resolutions* → nothing
+  - vocabulary.resolve — Pick terms for a record · vocabularies context extractedVocabularies deterministic maxValues model → TermResolution[]
+- term.search — Search terms by meaning · vocabulary* text* parentTermId status topK minScore → TermHit[]
 - vocabulary.aggregate — Count records by term · shape userId vocabularies maxEntriesPerVocabulary → VocabularyAggregate
-- vocabulary.resolve — Pick terms for a record · vocabularies context extractedVocabularies deterministic maxValues model → TermResolution[]
 
-**outbound** — Reach a person or a system outside the platform. Nothing is sent until the run's changes are saved.
+**Run** (`run`) — Call another flow, start more runs, tell the client, check the caller. Branching and loops are steps.
 
-- email.send — Send an email → string
-  - `to*: value` — The address to send to.
-  - `subject*: value` — The subject line.
-  - `text*: value` — The plain-text body, required even with HTML.
-  - `sender: string` — One of the project's senders; left out, its default address.
-  - `html: value` — Optional HTML version of the message.
-  - `replyTo: string` — Optional address replies go to, instead of the sending address.
-  - gives: The message's id — not a receipt: it leaves only if the run finishes and saves. Past the project's daily mail cap the step fails (`project-mail-cap-reached`).
-  - e.g. `with: {"sender":"digest","to":"draft.to","subject":"draft.subject","text":"draft.body"}`
-- push.send — Send a push notification · recipient kind title body data collapseKey threadId badge sound urgency expiresIn → PushSendResult
-- url.send — Send a request · url* → boolean
-  - `method: POST|PUT|PATCH|DELETE = POST` — The request method.
-  - `query: object` — Query parameters for the address by name; an empty value omits one.
-  - `headers: object` — Headers by name; an empty value omits one; credentials go in `secret`.
-  - `body: value` — The request body, usually built by an earlier step.
-  - `bodyAs: json|form|text` — How to send the body: `json` (default), `form` or `text`. ⚠ Under `json` a string is sent quoted; for your own text use `text` and `contentType`.
-  - `contentType: string ≤128 chars` — The content type of a `text` body.
-  - `secret: string ≤128 chars` — The name of a stored request credential to send.
-  - `idempotencyKey: value` — A repeat key, sent as the `Idempotency-Key` header.
-  - `timeoutMs: integer >0 ≤60000 = 15000` — How long one delivery attempt waits for an answer.
-  - `sign: {header: string ≤128 chars, secret: value, storedSecret: string ≤128 chars, algorithm: sha256|sha1|sha512, encoding: hex|base64, prefix: string, format: plain|timestamped|standard}` — Sign the body sent with a shared secret.
-  - gives: `true` once queued, not a receipt; it leaves after the run saves. No flow reads the answer: to act on one, the receiver calls an endpoint back.
-  - e.g. `with: {"url":"targetUrl","method":"POST","body":"notice","secret":"harbour-office","idempotencyKey":"notice.id","timeoutMs":15000}`
-
-**flow** — Steer the run: branch, loop, call another flow, keep state between steps.
-
-- event.emit — Send an event · category* event* payload → nothing
-- flow.continue — Continue with the next page · cursor* cursorInput* inputs → ContinueResult
 - flow.invoke — Run another flow → the called flow's outputs
   - `flow*: string` — The key of another saved flow to run, like `score-article`.
   - `inputs: object` — Each input of the called flow: a path, fixed value or expression.
   - `as: project` — `project` runs the called flow as the project, acting for no one. ⚠ The called flow reaches every person's records; pass it the caller's id as an input if it needs one.
   - gives: What the called flow's `return` gives, one field per output of its signature; `{}` when it returns nothing.
   - e.g. `with: {"flow":"article-scrape-summarize","inputs":{"entryUrl":"currentUrl","window":"dateRange"}}`
-- flow.start-per-person — Start a flow for each person · flow* people* inputs → PeopleStartResult
-- request.refuse — Refuse the call · status* code* message retryAfterSeconds → nothing
+- **Start more runs** — The next page in a new run; one run per person
+  - flow.continue — Continue with the next page · cursor* cursorInput* inputs → ContinueResult
+  - flow.start-per-person — Start a flow for each person · flow* people* inputs → PeopleStartResult
+- event.emit — Send an event · category* event* payload → nothing
 - request.verify-signature — Check a call's signature (one of secret|storedSecret) → boolean
   - `payload*: value` — The text that was signed, usually the call's raw body.
   - `signature*: value` — The signature the caller sent, usually from a header.
@@ -536,15 +485,33 @@ schedules:
   - `onMismatch: refuse|output` — `refuse` (the default) answers 401; `output` gives the flow true or false.
   - gives: A `boolean`: `true` when the signature matches. A wrong or missing one answers 401 `SIGNATURE_INVALID` and stops the run (the default), or gives `false` with `onMismatch: output`.
   - e.g. `with: {"payload":"raw","signature":"sig","secret":"shop.record.data.paymentSecret"}`
-- state.read — Recall a saved value · key* → string, or string[] for an append or union cell
-- state.write — Save a value for later · value* key* op* → string
 
-**utility** — Reshape a value, or pick between values from earlier steps.
+**Send** (`send`) — Reach a person or a system. Nothing leaves until the run is saved.
 
-- list.concat — Join into one list · inputs* strategy → a list of the first input's element type
-- value.build — Build a value field by field · fields* examples → object
-- value.first-non-empty — Take the first filled value · inputs* valueKind mimePrefixes → the first input's type
-- value.transform — Reshape values · expression* examples → object
+- **Message a person** — An email or a phone notification
+  - email.send — Send an email → string
+    - `to*: value` — The address to send to.
+    - `subject*: value` — The subject line.
+    - `text*: value` — The plain-text body, required even with HTML.
+    - `sender: string` — One of the project's senders; left out, its default address.
+    - `html: value` — Optional HTML version of the message.
+    - `replyTo: string` — Optional address replies go to, instead of the sending address.
+    - gives: The message's id — not a receipt: it leaves only if the run finishes and saves. Past the project's daily mail cap the step fails (`project-mail-cap-reached`).
+    - e.g. `with: {"sender":"digest","to":"draft.to","subject":"draft.subject","text":"draft.body"}`
+  - push.send — Send a push notification · recipient kind title body data collapseKey threadId badge sound urgency expiresIn → PushSendResult
+- url.send — Send a request · url* → boolean
+  - `method: POST|PUT|PATCH|DELETE = POST` — The request method.
+  - `query: object` — Query parameters for the address by name; an empty value omits one.
+  - `headers: object` — Headers by name; an empty value omits one; credentials go in `secret`.
+  - `body: value` — The request body, usually built by an earlier step.
+  - `bodyAs: json|form|text` — How to send the body: `json` (default), `form` or `text`. ⚠ Under `json` a string is sent quoted; for your own text use `text` and `contentType`.
+  - `contentType: string ≤128 chars` — The content type of a `text` body.
+  - `secret: string ≤128 chars` — The name of a stored request credential to send.
+  - `idempotencyKey: value` — A repeat key, sent as the `Idempotency-Key` header.
+  - `timeoutMs: integer >0 ≤60000 = 15000` — How long one delivery attempt waits for an answer.
+  - `sign: {header: string ≤128 chars, secret: value, storedSecret: string ≤128 chars, algorithm: sha256|sha1|sha512, encoding: hex|base64, prefix: string, format: plain|timestamped|standard}` — Sign the body sent with a shared secret.
+  - gives: `true` once queued, not a receipt; it leaves after the run saves. No flow reads the answer: to act on one, the receiver calls an endpoint back.
+  - e.g. `with: {"url":"targetUrl","method":"POST","body":"notice","secret":"harbour-office","idempotencyKey":"notice.id","timeoutMs":15000}`
 
 <!-- end of the generated function catalog -->
 

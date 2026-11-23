@@ -7,7 +7,7 @@ Search the web and return the results.
 Reads pages until it has about `maxResults`; each page is charged. A search that runs out returns what it read.
 
 - **Origin:** `ability`
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** web · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `WebSearchResults`
 - **Also found as:** search online, search engine, look up online, find on the web

@@ -6,7 +6,7 @@ Count a user's records by term, as a list or a browsable tree.
 
 Merged terms count toward the term they point at. Use it to show what someone has, not to search.
 
-- **Group:** records · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** vocabularies · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `VocabularyAggregate`
 - **Also found as:** count per term, tag counts, group by tag, vocabulary counts

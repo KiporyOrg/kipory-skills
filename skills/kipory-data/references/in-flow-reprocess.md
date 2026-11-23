@@ -82,9 +82,5 @@ table cannot declare it.
 - **The queued run is charged as the run that queued it is**, model calls included
   (`kipory-operate` has what a run costs and who pays).
 
-`record.teardown` does the stripping as a step of its own — but it is per-user end to end: it
-**fails the step on a run with no signed-in user**, which is every run your key starts, and reaches
-only that user's own records, never pool records. With `replay: clean` you do not need it.
-
 Over HTTP, `POST /v1/records/{id}/reprocess` is the same clean run in one call, for any record
 your key can see; this skill's main page has what it refuses and what it costs.

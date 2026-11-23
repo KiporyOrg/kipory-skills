@@ -6,7 +6,7 @@ Find the terms of a vocabulary closest in meaning to a phrase.
 
 Results come best first, each with a similarity score. Use it to check for a term before coining one.
 
-- **Group:** search · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** vocabularies · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `phrase + vocabulary` → `TermHit[]`
 - **Also found as:** similar terms, find term, synonym, closest tag

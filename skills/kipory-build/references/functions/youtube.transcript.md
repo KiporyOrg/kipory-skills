@@ -7,7 +7,7 @@ Get the words spoken in a YouTube video.
 Takes an 11-character video id, not a link. Reads automatic and manual captions.
 
 - **Origin:** `ability`
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** social · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
 - **Also found as:** youtube captions, subtitles, what was said

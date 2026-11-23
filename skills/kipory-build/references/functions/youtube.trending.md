@@ -6,7 +6,7 @@ List the channels behind a region's trending YouTube videos.
 
 Shows what is hot right now, not what is biggest. Collect it across runs to build a catalogue.
 
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** social · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `YoutubeTrendingChannels`
 - **Also found as:** popular channels, top youtubers, trending chart

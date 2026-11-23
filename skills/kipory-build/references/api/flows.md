@@ -676,7 +676,6 @@ Run the flow now, in a sandbox, and answer what happened: every step's transcrip
 | `warnings` | `unknown[]` | yes | Non-fatal problems the engine noticed. The run still completed. |
 | `fanOutCaps` | `object[]` | yes | Every `each` whose element list was truncated, and by which limit. Empty when nothing was dropped — check this before reading a branch count as the whole population. |
 | `branches` | `unknown[]` | yes | Full per-branch results — inputs, outputs, usage and failures — for deep inspection. |
-| `runState` | `object` | yes | The shared run state as it stood when the run ended. |
 | `ingestSpend` | `object` | no | Paid third-party ingest spend for this run. Absent when no ingest function ran, which is different from having spent zero. |
 | `previewSessionId` | `string` | yes | Identifies this run. Every model call and ingest job it produced is tagged with it, so it is the key for looking the run up afterwards. |
 | `traceId` | `string \| null` | yes | The persisted trace for this run, or null when none was written — either because none was requested, or because it was requested and skipped. If you asked for one and get null, `traceSkipped` says why; treat the run as having left no evidence rather than as having produced an empty one. |
@@ -808,7 +807,6 @@ Shape 3, with `stepKey`, `branchId`, `outcome`, `durationMs`:
 | `outcome` | `"applied" \| "failed" \| "not-run"` | yes | `applied` — it ran (see `answeredNothing`). `failed` — it ran and errored. `not-run` — it was reached and did not run; see `notRun`. |
 | `durationMs` | `number` | yes | Wall-clock time this step took. |
 | `slotBag` | `object` | no | The step's value, under its key, when it gave one. |
-| `runState` | `object` | no | Shared run state as of this frame. |
 | `notRun` | `"branch-not-taken" \| "disabled" \| "flow-returned" \| "block-failed" \| "caught" \| "applied-earlier" \| "run-cancelled"` | no | Why the step did not run, when `outcome` is `not-run`. |
 | `answeredNothing` | `true` | no | The step ran and gave nothing. Present only when true. |
 | `error` | `string` | no | Failure message, when `outcome` is `failed`. |
@@ -822,7 +820,6 @@ Shape 4, with `branches`, `totals`, `fanOutCaps`, `timings`, `previewSessionId`:
 | `type` | `"preview-complete"` | yes | The run finished. |
 | `branches` | `unknown[]` | yes | Full per-branch results, as on the non-streaming response. |
 | `flowOutput` | `object` | no | The flow's declared output slots, as a live invocation would return them. |
-| `runState` | `object` | no | Shared run state as it stood when the run ended. |
 | `outputValidation` | `object` | no | Whether the run produced everything the flow declares. |
 | `totals` | `object` | yes | Token usage for the whole run. |
 | `ingestSpend` | `object` | no | Paid third-party ingest spend. Absent when no ingest function ran. |

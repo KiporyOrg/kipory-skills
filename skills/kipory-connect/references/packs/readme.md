@@ -42,7 +42,7 @@ quietly working around it.
 
 > **Confirm every function key against `GET /v1/functions`, never against a pack.** A snapshot of
 > the catalog once kept naming a key after the running deployment had merged it into
-> `value.first-non-empty`. See Planning protocol (capability pack `planning-protocol` — `GET /v1/capability-packs/planning-protocol`), Rule 0.
+> another key. See Planning protocol (capability pack `planning-protocol` — `GET /v1/capability-packs/planning-protocol`), Rule 0.
 
 ## "I want to…"
 

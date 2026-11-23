@@ -110,7 +110,7 @@ the table's records by the shape they hold (`expand=shape`, on `GET /v1/tables/{
    flow's `record.update` while not on the current shape). Each record answers its own `shapeStamp`. A record counted under `older` and
    one counted under `unstamped` both stay readable. ⚠️ A table read takes no `expand=drift`: it is a 422.
 4. **A table declares no source families.** Files attach to any record, a flow commits terms to
-   any record, and `record.read` / `record.list` honour their vocabularies and files include-flags
+   any record, and `record.read` / `record.query` honour their vocabularies and files include-flags
    for every table. Ask the flow binding what a table derives; ask the record what it holds.
 
 ## Which types may be a table's type — ask the server, do not guess
@@ -211,8 +211,8 @@ Records are written by flows; an operator or an importer writes them over HTTP a
   the payload carries, the default refuses 409 `RECORD_NATURAL_KEY_TAKEN`;
   `onKeyTaken: "update"` replaces that record's `data` instead (an **upsert**, `outcome: "updated"`,
   same id, re-indexed, flow not re-run). A table with no natural key refuses the upsert 422.
-  From a flow, a create refused this way whose run first looked the key up (a `record.query`,
-  `record.list` or `record.count` that found nothing) and lost a race to another run is run again, and that run
+  From a flow, a create refused this way whose run first looked the key up (a `record.query`
+  or `record.count` that found nothing) and lost a race to another run is run again, and that run
   finds the record; one that made no lookup answers a final 409, so look the key up first (the
   re-run repeats the flow's steps before the save).
   A flow's `record.create` takes `onKeyTaken: "refuse"` or `"skip"` only; `"update"` is this
@@ -261,7 +261,7 @@ write anything, because unwinding it means deleting the data.
 
 **Sharing is not a third scope.** A user-scoped table with `sharing: true` keeps every record its
 owner's and lets each one be shared with another person or a team record, to read, write,
-delete or manage (`record.grant`, `record.revoke`, `record.grants`; a team is a record a person
+delete or manage (`record.grant`, `record.revoke`, `record.shares`; a team is a record a person
 joins with a `member` grant and a member level, one level deep). Every read of the table as a
 person then answers their own records and those shared with them or a team of theirs, each with
 its `access` and `ownerId`, and a share too low for an act answers 403. The table may not declare a
@@ -277,8 +277,7 @@ first write.
 _keep the current value_, which is a real answer. On a create there is nothing to keep, so silence
 is not an answer at all.
 
-⚠️ What a pool table cannot use in this version is what needs a signed-in user: the
-`record.teardown` step fails on a run with none, `vocabulary.aggregate` never
+⚠️ What a pool table cannot use in this version is what needs a signed-in user: `vocabulary.aggregate` never
 counts pool records, and `userInfo` is absent. A pool record is torn down by
 `POST /v1/records/{id}/reprocess`, or by `record.enqueue-process` with `replay: clean` — both
 strip the record's terms before the run, and replace its processed fields and generated files
@@ -531,7 +530,7 @@ Things to know before you declare one:
 - **A text filter has a length line at 2,000 bytes.** Equals and any-of find a value of any
   length. Greater-than and less-than on text belong to `record.query`: they compare only values up
   to 2,000 bytes, and the clause's explanation counts the longer ones left out (`longTextSkipped`);
-  `record.list` and `record.count` refuse a text range when saved (`RECORD_FILTER_TEXT_RANGE`). A plan
+  `record.count` refuses a text range when saved (`RECORD_FILTER_TEXT_RANGE`). A plan
   that adds a filter on a text field with no length limit warns `TEXT_FILTER_LENGTH_UNBOUNDED`.
   Give a short field a `maxLength` of 500 or fewer (500 characters fit in 2,000 bytes in any
   script), a list of values, or a date or uuid format — for a field the table's flow fills, on the
@@ -869,6 +868,9 @@ the table with exactly ONE peer table; one that pairs it with several is refused
 - `{ "by": "created" }` — newest created first. The default without a semantic clause. Add
   `"direction": "asc"` for oldest created first; `createdAt` is not a field, so
   `{ "by": "field", "field": "createdAt" }` is refused with this order as its remedy.
+- `{ "by": "updated" }` — the most recently changed first; `"direction": "asc"` for the least. A
+  read of every page (a `pages` whose `max` is above 1) refuses it: a record changed while it is read would move
+  past the cursor.
 - `{ "by": "meaning" }` — closest first. The default with a semantic clause of the query's own,
   and refused without one (a peer's phrase chooses which records are in reach; it does not order
   them).
@@ -955,7 +957,7 @@ typed, among the guides they follow" is one step.
 - The save warns `QUERY_OPERAND_TYPE_MISMATCH` when the value's declared type certainly cannot
   be the operand — a list where one value is compared, one value where `in` needs a list, a
   number where text is needed. A warning: the flow saves, and the run would refuse the value.
-- `record.list` and `record.count` hold their filters to the same rule: a missing required value
+- `record.count` holds its filters to the same rule: a missing required value
   fails the step, a wrong one fails it (`FILTER_VALUE_INVALID`), an empty list matches nothing. A
   filter is never dropped: an optional one is a table query's `optional` param, read by `record.query` with `query:`.
 - The request body of the route takes written values only.
@@ -1005,11 +1007,11 @@ and `limit` caps what is returned of it.
 
 **No clauses: the table's records.** On the route `clauses` may be left out: the answer is the
 table's records, newest first, paged exactly as above: `limit`, and the `after` and `before` cursors. An empty
-list is refused; leave the member out instead. The `record.query` step still states at least one
-clause — a flow lists a table with `record.list`.
+list is refused; leave the member out instead. A `record.query` step with no clauses reads the
+table's records the same way.
 
 **Linked records with each record: `linked`.** The route's body takes `linked`, the option a
-flow's `record.query`, `record.list` and `record.read` take, and brings with each record the
+flow's `record.query` and `record.read` take, and brings with each record the
 records it is linked to, under `linked.<name>`:
 
 ```json
@@ -1043,7 +1045,7 @@ records it is linked to, under `linked.<name>`:
 - One more level: a linked read may carry its own `linked`, whose linked reads take none.
 - Linked records are read across every owner, as the route's own records are, and carry no
   vocabulary terms: a linked read's `include` with `vocabularies` is 422 `LINKED_VOCABULARIES_UNAVAILABLE` here
-  and on a flow's `record.query` (`record.read` and `record.list` carry them).
+  and on a flow's `record.query` (`record.read` carries them).
 - The route has no save step, so a linked read the project's relations cannot answer is refused before
   anything is read: 422 `VALIDATION_FAILED` with the rule in the `reason` of its `details` —
   `LINKED_RELATION_UNKNOWN`, `LINKED_NO_END`, `LINKED_PEER_TABLE_UNCLEAR`, `LINKED_LIST_NEEDS_LIMIT`,
@@ -1779,7 +1781,7 @@ Every type on the same three reads carries **`declaredBy`**: the function key fo
 type, and `null` on every other tier.
 
 ```
-AudioMetadata → "audio.metadata"     RecordPage → "record.list"
+AudioMetadata → "audio.metadata"     RecordRead → "record.read"
 RunInfo       → null                 string     → null
 ```
 

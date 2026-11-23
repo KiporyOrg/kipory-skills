@@ -29,6 +29,12 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size answer fails the step; with `tables`, each row carries its own table's named fields. |
 | `pages` | object | no | — | Read every page of an exact question, from `cursor` if set. ⚠️ Only an exact question reads every page; records left after the last page fail the step unless `onMore` is "stop". |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
+| `statuses` | string[] of `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` \| `DELETING` \| `MERGED`, at least 1 item | no | — | Keep only records with these statuses; omit it for every status. |
+| `createdAfter` | string | no | — | Keep only records created at or after this fixed ISO-8601 date. |
+| `createdBefore` | string | no | — | Keep only records created at or before this date. |
+| `whose` | `all` \| `own` \| `shared` | no | — | `all` (default), `own`, or `shared` (newest share first) on a sharing table. |
+| `include` | object | no | — | Extra details per row; each is off unless set. |
+| `scalars` | object | no | — | Extra values per row: failure summary and file count. |
 
 ### `clauses` — each item is one of
 
@@ -333,6 +339,13 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | `by` | `created` | yes | — | By creation time. |
 | `direction` | `asc` \| `desc` | no | — | `desc` (newest first, the default) or `asc` (oldest first). |
 
+**`by: updated`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `by` | `updated` | yes | — | By when the record last changed. |
+| `direction` | `asc` \| `desc` | no | — | `desc` (most recently changed first, the default) or `asc`. |
+
 **`by: meaning`**
 
 | Member | Type | Required | Default | Meaning |
@@ -410,7 +423,7 @@ each entry › `include`:
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `vocabularies` | boolean | no | `false` | Carry each linked record's vocabulary terms, as a plain read does; only `record.read` and `record.list` can. |
+| `vocabularies` | boolean | no | `false` | Carry each linked record's vocabulary terms, as a plain read does; only `record.read` can. |
 
 each entry › `when` — one of:
 
@@ -451,7 +464,7 @@ each entry › `linked` › each entry › `include`:
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `vocabularies` | boolean | no | `false` | Carry each linked record's vocabulary terms, as a plain read does; only `record.read` and `record.list` can. |
+| `vocabularies` | boolean | no | `false` | Carry each linked record's vocabulary terms, as a plain read does; only `record.read` can. |
 
 each entry › `linked` › each entry › `when` — one of:
 
@@ -472,6 +485,22 @@ each entry › `linked` › each entry › `when` — one of:
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
+
+### `include`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `vocabularies` | boolean | no | — | Add the terms each row is filed under. |
+| `links` | boolean | no | — | Add each row's links. |
+| `files` | boolean | no | — | Add each row's attached files. |
+| `cost` | boolean | no | — | Add what each row's processing cost. |
+
+### `scalars`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `statusError` | boolean | no | — | Add the row's failure summary, or null when it has none. |
+| `fileCount` | boolean | no | — | Add the number of files attached to the row. |
 
 ## Worked example
 

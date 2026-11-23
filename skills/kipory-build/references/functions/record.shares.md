@@ -1,6 +1,6 @@
 <!-- generated: kipory-skills references · source: the deployment's function catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `record.grants` — List a record's shares
+# `record.shares` — List a record's shares
 
 List whom one record is shared with, and at which level.
 

@@ -6,7 +6,7 @@ Read a web page and return its main text and details.
 
 Loads the page in a real browser, so script-built pages work. Results are cached for a day by default.
 
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** web · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `ScrapedPage`
 - **Also found as:** scrape, scrape website, crawl, read website, website text

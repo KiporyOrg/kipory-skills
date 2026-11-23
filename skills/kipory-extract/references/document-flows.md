@@ -115,7 +115,7 @@ Reach past that only when the route does not fit:
 | `file.stats`                            | plus a full read of the object, because it hashes the bytes             |
 | `pdf.screenshot`, `image.resize`        | compute, then whatever the model that reads the image costs             |
 | `audio.transcribe`                      | a model call sized by the recording's length                            |
-| `text.extract`, `text.detect-language`  | deterministic — no model call at all                                    |
+| `text.match`, `text.detect-language`    | deterministic — no model call at all                                    |
 
 The deterministic functions are the ones to reach for first. A regex that finds invoice numbers
 costs only its step fee — no model, no vendor — and is repeatable and never hallucinates; asking a

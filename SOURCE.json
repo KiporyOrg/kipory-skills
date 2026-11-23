@@ -1,7 +1,11 @@
 {
-  "source": "ad797666bd33847a64a52cc02d6f062ed85dd0ae",
+  "source": "01ba6dbcea9559896c8e493af8748b8bd22f5fbe",
   "since": "2026-08-19",
   "history": [
+    {"sha":"01ba6dbcea95"},
+    {"sha":"c201467346b0","skills":"Builders find the function they need on the first try, at any catalog size: ten groups with families, search first scoped to the project's connections, one way to do each thing, and declared endpoint answers (440) (#3814)"},
+    {"sha":"4900c7f247ec"},
+    {"sha":"0f6ed0db7d74"},
     {"sha":"ad797666bd33","skills":"A record whose search indexing gave up is retried 15 minutes later, a refused AI call re-reads the platform keys, and the project is told when records stay unsearchable (#3811)"},
     {"sha":"cf5444fba7fc"},
     {"sha":"d63bb2201bc4"},
@@ -997,10 +1001,6 @@
     {"sha":"bb1a4ffe9f70"},
     {"sha":"ee820a4aed30"},
     {"sha":"b722e63e22df"},
-    {"sha":"a295c0133a34"},
-    {"sha":"9c2297e6abdf"},
-    {"sha":"4256156c3eae"},
-    {"sha":"3bd30adf8d5e"},
-    {"sha":"556d3e045f3c"}
+    {"sha":"a295c0133a34"}
   ]
 }

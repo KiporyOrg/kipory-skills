@@ -6,7 +6,7 @@ Read a web page's title, description, icon, and preview image.
 
 Reads only the page head, not the body. An unreachable site is reported in the result instead of failing.
 
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** web · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `UrlMeta`
 - **Also found as:** page title, link preview, open graph, favicon

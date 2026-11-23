@@ -19,7 +19,7 @@ A type is named **by its key**: `{ "kind": "ref", "ref": "BookCard" }`, in a doc
 | `{ "kind": "record", "valueType": <ref> }`       | a string-keyed map                                    |
 | `{ "kind": "recordRef", "table": "<type>" }`     | one stored record's id                                |
 
-The built-ins (`string`, `number`, `boolean`, `object`, `file`, …) and the platform's own types (`RecordRead`, `RecordPage`, `UserInfo`, `ProjectInfo`, …) are named by key like yours.
+The built-ins (`string`, `number`, `boolean`, `object`, `file`, …) and the platform's own types (`RecordRead`, `RecordQueryPage`, `UserInfo`, `ProjectInfo`, …) are named by key like yours.
 
 **A flow's inputs and outputs are maps by name**, each a type key: `BookCard`, `BookCard?` (optional), `BookCard[]` (a list), `BookCard[]?`; or the long form `{ "type": "BookCard", "list": true, "optional": true, "description": "…" }` with only `type` required. A flow gives its outputs only through a `return` step.
 
@@ -30,7 +30,7 @@ The built-ins (`string`, `number`, `boolean`, `object`, `file`, …) and the pla
 **A step's reads are written in it**: every argument in its `with` (section 7), the `{{placeholders}}` of a prompt or template, a block's `each` list, a `repeat`'s `vars` and `next`, an `out`, a `return`. Nothing is wired or listed beside them, and the save proves each one before it accepts the list (`checking.md`).
 
 - **A read must name something above it.** A name nothing gives is refused `STEP_READS_UNKNOWN`, and a name only a step written below gives is `STEP_READS_LATER`; a value made inside a block is read after it only through the block's `out` (`BLOCK_VALUE_ESCAPES`).
-- **A read the function makes by default is not seen at save.** `record.list` and `record.read` default `userId` to the run's person, so on a run with no person a read of a per-user table fails at run (`end-user-required`, 403 at an endpoint); a read of `userInfo` you write is proved like any other.
+- **A read the function makes by default is not seen at save.** `record.query` and `record.read` default `userId` to the run's person, so on a run with no person a read of a per-user table fails at run (`end-user-required`, 403 at an endpoint); a read of `userInfo` you write is proved like any other.
 - **A prompt reading `{{projectInfo.config.<namespace>.<field>}}`** reads the project's config; `projectInfo` and `runInfo` are always there, `userInfo` and `tableInfo` only on some runs.
 - **In JSONata, only a name at the top of an expression is a read**: inside `[…]` or after a `.` it is a field of each item (`$$.name` reads the value there), and a top-level `undefined` is read as a name too. `utilities.md` ("`value.transform`") has the rule, the way round it and the five refused functions.
 

@@ -7,7 +7,7 @@ Look up a website's visits, ranking, and audience by country.
 The address is cut to its bare domain. The audience shows where a site's visitors are.
 
 - **Origin:** `ability`
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** web · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SiteTrafficMetrics`
 - **Also found as:** visitors, site visits, website traffic stats, monthly visits

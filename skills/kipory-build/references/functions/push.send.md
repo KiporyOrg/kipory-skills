@@ -6,7 +6,7 @@ Notify people on their phones.
 
 Reaches every device the people registered, once the run saves; a failed run notifies nobody. Each device delivery costs credits.
 
-- **Group:** outbound · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** send · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own push, so a new run of the same input notifies again.
 - **I/O:** `people and text` → `PushSendResult`
 - **Also found as:** push notification, notify, alert phone, send to phone, mobile notification

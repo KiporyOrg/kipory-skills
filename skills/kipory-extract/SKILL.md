@@ -84,7 +84,7 @@ Three text functions matter more than their size suggests:
   reaches a prompt. It takes a **list** of `{ id, text }` items, not a string, and cuts each body
   at 4 000 characters unless `maxCharsPerItem` is raised — `kipory-retrieve` owns the contract,
   the nonce included.
-- **`text.extract`** pulls regex matches out of the text in `with.text`,
+- **`text.match`** pulls regex matches out of the text in `with.text`,
   ordered and optionally deduped. It is the cheap, deterministic alternative to asking a model for
   the invoice numbers.
 - **`text.detect-language`** returns an ISO 639-1 code with no model call at all, or an empty string

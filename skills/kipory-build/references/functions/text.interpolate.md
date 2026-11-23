@@ -6,12 +6,12 @@ Fill a text template with values from earlier steps.
 
 No model is called. To walk, sort, filter or reshape a list, use Reshape values.
 
-- **Group:** text · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** values · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `string`
 - **Also found as:** template, format text, combine text, message text
-- **Reads:** Any slots you wire in — text verbatim, a list joined with commas, an object's fields via `{{slot.field}}`. A slot nothing has written yet fills in as empty. _(shape hint: `any+`)_
-- **Emits:** The interpolated prompt template. Every `{{slot}}` reference is replaced by the slot bag's current value; the result is written to the step's output slot verbatim.
+- **Reads:** The values `with.template` names: text as written, a list of text joined with commas, an object's field as `{{name.field}}`. A bare object is refused at save. _(shape hint: `any+`)_
+- **Emits:** The template filled in: each `{{name}}` replaced by the value it names, the rest of the text kept as written.
 
 ## Config
 
@@ -19,11 +19,11 @@ _No operator-tunable config._
 
 ## Worked example
 
-Every `{{slot}}` in the template is replaced with its value. No model, no network — the same slots always give the same string.
+Every `{{name}}` in the template is replaced with its value. No model, no network — the same values always give the same text.
 
 #### One value
 
-One slot, no surrounding prose. Use it to rename or repackage an upstream value.
+One value, no surrounding prose. Use it to rename or repackage an upstream value.
 
 Reads `object` → emits `string` · 1 in → 1 out
 
@@ -51,7 +51,7 @@ Q2 retro
 
 #### Several values
 
-Newlines in the template survive. The usual use is assembling one string out of several slots.
+Newlines in the template survive. The usual use is assembling one string out of several values.
 
 Reads `object` → emits `string` · 1 in → 1 out
 
@@ -110,7 +110,7 @@ Tags: #engineering, #metrics, #q2
 
 #### Item and count
 
-`length`, `first` and `last` project on a list; `{{slot[N]}}` reaches any position.
+`length`, `first` and `last` project on a list; `{{name[N]}}` reaches any position.
 
 Reads `object` → emits `string` · 1 in → 1 out
 

@@ -101,9 +101,8 @@ Each of these is a trap with its explanation and remedy in [references/pitfalls.
 | `references/api/sources.md`                 | the provider configs, health, the listening count                                          |
 | `references/pitfalls.md`                    | each trap of sending mail and watching a source, with what happens and what to do          |
 
-The sending step is `email.send`. Three <!-- count: functions-in-family-telegram --> functions read Telegram inside a flow, without a source:
+The sending step is `email.send`. Two <!-- count: functions-in-family-telegram --> functions read Telegram inside a flow, without a source:
 
-- `telegram.stats` — the member count last captured for a channel this project already watches; it makes no outside call and is empty for a channel the project has no source for.
 - `telegram.resolve-channel` — one public channel by handle or `t.me` link: name, members, description, picture (`kipory-gather`).
 - `telegram.search-channels` — public channels matching search terms (`kipory-gather`).
 

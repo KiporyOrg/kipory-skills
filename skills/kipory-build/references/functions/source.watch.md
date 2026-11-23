@@ -6,7 +6,7 @@ Keep a channel watched for this project, held by a record.
 
 Holds one channel for a record, usually the follow, making or switching on its source. Deleting the record lets go.
 
-- **Group:** sources · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** social · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `channel and holder` → `SourceWatch`
 - **Also found as:** follow channel, subscribe to channel, start watching, listen to channel

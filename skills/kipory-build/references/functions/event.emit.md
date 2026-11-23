@@ -4,9 +4,9 @@
 
 Send an event, with its data, to anything listening.
 
-The payload comes from the run or is fixed. It writes nothing back, so it can sit anywhere.
+Its payload comes from the run or is fixed. Inside an `each`, elements then run one at a time.
 
-- **Group:** flow · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** run · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Every emission gets a new event id, so a new run publishes the event again and starts every trigger listening for it again.
 - **I/O:** `event payload` → `nothing`
 - **Also found as:** publish event, notify, trigger, signal, broadcast

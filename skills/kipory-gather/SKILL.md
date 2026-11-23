@@ -19,12 +19,12 @@ mentions.
 
 ## Before the first call
 
-- **Confirm the function's vendor and credential** with `GET /v1/functions/{key}`. The entry names
-  the credential type and the purpose it resolves under, plus the bucket it shares.
-- **Decide whose key pays** before you build the step, not after the first invoice — `kipory-secrets`.
+- **Ask first:** `kipory find "<what to fetch>"` names the functions that do it.
+- **Confirm the function's vendor and credential** with `GET /v1/functions/{key}`: its credential
+  type, the purpose it resolves under, the bucket it shares.
+- **Decide whose key pays** before building the step, not after the invoice — `kipory-secrets`.
 - **Every one of these runs in the ingest phase**, which means a queue, retries and a cache. Inline
-  and control functions have none of those. Whether a step is queued is a property of the function,
-  not something you configure.
+  and control functions have none of those; a function decides whether its step is queued.
 - **A service with no function of its own is reached with a keyed request.** `url.fetch` reads it and
   `url.send` writes to it, each with a stored key named in `secret`. An OpenAPI one, or an MCP
   server's link, can be connected instead: `references/connections.md`. `kipory-connect`'s

@@ -33,7 +33,7 @@ the same term.
   for a few tens of credits, and changing the list is an edit of that type. A vocabulary earns its
   cost when you need what only terms give: a list that grows from what records say (`mint`),
   nesting under a parent vocabulary, filtering and counting by term (`vocabularyFilter` on
-  `record.list` and `record.count`, a `record.query` term clause, `vocabulary.aggregate`), or
+  `record.count`, a `record.query` term clause, `vocabulary.aggregate`), or
   matching by meaning. Its cost: every term write embeds the term, and every record not fed by
   `deterministic` pays a chat-model proposal in `vocabulary.resolve` — about 600 credits a
   record where a `text.decide` asking the same closed pick measured 30–40, on one deployment.
@@ -576,9 +576,9 @@ vocabulary and create another, which removes its terms and strips them off every
   - every term, keeping its id, and every record's terms, which stay filed; child vocabularies that
     nest under it follow;
   - every table's `uses.vocabularies` entry, and every `$vocabulary` marker on a type;
-  - every function setting that names the vocabulary: `term.search`, `term.threshold-gate`,
+  - every function setting that names the vocabulary: `term.search`,
     `vocabulary.resolve` and `vocabulary.aggregate`, `vocabularyFields` on `text.generate`,
-    `vocabularyFilter` on `record.list` and `record.count`, and a `record.query` term clause;
+    `vocabularyFilter` on `record.count`, and a `record.query` term clause;
   - every named query's term clause;
   - nothing is re-embedded; the term search index catches up once the change commits.
 - **What it never edits:** JSONata expressions and templates that spell the old key — `$.cuisine`

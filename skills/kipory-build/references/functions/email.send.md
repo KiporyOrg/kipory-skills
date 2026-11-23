@@ -6,7 +6,7 @@ Send one email to one person.
 
 Recipient, subject and body come from the run or are fixed. It sends after the run saves; previews never send.
 
-- **Group:** outbound · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** send · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own message, so a new run of the same input sends it again.
 - **I/O:** `recipient, subject, body` → `string`
 - **Also found as:** mail, notify by email, email someone, send message, newsletter

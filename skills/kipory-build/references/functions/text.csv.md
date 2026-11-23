@@ -6,7 +6,7 @@ Turn a list of rows into CSV text, one line per row.
 
 Headings first, then each row; values with commas, quotes or line breaks are quoted.
 
-- **Group:** text · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** values · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `list` → `CSV text`
 - **Also found as:** csv export, spreadsheet, comma separated values, download rows, export table

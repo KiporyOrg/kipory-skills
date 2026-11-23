@@ -186,13 +186,14 @@ flows:
     outputs: {}
     steps:
       - key: due
-        function: record.list
+        function: record.query
         with:
           table: member
           limit: 100
           pages: { max: 10, onMore: fail }
-          fieldFilters:
-            - field: renewsOn
+          clauses:
+            - kind: field
+              field: renewsOn
               op: eq
               value:
                 expr: "$substring($fromMillis($toMillis(runInfo.now) + 86400000), 0, 10)"
@@ -265,8 +266,8 @@ schedules:
 - **`if` guards what may be missing.** The `Member` type marks `email` optional; inside `reachable`, whose test is `{ filled: member.email }`, the save knows it is there, so `to: member.email` is accepted. A test is false on a missing value; `{ not: { has: x } }` holds when `x` is missing.
 - **Never twice, by the platform**: `renewalNote.noteKey` has the `key` use, and `record.create` with `onKeyTaken: skip` answers `keyTaken` instead of a second row. `fresh` mails only when it is not set, so a re-run of the job, overlapping or not, sends nothing twice.
 - **A daily job for each person**: the schedule starts `remind-everyone`, whose `flow.start-per-person` runs `remind-renewal` once per member of the project, as that person — so its reads see that person's rows. `with.flow` names the flow it starts by key.
-- **Read every page, loudly.** `record.list` reads one page unless `pages` says more; `onMore: fail` fails the run when rows remain instead of dropping them (the plan warns `RECORD_LIST_CURSOR_UNREAD` otherwise).
-- **A list over HTTP is a named query.** `box.mine` sits under the table it reads; `list-boxes` reads it with `record.query` and `query: box.mine`, so its endpoint pages, publishes the item's schema and answers 304 with no run; a `record.list` there is warned `ENDPOINT_IS_A_QUERY`. Its default `scope: caller` reads only the member's boxes. Paging inputs are the step's key plus `After`, `Before`, `Limit`; walk with `?after=<nextCursor>`. An endpoint declaring `after`, `before` or `limit` is no query endpoint (`QUERY_ENDPOINT_NOT_DERIVED`): `query-endpoints.md`.
+- **Read every page, loudly.** `record.query` reads one page unless `pages` says more; `onMore: fail` fails the run when rows remain instead of dropping them (the plan warns `RECORD_CURSOR_UNREAD` otherwise).
+- **A list over HTTP is a named query.** `box.mine` sits under the table it reads; `list-boxes` reads it with `record.query` and `query: box.mine`, so its endpoint pages, publishes the item's schema and answers 304 with no run; a `record.query` with clauses written in place there is warned `ENDPOINT_IS_A_QUERY`. Its default `scope: caller` reads only the member's boxes. Paging inputs are the step's key plus `After`, `Before`, `Limit`; walk with `?after=<nextCursor>`. An endpoint declaring `after`, `before` or `limit` is no query endpoint (`QUERY_ENDPOINT_NOT_DERIVED`): `query-endpoints.md`.
 - **YAML**: quote a path that holds `[` inside `{ … }` (`"perMember[].written"`), and a text with `: ` or `{{` in it.
 
 ## Names and fields that refuse a plan

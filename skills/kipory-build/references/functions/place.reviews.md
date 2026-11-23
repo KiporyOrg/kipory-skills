@@ -7,7 +7,7 @@ Read what people wrote about a place on the map.
 Give a place ID or map link, not a name. Newest first by default; cached for a day.
 
 - **Origin:** `ability`
-- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** web · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `PlaceReviews`
 - **Also found as:** ratings, customer reviews, star rating, business reviews
