@@ -447,7 +447,10 @@ output given a value that may be nothing is `FLOW_OUTPUT_MAY_BE_NOTHING` (the fi
 NO_RESULT before the `return` when the value is missing). When the flow declares required outputs,
 every path must end in a `return` or a `fail` (`FLOW_PATH_HAS_NO_END`). A `return` inside an `each`,
 `repeat` or `parallel` is refused (`RETURN_IN_REPEATED_BLOCK`): hand the value out through `out` and
-return after the block.
+return after the block. A `return` or `fail` ends its list: a step written after one never runs, and
+a save that puts one there is refused (`FLOW_STEPS_INVALID`, its fix moves the step before it, or removes it when it is an end itself); a
+flow already saved that way still saves. The steps of a `parallel` run side by side, so a `fail`
+among them leaves the others running. To fail only sometimes, put the `fail` in an `if`.
 
 `fail` ends the run with your `code` and `message`. Behind an endpoint, the caller gets `status`
 (any 4xx except 405, 408 and 426; 422 when left out) with the body `{code, message, details}`: `code` the
@@ -774,14 +777,14 @@ Read a fix's `title` before you take it. The first fix is the safest, not always
 }
 ```
 
-| Edit     | Shape                                                                                         | Notes                                                                                         |
-| -------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `insert` | `{insert: step, after: key}`, `{…, before: key}` or `{…, into: {block, branch, at}}`          | `into` without `block` is the top list; `branch` is an `if`'s index, `else`, `try` or `catch` |
-| `move`   | `{move: key, after}`, `{…, before}` or `{…, into}`                                            | keeps the step's value and the paths that read it                                             |
-| `set`    | `{set: key, field: "with.to", value}`                                                         | `value: null` removes an optional field (never a list element)                                |
-| `remove` | `{remove: key}`                                                                               | a reader left behind makes the batch fail its proof; change the readers in the same batch     |
-| `wrap`   | `{wrap: [adjacent keys], in: {if: {test}} \| {try: {}} \| {parallel: {}} \| {each, as}, key}` | builds the block around them                                                                  |
-| `unwrap` | `{unwrap: key}`                                                                               | a one-branch `if`, a `try` with an empty `catch`, or a `parallel`                             |
+| Edit     | Shape                                                                                         | Notes                                                                                                                                                                                                                                                                                                            |
+| -------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `insert` | `{insert: step, after: key}`, `{…, before: key}` or `{…, into: {block, branch, at}}`          | `into` without `block` is the top list; `branch` is an `if`'s index, `else`, `try` or `catch`                                                                                                                                                                                                                    |
+| `move`   | `{move: key, after}`, `{…, before}` or `{…, into}`                                            | keeps the step's value and the paths that read it; into a `parallel`, it is given out and read through it as a `wrap` does; out of one to beside it (or into a `parallel` beside it), the parallel stops giving it and its readers read it by its own name again; moved further, its readers are left as written |
+| `set`    | `{set: key, field: "with.to", value}`                                                         | `value: null` removes an optional field (never a list element)                                                                                                                                                                                                                                                   |
+| `remove` | `{remove: key}`                                                                               | a reader left behind makes the batch fail its proof; change the readers in the same batch                                                                                                                                                                                                                        |
+| `wrap`   | `{wrap: [adjacent keys], in: {if: {test}} \| {try: {}} \| {parallel: {}} \| {each, as}, key}` | builds the block around them; a `parallel` gives out, under its own name, each wrapped step a later step reads, and those steps read it through the block (`hello` becomes `<key>.hello`)                                                                                                                        |
+| `unwrap` | `{unwrap: key}`                                                                               | a one-branch `if`, a `try` with an empty `catch`, or a `parallel`; the steps that read a parallel's steps through it read them by their own names again                                                                                                                                                          |
 
 A batch holds at most 100 edits and is all or nothing. An edit that cannot apply (a key that names
 no step, steps to wrap that are not adjacent) refuses the batch with `STEP_EDIT_REFUSED`, naming the
@@ -1051,7 +1054,8 @@ lately — the ones most worth previewing with `input.kind: "record"`.
 
 `GET /v1/functions` is the deployment's catalog — identical for every caller, the one to confirm a key
 against. `GET /v1/functions/{key}` is one function in full: its settings, what each takes, its
-`servedBy` vendors, its run facts. A step's `with` takes three kinds of name, all on that page: the
+`servedBy` vendors, its run facts. Add `?project=<project id>` to read a function only your project
+holds (one of its connections'), with your project's rate limit and vendors. A step's `with` takes three kinds of name, all on that page: the
 function's named inputs, its `config` settings, and, for a function that calls a model with a
 template you write, its prompt fields.
 

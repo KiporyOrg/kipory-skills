@@ -195,15 +195,21 @@ Each item of `vendors`:
 ### `GET /v1/functions/{key}`
 
 One function's catalog entry — what it reads, emits and accepts as config, its `group` (lowercase, such as `ai` or `text`) — plus a worked example. An unknown key is a 404. An ability answers here while hidden, for the steps that already use it.
-The whole catalog, without examples, is `GET /v1/functions`; pass `?project=` there to resolve types against one project.
+The whole catalog, without examples, is `GET /v1/functions`; pass `?project=` there to resolve types against one project. Pass the same `?project=` here to read a function only that project holds, such as one of its connections'; without it the answer is the same for everyone.
 `servedBy` lists the vendors serving it in this environment, in the order a step naming none asks them, and what each keeps of a step's settings; a step names one in its `vendor.use`.
-Any authenticated caller; the answer is the same for everyone.
+Any authenticated caller; with `project`, VIEWER on it.
 
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `key` | `string` | yes | The function key, e.g. `url.scrape`. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | no | Read the function as this project sees it — its id, as `POST /v1/projects` answered it — so a function only that project holds (one of its connections') answers too. Omit for the deployment's catalog alone. Requires VIEWER on the project. |
 
 **Response `200`**
 
