@@ -432,14 +432,14 @@ Each item of `elements`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `ref` | `string` | yes | `<kind>:<id>` — the element's reference, spelled as the element descriptions spell it (`table:`, `event-type:`), so the two reads join on it. An opaque identifier: read an element's kind from `kind`, never from the prefix. |
-| `kind` | `"flow" \| "step" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type" \| "query"` | yes | What kind of element. |
+| `kind` | `"flow" \| "step" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type" \| "query" \| "tool"` | yes | What kind of element. |
 | `label` | `string` | yes | The element's display text. A step's own key; its flow is `flowRef`. |
 | `flowRef` | `string \| null` | yes | Steps only: the reference of the flow the step is part of. |
 | `order` | `integer \| null` | yes | Steps only: the step's position in its flow, 1-based. |
 | `enabled` | `boolean` | yes | False for a step, schedule or trigger that is switched off; true otherwise. |
 | `platform` | `boolean` | yes | True for a platform (SYSTEM) flow the project uses — named here because a project relation reaches it, never one of the project's own. |
 | `functionUnknown` | `boolean` | yes | Steps only: the step names a function the platform no longer knows, so its data relations and calls cannot be stated. |
-| `startedByNothing` | `boolean` | yes | Flows only: nothing in the project starts it — no endpoint, schedule, trigger, table, vocabulary, flow or evaluation suite. |
+| `startedByNothing` | `boolean` | yes | Flows only: nothing in the project starts it — no endpoint, tool, schedule, trigger, table, vocabulary, flow or evaluation suite. |
 
 Each item of `relations`:
 

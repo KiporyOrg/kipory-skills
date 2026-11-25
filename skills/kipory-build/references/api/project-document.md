@@ -29,7 +29,7 @@ Public: no credential needed.
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kipory` | `12` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
+| `kipory` | `13` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
 | `basedOn` | `string` | no | The read this document was made from: `<nodeId>@<version>`, the project it was exported from and that project's version then. The export writes it (not in its `plain` form); keep it in the file. A plan with no `basedOn` query reads it here, so a change made after your read is never overwritten silently. Planned on another project it is refused (422 `VALIDATION_FAILED`, `details.reason` `BASED_ON_OTHER_PROJECT`): to apply the file there, plan it with that project's current version as `?basedOn=<version>`. |
 | `project` | `object` | no | The project's own settings. Optional in a partial document. |
 | `requires` | `object` | no | What the project needs from its organization and vault: derived on export, checked on plan, never applied. A missing connection is an error; a missing secret or address, a differing fingerprint or an entry nothing uses is a warning. |
@@ -40,6 +40,7 @@ Public: no credential needed.
 | `events` | `object` | no | The event registry: event types, keyed `<categoryKey>/<key>`. The prefix is the namespace the event lives in, and nothing has to exist before it. A type in a source provider's namespace (`<provider>/…`) is written by that provider's source: a plan reports it as `derived` and never writes it, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `flows` | `object` | no | Flows keyed by key, each with its steps, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `endpoints` | `object` | no | Endpoints, keyed by the endpoint's own key: each a method holding its path, and the flow, stream or event subscription it serves, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `tools` | `object` | no | Tools: flows this project offers to AI apps over the Model Context Protocol, each by the name an app calls it. A bare key (`find-books:`) is the flow of the same key, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `triggers` | `object` | no | Triggers: a flow run on each recorded event of one type, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `schedules` | `object` | no | Schedules: a flow run on a cron pattern, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `evals` | `object` | no | Eval suites keyed by key, each with its cases, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
@@ -152,7 +153,7 @@ Each item of `changes`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | Where the row stands in the document, e.g. `tables.Member` or `flows.intake.steps.classify`. |
 | `kind` | `"create" \| "update" \| "move" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `move`: a step whose list or position changes, with its value kept (a field it also changes is listed under `fields`). `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
-| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "tools" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
@@ -229,8 +230,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -288,7 +289,7 @@ Each item of `changes`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | Where the row stands in the document, e.g. `tables.Member` or `flows.intake.steps.classify`. |
 | `kind` | `"create" \| "update" \| "move" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `move`: a step whose list or position changes, with its value kept (a field it also changes is listed under `fields`). `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
-| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "tools" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
@@ -365,8 +366,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -417,7 +418,7 @@ Each item of `changes`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | Where the row stands in the document, e.g. `tables.Member` or `flows.intake.steps.classify`. |
 | `kind` | `"create" \| "update" \| "move" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `move`: a step whose list or position changes, with its value kept (a field it also changes is listed under `fields`). `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
-| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "tools" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
@@ -494,8 +495,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -517,7 +518,7 @@ What a project holds, in one compact line per type, table, relation, view, flow,
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `version` | `string` | yes | The project's structure version the lines were read at, as `version` on `GET …/document`. A plan of a change made from this read sends it as `basedOn`. |
-| `lines` | `string[]` | yes | One line per element, in document order: `type`, `table` (followed by each of its `query` and `selection` lines, named `<table>.<key>`), `relation`, `vocabulary`, `event`, `embedding`, `flow`, `endpoint`, `trigger`, `schedule`, `eval`. Each starts with its kind and key; two spaces separate its parts. A type lists its fields (`name:type`, `*` when required); a table its owner, type and the fields it keys, filters and links; a query its base, params, order and selection; a trigger its event, how many things it watches and its flow; a flow its inputs (`?` when optional, `[]` for a list), outputs and its function steps as `steps key:function`; an endpoint its method, path, auth, target and success status; a schedule its cron, time zone, flow and whether it runs. The platform's own event types are left out. |
+| `lines` | `string[]` | yes | One line per element, in document order: `type`, `table` (followed by each of its `query` and `selection` lines, named `<table>.<key>`), `relation`, `vocabulary`, `event`, `embedding`, `flow`, `endpoint`, `tool`, `trigger`, `schedule`, `eval`. Each starts with its kind and key; two spaces separate its parts. A type lists its fields (`name:type`, `*` when required); a table its owner, type and the fields it keys, filters and links; a query its base, params, order and selection; a trigger its event, how many things it watches and its flow; a flow its inputs (`?` when optional, `[]` for a list), outputs and its function steps as `steps key:function`; an endpoint its method, path, auth, target and success status; a tool its flow and whether it is public; a schedule its cron, time zone, flow and whether it runs. The platform's own event types are left out. |
 
 ### `GET /v1/projects/{nodeId}/requires`
 

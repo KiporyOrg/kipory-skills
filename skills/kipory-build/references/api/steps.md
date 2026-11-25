@@ -87,8 +87,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -162,8 +162,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -345,8 +345,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -420,8 +420,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |

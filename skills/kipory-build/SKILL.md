@@ -15,7 +15,7 @@ A backend on Kipory is one **project document**: types, tables, flows of **steps
 
 ## Rules that keep a plan clean
 
-- **The format is 12** (`kipory: 12`); an older document is refused at plan with `DOCUMENT_VERSION_UNSUPPORTED`. Plan the document alone, never an export's `{ "version", "document" }` envelope. Everything is addressed by `key`.
+- **The format is 13** (`kipory: 13`); an older document is refused at plan with `DOCUMENT_VERSION_UNSUPPORTED`. Plan the document alone, never an export's `{ "version", "document" }` envelope. Everything is addressed by `key`.
 - **A partial document is fine, and absence never deletes.** Removal is `delete: true` on a row and needs ADMIN. A flow's `steps` are stated whole: a step you leave out is removed.
 - **Written order is run order**: a step reading a value only a step below it gives is refused (`STEP_READS_LATER`).
 - **Gate on each diagnostic's `severity`**, never its `code`. Fix every error a plan lists in one edit, then plan again. `kipory plan` prints one line per error with its document path.

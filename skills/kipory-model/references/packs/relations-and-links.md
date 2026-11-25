@@ -631,13 +631,14 @@ it meets the field on its next request; `GET /v1/api-endpoints/{id}?expand=contr
 processed fields are its flow's outputs as they are now. The generated field is an optional addition, so normally it is safe: the create
 saves for an EDITOR and the row is listed in `contractChanges`. A change that would break a caller is refused, writing
 nothing: 403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN, and for an admin 409
-`CONTRACT_BREAK_NOT_ACCEPTED` until the body's `acceptBreaks: {endpoints, tables}` names each
-breaking one by key (the 409's fix sets it). `POST /v1/relations` and `PATCH /v1/relations/{id}`
+`CONTRACT_BREAK_NOT_ACCEPTED` until the body's `acceptBreaks: {endpoints, tables, tools}` names
+each breaking one by key (the 409's fix sets it). `POST /v1/relations` and `PATCH /v1/relations/{id}`
 take `acceptBreaks`; their answers carry `contractChanges` (`[]` when no contract changed), and
 their `validateOnly` dry runs answer the same report plus `permissions.mayAcceptBreaks`. A name
 in `acceptBreaks` the project does not have is a 422 (a dry-run finding at
 `acceptBreaks.endpoints[0]`); one the write does not break comes back in
-`acceptBreaksNotNeeded`.
+`acceptBreaksNotNeeded`. A row of `contractChanges` names its `kind` — `endpoint`, `table` or
+`tool` (a flow a project offers to AI apps, whose callers meet the flow's own inputs and outputs).
 
 A pair decides which tables a query's linked read through the relation reaches, so adding or
 removing one can change what an endpoint answering that query answers. Restating the ends is judged

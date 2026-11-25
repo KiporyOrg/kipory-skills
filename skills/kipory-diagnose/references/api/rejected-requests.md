@@ -14,7 +14,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/rejected-requests`
 
-Every request the project's own endpoints turned away with a 4xx, newest first, walked on `after`/`before` — code, message, the reason's first issues and which kind of credential came with it; filter by `class` and `endpointKey`. Kept 30 days. A refused request starts no run, so it is in neither `GET /v1/runs` nor `GET /v1/ai-calls`.
+Every request the project's own endpoints turned away with a 4xx, and every tool call its `/mcp` address refused (stored as `tool:<key>` at path `/mcp`), newest first, walked on `after`/`before` — code, message, the reason's first issues and which kind of credential came with it; filter by `class` and `endpointKey`. Kept 30 days. A refused request starts no run, so it is in neither `GET /v1/runs` nor `GET /v1/ai-calls`.
 
 **Query**
 

@@ -45,7 +45,7 @@ The examples are one invented project, **Orchard Club**, a fruit-box subscriptio
 A whole flow, as it sits under `flows:` in a project document (its key is the map key, and `label` is required):
 
 ```yaml
-kipory: 12
+kipory: 13
 flows:
   summarise-page:
     label: Summarise a page

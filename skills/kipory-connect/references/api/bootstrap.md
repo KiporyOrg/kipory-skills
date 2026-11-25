@@ -24,7 +24,7 @@ To edit the configuration and send it back, read `GET /v1/projects/{nodeId}/docu
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project to snapshot. Required. |
-| `sections` | `string` | no | Comma-separated section names to return: `project`, `schema`, `relations`, `events`, `flows`, `endpoints`, `triggers`, `schedules`, `sources`, `evals`, `tenancy`; omit for all. A name that is not a section is refused with 422. |
+| `sections` | `string` | no | Comma-separated section names to return: `project`, `schema`, `relations`, `events`, `flows`, `endpoints`, `tools`, `triggers`, `schedules`, `sources`, `evals`, `tenancy`; omit for all. A name that is not a section is refused with 422. |
 | `since` | `string` | no | Return only the sections that changed after this version — pass back the `structureVersion` you already hold. A value equal to the current one returns no section content and is not an error. A value ABOVE it returns everything: the version moved backwards (a restore or rollback). Digits only; anything else is a 422. |
 
 **Response `200`**
@@ -41,6 +41,7 @@ To edit the configuration and send it back, read `GET /v1/projects/{nodeId}/docu
 | `events` | `object` | no | Event types, each carrying its namespace (`categoryKey`). Absent when unchanged or not requested. |
 | `flows` | `object` | no | Flows and their steps. Absent when unchanged or not requested. |
 | `endpoints` | `object` | no | The project's endpoints, and those that could not be read. Absent when unchanged or not requested. |
+| `tools` | `object` | no | The project's tools: flows it offers to AI apps. Absent when unchanged or not requested. |
 | `triggers` | `object` | no | The project's triggers. Absent when unchanged or not requested. |
 | `schedules` | `object` | no | The project's schedules. Absent when unchanged or not requested. |
 | `sources` | `object` | no | The project's sources: what its triggers and records hold. Absent when unchanged or not requested. |

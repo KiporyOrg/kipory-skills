@@ -2,6 +2,60 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261125.185721 — 2026-11-25
+
+Synced from the Kipory monorepo at `82680f9e4`.
+
+Routes added: `DELETE /v1/mcp-tools/{id}`, `DELETE /v1/me/connected-apps/{id}`, `GET /v1/authorize-requests/{id}`, `GET /v1/mcp-tools/`, `GET /v1/mcp-tools/{id}`, `GET /v1/me/connected-apps`, `GET /v1/projects/{nodeId}/connected-apps`, `GET /v1/projects/{nodeId}/connected-apps/decisions`, `PATCH /v1/mcp-tools/{id}`, `POST /v1/mcp-tools/`, `POST /v1/me/authorize-requests/{id}/decision`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/api/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/api/flows.md`
+- changed: `skills/kipory-build/references/api/project-document.md`
+- changed: `skills/kipory-build/references/api/steps.md`
+- changed: `skills/kipory-build/references/document.md`
+- changed: `skills/kipory-build/references/first-flow.md`
+- changed: `skills/kipory-build/references/packs/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-build/references/queries.md`
+- changed: `skills/kipory-build/references/quickstart-document.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/api/bootstrap.md`
+- changed: `skills/kipory-connect/references/api/projects.md`
+- changed: `skills/kipory-connect/references/api/routes-a-key-cannot-call.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/session-start.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-connect/scripts/kipory.mjs`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- changed: `skills/kipory-diagnose/references/api/rejected-requests.md`
+- changed: `skills/kipory-diagnose/references/api/runs.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-evolve/references/change-order.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-expose/references/api/api-endpoints.md`
+- changed: `skills/kipory-expose/references/api/end-users.md`
+- added: `skills/kipory-expose/references/api/mcp-tools.md`
+- changed: `skills/kipory-expose/references/consumer.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-expose/references/pitfalls.md`
+- added: `skills/kipory-expose/references/tools.md`
+- changed: `skills/kipory-gather/references/url-send.md`
+- changed: `skills/kipory-model/references/api/relations.md`
+- changed: `skills/kipory-model/references/api/tables.md`
+- changed: `skills/kipory-model/references/api/types.md`
+- changed: `skills/kipory-model/references/api/vocabularies-and-terms.md`
+- changed: `skills/kipory-model/references/packs/relations-and-links.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-model/references/packs/vocabularies.md`
+- changed: `skills/kipory-operate/references/api/project-config.md`
+- changed: `skills/kipory-operate/references/packs/project-config.md`
+
 ## 1.20261124.101918 — 2026-11-24
 
 Synced from the Kipory monorepo at `eb282d1dc`.

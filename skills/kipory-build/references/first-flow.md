@@ -213,7 +213,7 @@ curl -sS -X POST "$INVOKE_URL" \
 State sections 1, 2 and 6 as one document. Inside a document everything is addressed by **key**: the flow is keyed under `flows`, and the endpoint's `flow` is the flow's key.
 
 ```yaml
-kipory: 12
+kipory: 13
 flows:
   write-slip:
     label: Write a packing slip

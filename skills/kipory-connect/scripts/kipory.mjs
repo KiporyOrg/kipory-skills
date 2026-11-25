@@ -24,6 +24,12 @@
 //   call <user|-> <METHOD> <path> [json | --body <json> | --body-file <file> [--type <t>]]
 //        [-H 'name: value']… [--pages [--page-param cursor]] [--times <n>] [--out <file>]
 //                              call the project's own host as that user
+//   tools [-] [<name> [json]]  the project's tools as an AI app sees them at its /mcp
+//                              address, with the key (-: with no credential, the public
+//                              ones); with a name, call that tool: its outputs, or its
+//                              tool error. /mcp takes a key or a signed-in app, never a
+//                              test user's session: a tool whose flow needs a person is
+//                              not listed for a key; try its flow with call or preview
 //   preview <flow> [--as <user|nobody|me>] [--input <json>] [--apply] [--fan-out-cap <n|uncapped>]
 //                              run a flow in the sandbox, print each write
 //   preview --schedule <key> [--input <json>] [--apply]   a schedule's flow, as it fires
@@ -1348,6 +1354,134 @@ const sendAs = async (base, who, req) => {
   // rather than renewing again (a gone user would be made twice).
   const now = users()[who]?.session;
   return go(now && now !== session ? now : (await renew(who)).session);
+};
+
+// ── tools, as an AI app sees them ───────────────────────────────────────────
+
+/** The Model Context Protocol revision `/mcp` speaks without a handshake. */
+const MCP_REVISION = "2026-07-28";
+let mcpId = 0;
+
+/** One JSON-RPC request to the project's `/mcp`, with the key or with none. */
+const mcp = async (anonymous, method, params = {}) => {
+  const base = await host();
+  const headers = {
+    accept: "application/json",
+    "mcp-protocol-version": MCP_REVISION,
+    "mcp-method": method,
+  };
+  if (method === "tools/call") {
+    const name = String(params.name);
+    headers["mcp-name"] = /^[\x20-\x7e]*$/.test(name)
+      ? name
+      : `=?base64?${Buffer.from(name).toString("base64")}?=`;
+  }
+  if (!anonymous && !KEY)
+    throw usage(`KIPORY_API_KEY is not set (environment or ${ENV_FILE})`);
+  mcpId += 1;
+  const res = await request(`${base}/mcp`, {
+    method: "POST",
+    token: anonymous ? undefined : KEY,
+    headers,
+    body: {
+      jsonrpc: "2.0",
+      id: mcpId,
+      method,
+      params: {
+        ...params,
+        _meta: {
+          "io.modelcontextprotocol/protocolVersion": MCP_REVISION,
+          "io.modelcontextprotocol/clientCapabilities": {},
+        },
+      },
+    },
+    redirect: "manual",
+  });
+  if (res.status === 401)
+    throw refused(
+      `401 at ${base}/mcp: ${anonymous ? "no public tool answers here (a tool with `auth: none`); call it with the key (drop the `-`) or sign in" : "the key is not live, or does not reach this project"}`,
+    );
+  const rpcError = res.json?.error;
+  if (rpcError)
+    throw refused(
+      `${res.status} JSON-RPC ${rpcError.code}: ${oneLine(rpcError.message ?? "")}`,
+    );
+  if (res.status !== 200 || !res.json || !("result" in res.json))
+    throw refused(`${method}: ${refusal(res)}`);
+  return res.json.result;
+};
+
+/** One input of a listed schema, in a few words. */
+const schemaWords = (name, schema, required) => {
+  const type = Array.isArray(schema?.type)
+    ? schema.type.join("|")
+    : (schema?.type ?? (schema?.enum ? "enum" : "value"));
+  const words = `${name}: ${type}${required ? "" : "?"}`;
+  return schema?.description
+    ? `${words} — ${oneLine(schema.description)}`
+    : words;
+};
+
+const tools = async (args) => {
+  const anonymous = args[0] === "-";
+  const [name, json] = anonymous ? args.slice(1) : args;
+  if (name === undefined) {
+    const result = await mcp(anonymous, "tools/list");
+    if (asJson) return out(JSON.stringify(result));
+    const listed = result.tools ?? [];
+    out(
+      `${listed.length} tool${listed.length === 1 ? "" : "s"} at ${await host()}/mcp ${anonymous ? "with no credential" : "with this key"}`,
+    );
+    for (const t of listed) {
+      const mark = t.annotations?.readOnlyHint ? "read-only" : "changes data";
+      out(
+        `${t.name} (${mark})${t.title ? ` ${t.title}` : ""}: ${t.description ? cut(oneLine(t.description), 200) : "NO DESCRIPTION — an app sees only the name"}`,
+      );
+      const props = t.inputSchema?.properties ?? {};
+      const required = new Set(t.inputSchema?.required ?? []);
+      for (const [k, v] of Object.entries(props))
+        out(`  in  ${schemaWords(k, v, required.has(k))}`);
+      const outs = t.outputSchema?.properties ?? {};
+      const outRequired = new Set(t.outputSchema?.required ?? []);
+      for (const [k, v] of Object.entries(outs))
+        out(`  out ${schemaWords(k, v, outRequired.has(k))}`);
+    }
+    return;
+  }
+  let args_ = {};
+  if (json !== undefined) {
+    try {
+      args_ = JSON.parse(json);
+    } catch {
+      throw usage(`the arguments are not JSON: ${json}`);
+    }
+  }
+  const result = await mcp(anonymous, "tools/call", {
+    name,
+    arguments: args_,
+  });
+  if (asJson) {
+    out(JSON.stringify(result));
+    if (result.isError) throw refused("");
+    return;
+  }
+  const meta = result._meta ?? {};
+  const run = meta["com.kipory/runId"];
+  const credits = meta["com.kipory/creditsCharged"];
+  const facts = [
+    run ? `run ${run}` : undefined,
+    credits !== undefined ? `${credits} credits` : undefined,
+  ].filter(Boolean);
+  if (result.isError) {
+    // A tool error carries no `structuredContent`: its code, message and
+    // details ride `_meta`.
+    const e = meta["com.kipory/error"] ?? {};
+    throw refused(
+      `tool error ${e.code ?? "?"}: ${oneLine(e.message ?? "")}${e.details ? ` ${cut(oneLine(JSON.stringify(e.details)), 300)}` : ""}${facts.length > 0 ? `\n${facts.join(", ")}` : ""}`,
+    );
+  }
+  out(`ok${facts.length > 0 ? ` ${facts.join(", ")}` : ""}`);
+  out(cut(JSON.stringify(result.structuredContent ?? {}), BODY_CUT));
 };
 
 const PAGE_MAX = 20;
@@ -2743,6 +2877,7 @@ const COMMAND_FLAGS = {
   connect: [],
   docs: ["more", "full"],
   find: ["report"],
+  tools: [],
 };
 /** Flags no command reads together: one of each pair is ignored otherwise. */
 const APART = [
@@ -2797,6 +2932,8 @@ const main = async () => {
       return user(rest[0]);
     case "call":
       return call(rest[0], rest[1], rest[2], rest[3]);
+    case "tools":
+      return tools(rest);
     case "preview":
       return preview(rest[0]);
     case "find":

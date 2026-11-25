@@ -6,7 +6,7 @@
 > paths & request shapes → live `GET /v1/openapi.json`. This pack carries judgment about when a
 > template is the right starting point and what it does to the project it seeds.
 >
-> **Format 12 names:** a template's files are project documents, so they spell format 12's names: a table's `owner`, a vocabulary's `parent`, a flow value's `type` and `list`, a schedule's `cron` and a step's `table`.
+> **Format 12 names:** a template's files are project documents, so they spell the names format 12 set and format 13 keeps: a table's `owner`, a vocabulary's `parent`, a flow value's `type` and `list`, a schedule's `cron` and a step's `table`.
 
 ## What it is
 
@@ -33,8 +33,14 @@ slug grammar would refuse included; there is no `422` on this read.
 Read the document before you choose. It is exactly what the new project will hold — there is no
 hidden part, and no parameters: a template is applied as written. `Accept: application/yaml`
 answers YAML. It is an ordinary project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) in the current format,
-`kipory: 12`, and every rule of that pack holds for it: what a row may state, how each reference is
+`kipory: 13`, and every rule of that pack holds for it: what a row may state, how each reference is
 spelled, and what is refused.
+
+**What format 13 moved.** One thing: a flow states its one-at-a-time rule
+(`flows.<flow>.serialize`, its key in the flow's input names), and an endpoint no longer does. A
+template may also offer flows as tools to AI apps in a `tools` section; the new project then
+serves them at its own `/mcp` address from its first moment
+(project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)).
 
 **What format 12 moved in a template's document.** A file written as `kipory: 11` reads differently:
 
@@ -100,7 +106,7 @@ Four things to know about the result:
   first version. Nothing records which template it came from: the project is yours from the first
   moment, and the link is deliberately not kept.
 
-A template is written in the current document format (`kipory: 12`), so its flows are stated as
+A template is written in the current document format (`kipory: 13`), so its flows are stated as
 `steps` in written order, and they are judged as a document's are: a step the save refuses — a read
 it cannot prove, a condition whose list key is misspelled — refuses the project's creation, and
 nothing is made. A template's flows use today's catalog: a list read is `record.query` (with its

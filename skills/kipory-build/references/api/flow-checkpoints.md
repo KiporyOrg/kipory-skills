@@ -244,7 +244,7 @@ Restore a checkpoint: replace its flow's steps and signature with the captured o
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `version` | `integer` | yes | The FLOW's `version` as you last read it (`GET /v1/flows/{id}`) — the flow a restore overwrites; the checkpoint itself is unchanged. REQUIRED: a flow changed since (its steps, label, description or signature — a save, another restore, a document apply) is refused with 409 `VERSION_CONFLICT`. The restore first takes an automatic checkpoint of the flow as it stands (`autoCheckpointId` in the response), and restoring that one undoes it. |
-| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints and tables named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
+| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints, tables and tools named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
 | `validateOnly` | `boolean` | no | Check this restore against the flow as it is now and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a flow `version` the flow has moved past — answers the status it always did. Default false. |
 
 **Response `200`**
@@ -288,8 +288,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -344,8 +344,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |

@@ -82,7 +82,7 @@ run). It gives back, per member, 1 when a note went out and 0 when the member ha
 `Member` type marks only `name` required, so `email` may be missing.
 
 ```yaml
-kipory: 12
+kipory: 13
 flows:
   renew-members:
     label: Renew members
@@ -1137,7 +1137,7 @@ POST  /v1/projects/{nodeId}/document/plan     what applying it to the target wou
 POST  /v1/projects/{nodeId}/document          apply it to the target
 ```
 
-The document is `kipory: 12`, and each flow sits under `flows.<key>` with its `steps` in written order,
+The document is `kipory: 13`, and each flow sits under `flows.<key>` with its `steps` in written order,
 stated whole: a step the list leaves out is removed. Everything is addressed by key, so nothing in it
 is a source-project id. The plan names each step by flow and key; a step whose list or position
 changed is a move. A document in another format is refused at plan (`DOCUMENT_VERSION_UNSUPPORTED`).

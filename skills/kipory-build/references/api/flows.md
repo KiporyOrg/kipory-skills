@@ -53,6 +53,7 @@ Each item of `flows`:
 | `key` | `string` | yes | The flow's key, fixed when the flow is created. It cannot be changed afterwards — change the display text through `label`. |
 | `description` | `string \| null` | yes | Free prose about what the flow is for, or null when none was written. Documentation only — nothing at runtime reads it. |
 | `caller` | `"user" \| null` | yes | Who the flow runs for. `user`: only a signed-in user. A run with no user is refused before any step, however it was started, and the flow's steps read `userInfo.userId` as always there. Null: anyone who may start it. |
+| `serialize` | `object \| null` | yes | The flow's one-at-a-time rule: calls whose key values are equal run one at a time, in order of arrival — an endpoint's call that waits for the run and a tool's alike. Null: calls are not held back. |
 | `inputs` | `object` | yes | What the flow takes in, by name — always an object, `{}` when it declares none. Each value's `jsonType` is as the server resolved it; you author it as a registered type name in `inputs` on create or patch. |
 | `outputs` | `object` | yes | What the flow gives back, by name — always an object, `{}` when it declares none. A `return` step gives them. |
 | `stepCount` | `integer` | yes | How many steps the flow currently contains, nested ones included. |
@@ -78,6 +79,7 @@ Create a flow — its key, label and typed signature (`inputs`, `outputs`); its 
 | `key` | `string` | yes | The flow's key, permanent once created — pick it deliberately. Uppercase is refused, not folded. Kebab-case: lowercase letters and digits in words joined by single dashes, like `renew-members`, up to 100 characters. |
 | `description` | `string \| null` | no | Optional prose about what the flow is for. Whitespace is trimmed before the length limit applies. |
 | `caller` | `"user" \| null` | no | Who the flow runs for. `user`: only a signed-in user. A run with no user is refused before any step, however it was started (an endpoint, a `flow.invoke`, a preview, a schedule, a trigger, a table's processing): an endpoint answers a key's call 403 `END_USER_REQUIRED`, as it does for a flow that writes a person's own records, and a call with no credential 401. So the flow's steps read `userInfo.userId` as always there and need no sign-in guard. A schedule, a trigger, a project table's processing or a public endpoint on such a flow is refused when a document is planned (`FLOW_CALLER_NEVER_SIGNED_IN`, `PUBLIC_ENDPOINT_NEEDS_USER`). Omitted or null: anyone who may start it. Not available on a platform flow. |
+| `serialize` | `object \| null` | no | Run calls of this flow that carry the same key one at a time, in order of arrival — every booking of one slot, say — so each reads what the one before it wrote. `key` names 1–4 of the flow's inputs (`bookId`, or `order.accountId` for a field inside one); `line` shares the turns with other flows naming it; `maxWaitMs` bounds the wait, after which a call is refused `SERIALIZE_KEY_BUSY` and the flow does not run. Every call that waits for the flow takes its turn: an endpoint's that answers when the run ends, and a tool's. A part that names no input of the flow is refused. Omitted or null: calls are not held back. Not available on a platform flow. |
 | `inputs` | `object` | yes | What the flow takes in, by name, as registered type names. |
 | `outputs` | `object` | yes | What the flow gives back, by name, as registered type names. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
@@ -130,8 +132,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -164,6 +166,7 @@ Each item of `renames`:
 | `key` | `string` | yes | The flow's key, fixed when the flow is created. It cannot be changed afterwards — change the display text through `label`. |
 | `description` | `string \| null` | yes | Free prose about what the flow is for, or null when none was written. Documentation only — nothing at runtime reads it. |
 | `caller` | `"user" \| null` | yes | Who the flow runs for. `user`: only a signed-in user. A run with no user is refused before any step, however it was started, and the flow's steps read `userInfo.userId` as always there. Null: anyone who may start it. |
+| `serialize` | `object \| null` | yes | The flow's one-at-a-time rule: calls whose key values are equal run one at a time, in order of arrival — an endpoint's call that waits for the run and a tool's alike. Null: calls are not held back. |
 | `inputs` | `object` | yes | What the flow takes in, by name — always an object, `{}` when it declares none. Each value's `jsonType` is as the server resolved it; you author it as a registered type name in `inputs` on create or patch. |
 | `outputs` | `object` | yes | What the flow gives back, by name — always an object, `{}` when it declares none. A `return` step gives them. |
 | `stepCount` | `integer` | yes | How many steps the flow currently contains, nested ones included. |
@@ -201,6 +204,7 @@ Read one flow: its signature, its steps in the order they run, its `version` (th
 | `key` | `string` | yes | The flow's key, fixed when the flow is created. It cannot be changed afterwards — change the display text through `label`. |
 | `description` | `string \| null` | yes | Free prose about what the flow is for, or null when none was written. Documentation only — nothing at runtime reads it. |
 | `caller` | `"user" \| null` | yes | Who the flow runs for. `user`: only a signed-in user. A run with no user is refused before any step, however it was started, and the flow's steps read `userInfo.userId` as always there. Null: anyone who may start it. |
+| `serialize` | `object \| null` | yes | The flow's one-at-a-time rule: calls whose key values are equal run one at a time, in order of arrival — an endpoint's call that waits for the run and a tool's alike. Null: calls are not held back. |
 | `inputs` | `object` | yes | What the flow takes in, by name — always an object, `{}` when it declares none. Each value's `jsonType` is as the server resolved it; you author it as a registered type name in `inputs` on create or patch. |
 | `outputs` | `object` | yes | What the flow gives back, by name — always an object, `{}` when it declares none. A `return` step gives them. |
 | `stepCount` | `integer` | yes | How many steps the flow currently contains, nested ones included. |
@@ -325,6 +329,7 @@ Change a flow's label, description, signature (`inputs` or `outputs`, either sid
 | `label` | `string` | no | New display text. Omit to leave it alone. |
 | `description` | `string \| null` | no | Three distinct states: omit to leave the description alone, pass null (or an empty string) to clear it, pass text to replace it. |
 | `caller` | `"user" \| null` | no | Who the flow runs for. Omit to leave it alone; `user` makes the flow run only for a signed-in user (a run with no user is refused before any step: 403 `END_USER_REQUIRED` to a key's call of its endpoint); null lets anyone who may start it run it. Changing it re-validates the flow's steps, which may read `userInfo.userId` unguarded only while it says `user`. Setting `user` is refused while an enabled schedule or trigger, a project table's processing or a public endpoint starts the flow (`FLOW_CALLER_NEVER_SIGNED_IN`, `PUBLIC_ENDPOINT_NEEDS_USER`). It is not judged as a contract break: an endpoint a key could call until now refuses the key afterwards, so check the endpoint's `access.requiresUser` before and after. |
+| `serialize` | `object \| null` | no | The flow's one-at-a-time rule. Omit to leave it alone; null removes it, so calls are no longer held back; a rule replaces it whole. `key` names 1–4 of the flow's inputs (`bookId`, `order.accountId`); a part that names no input of the flow, as the inputs read after this edit, is refused. An input this edit renames (`renameInputs`) is renamed in the key too. |
 | `inputs` | `object` | no | Replacement inputs, by name. Omit to leave them alone — they may be sent without `outputs`, and the outputs then stay as stored. Changing them re-validates every step in the flow. |
 | `outputs` | `object` | no | Replacement outputs, by name. Omit to leave them alone — they may be sent without `inputs`, and the inputs then stay as stored. Changing them re-validates the whole flow. |
 | `renameInputs` | `object` | no | Inputs this edit RENAMES, old name → new name. In the same write the platform moves every place that names the input: the reads in this flow's own steps (paths, expressions, templates, `if` tests, `each`, `repeat`), the `inputs` key of every call of this flow, the bindings and settings of the endpoints bound to it, the stored `inputs` of its schedules and triggers, its eval cases, and the checkpoints of this flow and of the flows that call it. An endpoint's query parameter keeps the name its callers send; a body field is read under the new name, so its callers must send that. An eval assertion that reads `inputs` through a filter or whole is a candidate the platform will not edit by itself: keep it in `keepExpressions` (as `<suite>.<case>`), or change it by hand, or the write is refused `RENAME_CANDIDATE_UNRESOLVED`. Leave `inputs` out and the stored input takes the new name; or state `inputs` as they read after the rename. The old name must be a declared input and the new one free: not another input, and not a name a step or a block of the flow gives a value under. An input left out of `inputs` and not named here is a removal. Refused `RENAME_NAME_TAKEN` where the platform fills the input by its name and nothing names it to move: a `record.query` step's named query parameter or paging input, a trigger's `event` and `trigger`, the inputs of a flow that scores an eval suite. Refused `RENAME_FLOW_PROCESSES_TABLE` on a flow that a table processes its records with. A rename that changes what an endpoint's callers send or read is a breaking change: an admin names that endpoint in `acceptBreaks`. An eval case that moved has no earlier run to compare with on its next run. Needs ADMIN. |
@@ -332,14 +337,14 @@ Change a flow's label, description, signature (`inputs` or `outputs`, either sid
 | `keepExpressions` | `string[]` | no | With `renameOutputs` or `renameInputs`: the steps (`<flowKey>.<stepKey>`) of calling flows, and the eval cases (`<suite>.<case>`), whose remaining occurrences of the old name stay AS WRITTEN. Every candidate the plan lists must be kept here, changed by hand, or (for an output) written through `rewriteExpressions`, or the write is refused `RENAME_CANDIDATE_UNRESOLVED`. Name each as the plan's candidate `path` lists it. Refused 422 when sent with neither. |
 | `rewriteExpressions` | `string[]` | no | With `renameOutputs`: the steps (`<flowKey>.<stepKey>`) of calling flows whose remaining occurrences of the old name the platform REWRITES to the `proposed` text the plan lists. Read the plan (`validateOnly`) first: an occurrence may spell the old name and mean something else. An entry the platform cannot act on is refused `RENAME_REWRITE_NOT_POSSIBLE`: a step with no listed candidate, or one whose only candidate is a path. Refused 422 when sent with no `renameOutputs`. |
 | `version` | `integer` | yes | The flow's `version` as you last read it. REQUIRED: the patch is refused with 409 `VERSION_CONFLICT` if the flow changed since — another patch, a checkpoint restore, or a project document apply — so a concurrent edit is never silently overwritten. |
-| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints and tables named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
+| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints, tables and tools named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored flow and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did. Default false. |
 
 **Response `200`**
 
 One of 2 shapes:
 
-Shape 1, with `id`, `scope`, `project`, `label`, `key`, `description`, `caller`, `inputs`, `outputs`, `stepCount`, `version`, `createdAt`, `updatedAt`, `touched`:
+Shape 1, with `id`, `scope`, `project`, `label`, `key`, `description`, `caller`, `serialize`, `inputs`, `outputs`, `stepCount`, `version`, `createdAt`, `updatedAt`, `touched`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -350,6 +355,7 @@ Shape 1, with `id`, `scope`, `project`, `label`, `key`, `description`, `caller`,
 | `key` | `string` | yes | The flow's key, fixed when the flow is created. It cannot be changed afterwards — change the display text through `label`. |
 | `description` | `string \| null` | yes | Free prose about what the flow is for, or null when none was written. Documentation only — nothing at runtime reads it. |
 | `caller` | `"user" \| null` | yes | Who the flow runs for. `user`: only a signed-in user. A run with no user is refused before any step, however it was started, and the flow's steps read `userInfo.userId` as always there. Null: anyone who may start it. |
+| `serialize` | `object \| null` | yes | The flow's one-at-a-time rule: calls whose key values are equal run one at a time, in order of arrival — an endpoint's call that waits for the run and a tool's alike. Null: calls are not held back. |
 | `inputs` | `object` | yes | What the flow takes in, by name — always an object, `{}` when it declares none. Each value's `jsonType` is as the server resolved it; you author it as a registered type name in `inputs` on create or patch. |
 | `outputs` | `object` | yes | What the flow gives back, by name — always an object, `{}` when it declares none. A `return` step gives them. |
 | `stepCount` | `integer` | yes | How many steps the flow currently contains, nested ones included. |
@@ -387,8 +393,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -458,8 +464,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |

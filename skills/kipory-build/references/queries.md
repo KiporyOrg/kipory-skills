@@ -18,7 +18,7 @@ A reading circle: `author` and `book` are the project's, `follow` and `hide` are
 
 ```json kipory:request=project-document
 {
-  "kipory": 12,
+  "kipory": 13,
   "types": {
     "Author": {
       "type": "object",

@@ -100,7 +100,7 @@ the payment system as its idempotency key and as the reference it hands back), a
 key and its answer; it is the only place the answer is read.
 
 ```yaml
-kipory: 12
+kipory: 13
 types:
   ChargeAttempt:
     type: object

@@ -1,7 +1,10 @@
 {
-  "source": "eb282d1dca162bc2267ed9dfa806f0f39df199db",
+  "source": "82680f9e4a24adfe91a9c8fe1123c1bed92d8df2",
   "since": "2026-08-19",
   "history": [
+    {"sha":"82680f9e4a24","skills":"A project offers its flows as tools to AI apps at /mcp, with a sign-in server for them, and the one-at-a-time rule moves to the flow (441, format 13) (#3821)"},
+    {"sha":"d191f6691816"},
+    {"sha":"15041b38ac67"},
     {"sha":"eb282d1dca16","skills":"The flow board edits a flow where it stands, and the platform keeps those edits valid: readers follow a step into and out of a parallel, a step after an end is refused (#3817)"},
     {"sha":"c32fce763500","skills":"Agents declare their endpoint answers: the primer and answers.md teach a selection with answer, and the benchmark builds now use it (440 SC-007) (#3816)"},
     {"sha":"01ba6dbcea95"},
@@ -998,9 +1001,6 @@
     {"sha":"600165fd976a"},
     {"sha":"344a47ac645a"},
     {"sha":"baf5bb42ffc2"},
-    {"sha":"bf74c1c8101e"},
-    {"sha":"239ba8edeed9"},
-    {"sha":"bb1a4ffe9f70"},
-    {"sha":"ee820a4aed30"}
+    {"sha":"bf74c1c8101e"}
   ]
 }

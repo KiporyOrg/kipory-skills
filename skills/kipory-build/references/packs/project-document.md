@@ -17,9 +17,9 @@ table's queries under the table, a vocabulary's terms under the vocabulary, a su
 the suite. Ids are optional; the platform fills them in on export and matches by them on apply.
 The document you write is the document the platform hands back.
 
-The sections, in order: `kipory: 12` (first, required), `basedOn` (the bound form only),
+The sections, in order: `kipory: 13` (first, required), `basedOn` (the bound form only),
 `project`, `requires`, `types`, `tables`, `relations`, `vocabularies`, `events`, `flows`,
-`endpoints`, `triggers`, `schedules`, `evals`.
+`endpoints`, `tools`, `triggers`, `schedules`, `evals`.
 
 Read it before authoring anything larger than one row. The row-by-row API has an order — a
 table needs its type first, a relation its tables, a trigger its flow — and the
@@ -39,7 +39,7 @@ unchanged project answers `304`.
   bootstrap read's parameter is `sections`, and each read refuses the other's spelling with a
   `422`). A partial read carries no `ETag` — a validator claims you hold the whole thing.
 - `Accept: application/yaml` answers the document ALONE as YAML — the file form, first line
-  `kipory: 12`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
+  `kipory: 13`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
   states any other format version, `kipory: 1` included, is refused with
   `DOCUMENT_VERSION_UNSUPPORTED` — export again to get the current form). The wire is JSON,
   and JSON answers the `{ version, document }` envelope. The YAML form carries the read as
@@ -152,7 +152,7 @@ project:
 an apply ignores it.
 
 ```yaml kipory:request=project-document
-kipory: 12
+kipory: 13
 requires:
   connections:
     crm:
@@ -371,6 +371,29 @@ project's cap on what its public endpoints may spend is `project.credits.publicE
 (`{ credits, per: day }`, or `off` for none), and like every `credits` setting it is kept when the
 document leaves it out.
 
+`tools` offers flows to AI apps over the Model Context Protocol, beside the endpoints: each key
+is the name an AI app calls (a lowercase letter, then up to 63 lowercase letters, digits, `-` and
+`_`), and a key left bare (`find-books:`) is the flow of the same key. A row may state `flow` (the
+key of another flow), a short `title`, its own `description` (up to 1,024 characters; left out,
+the flow's own is listed), and `auth: none` with `publicRpm`, as an endpoint states them. A tool binds no inputs: an
+AI app sends the flow's own, read from its signature, so nothing on the row names an input. The
+plan refuses a tool whose flow does not exist (`TOOL_FLOW_UNKNOWN` at `tools.<key>.flow`), whose
+flow has a required `internal` input (`TOOL_FLOW_NOT_CALLABLE`), a public tool whose flow needs a
+signed-in person (`PUBLIC_TOOL_NEEDS_USER`), `publicRpm` without `auth: none`
+(`TOOL_CONFIG_INVALID`), and one past `tools.per-project` (50 by default, `TOOL_LIMIT_REACHED`);
+it warns `TOOL_NOT_DESCRIBED` when neither the row nor the flow has a description, and a public
+tool carries the public endpoint's warnings under its own codes (`PUBLIC_TOOL_SPENDS`,
+`PUBLIC_TOOL_WRITES`, …). An export writes only what a tool states beyond the defaults, and `flow` only when it is not
+the tool's key.
+A flow a tool names counts the tool among its dependents. What an AI app is shown and how a call is
+answered: anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`).
+
+A flow's row may state `serialize`, its one-at-a-time rule (format 13): `{ key: [<input>, …],
+line?, maxWaitMs? }`, each key part an input of the flow or a field inside one (`order.accountId`).
+Every call that waits for the flow — an endpoint's and a tool's — takes that line. An endpoint row
+no longer states it: `serialize` on an endpoint is refused at `endpoints.<key>.serialize`, naming
+`flows.<flow>.serialize` as its place.
+
 Not every nested reference is re-spelled: a table's `uses.join` names its relation as
 `relationKey`, exactly as the table API does, because the document passes that object to the same
 create body unchanged.
@@ -519,13 +542,13 @@ The exception is the owned collections (a flow's `steps`, a suite's `cases`, a
 vocabulary's `terms`): each is stated whole, so when present it replaces the owner's collection —
 and a member the project holds that the collection no longer names is REMOVED, which makes that
 document one that removes something, with the ADMIN floor an apply that removes has.
-The document may carry `acceptBreaks: { endpoints: [...], tables: [...] }` once, at its top level
-beside `kipory`, never on a row. The plan compares every endpoint and flow-backed table the document
-reaches before and after the whole document, and answers `contractChanges`: each one whose
+The document may carry `acceptBreaks: { endpoints: [...], tables: [...], tools: [...] }` once, at its
+top level beside `kipory`, never on a row. The plan compares every endpoint, tool and flow-backed
+table the document reaches before and after the whole document, and answers `contractChanges`: each one whose
 contract moves, by key, its `verdict` (`safe` or `breaking`), each change and `mustAccept`. A
 document that breaks an endpoint and repairs it in the same apply is no change. A safe change
-applies unasked; a breaking one is an error finding until `acceptBreaks` names that endpoint or
-table, because accepting re-publishes its request and response contract to whoever already calls
+applies unasked; a breaking one is an error finding until `acceptBreaks` names that endpoint,
+tool or table, because accepting re-publishes its request and response contract to whoever already calls
 it. Only an admin of the project may accept: the plan answers `permissions.mayAcceptBreaks`, and a
 breaking document planned below admin carries `CONTRACT_BREAK_FORBIDDEN` (an admin may still apply
 that plan). An admin's plan that does not name a breaking row carries `CONTRACT_BREAK_NOT_ACCEPTED`;
@@ -625,7 +648,7 @@ The answer holds the `version` the plan was computed against, its `planId` and `
   `decision` it needs from you. Any other finding may carry `fixes` too, each
   `{title, set: [{field, value}]}`: set each `value` at its `field` — a path in your document, in
   the same form as the finding's own `field`; `value: null` removes it — and plan again. A break
-  not accepted carries `set acceptBreaks → {endpoints, tables}` naming every breaking row, which
+  not accepted carries `set acceptBreaks → {endpoints, tables, tools}` naming every breaking row, which
   re-publishes those contracts to their callers: read `contractChanges` first. A required flow input bound to an
   optional query parameter carries `set …params.<name>.required → true`. A finding with no `fixes`
   says in its message what to decide.
@@ -832,7 +855,7 @@ the type it took its fields from.
 Absence never deletes, so applying another project's export to this one adds and updates what it
 names and leaves every other row standing. To make the project EQUAL the document, state
 `prune: true` on every map of rows: `types`, `tables`, `relations`, `vocabularies`, `events`,
-`project.ai.embeddings`, `flows`, `endpoints`, `triggers`, `schedules` and `evals`, and each
+`project.ai.embeddings`, `flows`, `endpoints`, `tools`, `triggers`, `schedules` and `evals`, and each
 table's `queries` and `selections` — including the maps the document does not carry, since an
 absent section then means "none of these". Plan it first: the plan lists every delete, and an apply that removes
 anything needs ADMIN.
@@ -852,9 +875,11 @@ refused, and it is set on the suite after the apply (`PATCH /v1/eval-suites/{id}
 
 ## A document in another format
 
-`kipory: 12` is the only format a plan reads. A document stating any other version is refused,
+`kipory: 13` is the only format a plan reads. A document stating any other version is refused,
 `DOCUMENT_VERSION_UNSUPPORTED`, and nothing converts it: export the project again and make the
-change there. A flow with no steps yet is not started (`FLOW_NOT_AUTHORED`).
+change there. Format 13 differs from 12 in one place a document states: the one-at-a-time
+rule is the flow's (`flows.<flow>.serialize`, its key in the flow's input names) and an endpoint
+no longer states it; its `tools` section is new and optional. A flow with no steps yet is not started (`FLOW_NOT_AUTHORED`).
 
 ## Related
 

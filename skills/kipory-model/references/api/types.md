@@ -126,8 +126,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -217,7 +217,7 @@ Update one type's key, description or definition, or with `declare` one keyword 
 | `definition` | `object` | no | REPLACES the definition wholesale rather than merging into it. |
 | `description` | `string \| null` | no | Change the type's description, or pass `null` or `""` to clear it. A new or changed one is up to 4,000 characters; a longer one saved before restates unchanged. Left out, a top-level `description` inside a sent `definition` becomes it; with neither, it stays as it is. |
 | `version` | `integer` | yes | The version you last read. REQUIRED; a stale one is refused 409. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
-| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints and tables named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
+| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints, tables and tools named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
 | `declare` | `object` | no | Declare one keyword on one field of the stored definition, leaving the rest as it is stored — what a flow save's type fix sends. Not together with `definition`. |
 | `renameFields` | `object` | no | Fields this edit RENAMES, old path → new name. Stored records, references and indexes move with the field; ids, embeddings and stamps are kept. The old path must be one of the type's declared field paths before the edit; the new name is a single segment matching the field-name grammar, unique among its siblings, not reserved, and not clashing with a vocabulary the table surfaces. A path that leaves `definition` and is not named here is a removal. Needs ADMIN. |
 | `keepExpressions` | `string[]` | no | Steps, eval assertions or computed formulas whose expression and template candidates this rename leaves AS WRITTEN. Every candidate not kept here must be changed in the same write (or, on a type's field rename, rewritten through `rewriteExpressions`), or the write is refused `RENAME_CANDIDATE_UNRESOLVED`. Each name must hold at least one candidate, else the plan warns `RENAME_KEEP_UNUSED`. |
@@ -262,8 +262,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -342,8 +342,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -421,7 +421,7 @@ Store the platform-provided types a project's flows need (idempotent), then answ
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project to materialise and then read. |
 | `expand` | `"graph" \| "keywords"[]` | no | Extra response sections to include, e.g. `["graph"]`. |
-| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints and tables named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
+| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints, tables and tools named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
 
 **Response `200`**
 
@@ -462,8 +462,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |

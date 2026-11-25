@@ -66,6 +66,12 @@ A device belongs to a signed-in person in the project; a key acts for the projec
 - `GET /v1/devices`
 - `POST /v1/devices`
 
+A person approves, lists and removes the AI apps they connected; a key acts for the project and holds none. How many apps are connected to a project is GET /v1/projects/{nodeId}/connected-apps.
+
+- `DELETE /v1/me/connected-apps/{…}`
+- `GET /v1/me/connected-apps`
+- `POST /v1/me/authorize-requests/{…}/decision`
+
 A person's first-project path. A key creates a project with `POST /v1/projects` and an explicit `parentNodeId`.
 
 - `POST /v1/me/projects`

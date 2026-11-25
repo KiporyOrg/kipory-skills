@@ -608,7 +608,7 @@ vocabulary and create another, which removes its terms and strips them off every
   table reads its flow as it is now too, so it meets the new key in the same write with its
   `version` unmoved. Every PATCH answer, and its
   dry run, carries `contractChanges` — normally `[]`. A change that does break a caller is refused
-  like any write that breaks one (409 `CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks.tables` names each one,
+  like any write that breaks one (409 `CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks.tables` — or `.endpoints`, `.tools` — names each one,
   403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN), and the dry run says so beside
   `permissions.mayAcceptBreaks`. A name in `acceptBreaks` the project does not have is a 422; one
   the edit does not break comes back in `acceptBreaksNotNeeded`.

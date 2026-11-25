@@ -1,6 +1,6 @@
 # Build a backend as one document
 
-A bigger worked project than the primer's (`kipory-connect`): an invented fruit-box club — people sign in and keep their own membership and boxes, order and list them over HTTP, a total is kept for them, a model writes a packing slip, a daily job reminds members once by email — as one `kipory: 12` **project document**. Copy its shapes. Open another page only for something this one does not show (the last section says which).
+A bigger worked project than the primer's (`kipory-connect`): an invented fruit-box club — people sign in and keep their own membership and boxes, order and list them over HTTP, a total is kept for them, a model writes a packing slip, a daily job reminds members once by email — as one `kipory: 13` **project document**. Copy its shapes. Open another page only for something this one does not show (the last section says which).
 
 ## The loop
 
@@ -16,14 +16,14 @@ Underneath, on the api host with your key: `GET /v1/projects/{nodeId}/document?s
 
 - **A plan you mean to apply needs `basedOn`**, your read: what someone else changed after it is listed as `moved` and refuses the plan. The command keeps each file's read.
 - **Gate on `ok` and on each diagnostic's `severity`.** Only `error` refuses; `warning` and `info` block nothing. A finding about steps carries `at` and ready `fixes` (step edits to make in your file) or the `decision` you must make. Fix every error of one plan in one edit, then plan again.
-- **The format is 12** (`kipory: 12`), sent as YAML (`content-type: application/yaml`) or JSON. Plan the document alone, never an export's envelope `{ "version", "document" }`.
+- **The format is 13** (`kipory: 13`), sent as YAML (`content-type: application/yaml`) or JSON. Plan the document alone, never an export's envelope `{ "version", "document" }`.
 - **A document is partial and every element you state is whole.** Send the sections you change; state each row whole. An omitted row is untouched; a flow's `steps` are its whole list, so a step you leave out is removed.
 - **Mail sends from the project's own address** (its name at the environment's mail domain) when a step names none, as `mail` does. Another address is claimed with `POST /v1/managed-email-addresses { "node": "<nodeId>", "localPart": "renewals", "domain": "<a domain you send from>", "grade": "relay", "displayName": "Orchard Club" }`, bound under `project.mail.senders` (`renewals: renewals@<that domain>`) and named on the step as `sender: renewals`. The plan warns `EMAIL_SEND_ADDRESS_UNAVAILABLE` when a step's address cannot send.
 
 ## The example
 
 ```yaml
-kipory: 12
+kipory: 13
 project:
   name: Orchard Club
 types:
@@ -277,7 +277,7 @@ schedules:
 - **Endpoint paths start with `/v1/`**, and a path whose first word a platform route uses is refused (`ENDPOINT_PATH_RESERVED_WORD`, `ENDPOINT_PATH_CONFLICT`) — `/v1/boxes` is one; `/v1/club/boxes` is not. `GET /v1/coded-routes` lists them.
 - **A flow states `label`, `inputs` and `outputs`** (`{}` for none). A list value is `Type[]` (`string[]`), never `object`; the endpoint publishes the type you declare.
 - **An expression names record fields exactly as the type has them**; a field the record lacks is refused `JSONATA_FIELD_UNKNOWN`. Inside a filter `[…]` a bare name is the item's field.
-- **A document in another format** is refused whole with `DOCUMENT_VERSION_UNSUPPORTED`, and nothing converts it: state `"kipory": 12`.
+- **A document in another format** is refused whole with `DOCUMENT_VERSION_UNSUPPORTED`, and nothing converts it: state `"kipory": 13`.
 
 ## Try it as a person, then change it
 

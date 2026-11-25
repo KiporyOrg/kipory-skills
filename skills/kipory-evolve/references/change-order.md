@@ -123,7 +123,7 @@ type or relation it reads, its flow's steps or `answer.list` reaches it. Labels 
   classify (`pattern`, `default`, …).
 
 1. **Read `contractChanges` in the dry run first** (`validateOnly: true`, or the plan): one row per
-   endpoint or table whose contract moves, by `key`, its `verdict`, each change (side, `path` from
+   endpoint, tool or table whose contract moves, by `key`, its `verdict`, each change (side, `path` from
    where the caller meets it, before, after, rule, a message) and `mustAccept`.
    `permissions.mayAcceptBreaks` says whether your key may accept.
 2. **No row breaks**: send it. It saves for an editor too.
@@ -131,23 +131,22 @@ type or relation it reads, its flow's steps or `answer.list` reaches it. Labels 
    beside the new one, widen before you narrow.
 4. **Only an admin of the project may break it.** An editor key is refused
    `403 CONTRACT_BREAK_FORBIDDEN` whatever `acceptBreaks` names, and `details.requiredRole` names
-   the role. (A name that is no endpoint or table is refused `422` before the role is asked, in a
+   the role. (A name that is no such row is refused `422` before the role is asked, in a
    document's apply too.)
-   Retrying will not help: ask the user for an admin, or change the write.
+   Retrying will not help: ask for an admin, or change the write.
 5. **Name each break on purpose**, by key: `"acceptBreaks": { "endpoints": ["create-loan"] }`
-   (`tables` beside it). A document states it once, at its top level, never on a row. Without it,
+   (`tables`, `tools` beside it). A document states it once, at its top level, never on a row. Without it,
    an admin's write on a row's own route gets `409 CONTRACT_BREAK_NOT_ACCEPTED`, whose
    `details.fixes` names every breaking row. A document's plan answers the same as a
    `CONTRACT_BREAK_NOT_ACCEPTED` finding with that fix, and its apply answers
    `422 VALIDATION_FAILED` (`details.reason: DOCUMENT_APPLY_FAILED`), the finding in
    `details.plan.diagnostics`.
 
-`kipory plan` prints a `contract <kind> <key>:` line for each row, every breaking change under it.
+`kipory plan` prints `contract <kind> <key>:` for each row, each breaking change under it.
 
 A refusal writes nothing; in a dry run it is an error finding with `ok: false`. A name that is no
 row is `422`; one the write does not break saves and comes back in `acceptBreaksNotNeeded`.
-Nothing is stored and there is no accept-all. A plan an editor made may still be applied by an
-admin. Every caller of an accepted endpoint meets the change at once.
+Nothing is stored; there is no accept-all. An admin may apply a plan an editor made. Every caller of an accepted endpoint meets the change at once.
 
 ### Editing the processing flow of a table that holds records
 
@@ -241,7 +240,8 @@ place that names it:
 - the flow's own steps: each read of the input (paths, expressions, templates, `if` tests, `each`,
   `repeat`), and for an output the keys of its `return` steps;
 - every flow that calls it: the key under the call's `inputs`, and each read of `<call>.<output>`;
-- the endpoints bound to it: input bindings, `serialize.key`, `responseBody`, `statusOutput`,
+- the flow's own `serialize.key`, for an input;
+- the endpoints bound to it: input bindings, `responseBody`, `statusOutput`,
   `headers`, `redirect.location`, `delta` and the retry settings;
 - its schedules' and triggers' stored `inputs`, its eval cases (`inputs`, `expected`, assertions),
   and the checkpoints of the flow and of its callers, so one taken before the rename still restores.

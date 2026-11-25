@@ -221,8 +221,7 @@ sent back with its `paramsAsWritten`.
 every one optional) holds exactly what the caller sent: a field left out is not there, one sent as `null` is `null`.
 Pass it to `record.update` as `data` — a field set to `null` is removed, one left out is kept — and
 test `$exists(changes.<field>)` to act on a clear. Its fields are checked against their types, each
-optional and nullable, and the published request body lists them beside the `body` inputs. A
-`serialize` key part reads a `body` input, never a patch field.
+optional and nullable, and the published request body lists them beside the `body` inputs.
 
 A body arrives as JSON (`application/json`), text (`text/plain`) or a form
 (`application/x-www-form-urlencoded`, as some webhooks send). A form's fields are text, and a field
@@ -464,17 +463,16 @@ so make the retry-worthy case an output your flow's `return` sets to a known val
 attempt's output into the next attempt's inputs; `onExhausted` names the error a caller gets when
 the last attempt still asks for a retry. Every output it names must be an output of the flow.
 
-**Calls that must not overlap take turns on a declared key** (`serialize`, synchronous `flow`
-only). `"serialize": { "key": ["path.slotId"] }` names request values an input already reads —
-`path.<name>`, `query.<name>`, or `body.<input>` with optional fields inside it — and every call
-whose values are all equal waits, before its flow runs, for the one ahead of it, in order of
-arrival; calls with other values run in parallel. So two bookings of one slot never run at once,
-and each runs its flow once instead of being refused and run again. Endpoints naming the same
-`line` take turns with each other (book and cancel). A call whose turn does not come within
-`maxWaitMs`, or within what its own wait leaves for a run, answers 409 `SERIALIZE_KEY_BUSY` with
-`Retry-After` and ran nothing. A call missing a key value is not held back. The save refuses a key
-part no input reads, and a key on an `async: true` endpoint or a query endpoint. The order holds among
-the calls one api process serves; correctness still rests on the save's own checks.
+**Calls that must not overlap take turns on the flow's key.** The one-at-a-time rule is the
+flow's, not the endpoint's (`flows.<flow>.serialize`, format 13): `"serialize": { "key": ["slotId"] }`
+names inputs of the flow (or fields inside one, `order.accountId`), and every call that waits for
+the flow — an endpoint's synchronous call and a tool's — whose values are all equal waits, before
+the flow runs, for the one ahead of it, in order of arrival; calls with other values run in
+parallel. Flows naming the same `line` take turns with each other (book and cancel). A call whose
+turn does not come within `maxWaitMs`, or within what its own wait leaves for a run, answers 409
+`SERIALIZE_KEY_BUSY` with `Retry-After` and ran nothing. An `async: true` endpoint, a stream, a
+schedule and a trigger are not held back. An endpoint that states `serialize` is refused, naming
+the flow as its place.
 
 **Input mapping** binds each flow input to a request location: the body, a path parameter or
 a query parameter. At save time the grammar is enforced — every binding must reference a declared
@@ -874,6 +872,98 @@ tomorrow arrives with a code your build has never heard of and a severity it has
 A synchronous call is not counted: its caller already has the answer. An endpoint is never
 paused (`pauseArmed` is always `false`). Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) says how a project is told when
 an asynchronous call fails for good.
+
+## A tool: the same flow, offered to AI apps
+
+<!-- field-ok: structuredContent — a Model Context Protocol result field, not a Kipory wire field -->
+
+An endpoint puts a flow on HTTP for a client that already knows its contract. A **tool** offers
+the same flow to an AI app (Claude, ChatGPT, a coding agent) that asks the project which tools
+exist, reads each one's name, description and schema, and decides on its own when to call one —
+over the Model Context Protocol, at one address per project: `POST <project host>/mcp`
+(`invokeUrl` on `GET /v1/mcp-tools?project=`). A tool is its own row (`tools.<key>` in the
+project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`), or `POST /v1/mcp-tools`), not a line on an endpoint: it
+needs no route, inherits no path, query or header input, and a flow may be a tool, an endpoint,
+both or neither.
+
+**What an AI app is shown.** The tool's key as its name, its `title`, a description — the row's,
+else the flow's — an input schema built from the flow's inputs a caller may set (never an
+`internal` one) with each input's own description, an output schema from the flow's outputs, and
+a read-only or may-change-data mark derived from the flow as an endpoint's write check derives it.
+The model picks a tool by its words, so the flow's description and each input's description ARE
+the tool's interface; a description is never part of the bound contract, so rewording one breaks no
+caller. The list holds only the tools the caller may call, sorted by name, and says how long it may
+be cached (`ttlMs`, private to the caller).
+
+**Who may call.**
+
+- **A project API key**, sent as `Authorization: Bearer`, with the reach and role it has on `/v1`.
+  A key has no person, so a tool whose flow needs a signed-in person is not listed for it, and a
+  VIEWER key is listed no tool whose flow writes.
+- **A signed-in person.** An app that holds no key (claude.ai, ChatGPT) is sent to sign in: a
+  `401` from `/mcp` names the project's resource document
+  (`/.well-known/oauth-protected-resource/mcp`), and the project host is its own sign-in server
+  (`/oauth/authorize`, `/oauth/token`). When the project has no public tool the `401` answers the
+  app's first request, its handshake or its `tools/list`; when it has one, a caller with no
+  credential is listed the public tools and the `401` answers only a call of another tool. The
+  person signs in in a browser with a provider the project offers there — Google today; Apple has
+  no browser sign-in — and approves on one platform page naming the project, the app's host and the host it returns to; the
+  app names itself by the address of its metadata document, and there is no self-registration. The
+  token it gets acts as that person in that project, only at that project's `/mcp`, and is listed
+  the tools of the person's role, the person-only ones included. A person sees and removes their
+  apps under `/v1/me/connected-apps`; `GET /v1/projects/{nodeId}/connected-apps` counts them.
+- **Nobody**, for a tool stated `auth: none`. A public tool carries everything a public endpoint
+  carries ([A public endpoint](#a-public-endpoint-auth-none)): the same refusal when its flow needs
+  a person (`PUBLIC_TOOL_NEEDS_USER`), the same warnings (`PUBLIC_TOOL_SPENDS`,
+  `PUBLIC_TOOL_WRITES`, …), ADMIN to publish one whose flow spends (`PUBLIC_TOOL_NEEDS_ADMIN`) and
+  ADMIN for a change to its flow that would make it start to spend, the
+  rate (`publicRpm`) and the project's daily public spend cap, the project paying. ⚠️ An AI app calls
+  tools on its own judgment: any app that learns the address can run a public tool on the project's
+  credits, as often as the rate and the cap allow. A public tool whose flow came to need a
+  signed-in person is listed for no one, a signed-in person included: a public tool always runs
+  with no user, so every call would be refused.
+
+**A call** always waits for its run, within the waiting endpoint's default 30 s; there is no
+background tool call. It passes the same gates as an endpoint call, through the same code — the
+role against whether the flow writes, the signed-in-person requirement, the project's admission
+limits, credits and suspension — and takes the flow's one-at-a-time line (`flows.<flow>.serialize`)
+as an endpoint call does. It answers the flow's outputs as a structured result, never an endpoint's
+declared shape, with the run id and the credits charged in `_meta` (`com.kipory/runId`,
+`com.kipory/creditsCharged`; a public call shows no charge). A call with a key or as a person
+honours `Idempotency-Key` as an endpoint call does; a public tool's call ignores it. A refusal is a **tool error**
+(`isError: true`) whose one text block reads `CODE: message`. The code, message and details are the
+ones the endpoint's error body would carry, so a client branches on one code whichever door it
+used. They are in `_meta` (`com.kipory/error: { code, message, details? }`, with
+`com.kipory/creditsCharged: 0` when the call was refused before anything could be charged); a tool error carries no
+`structuredContent`, because that field holds only the flow's outputs in the shape the listing
+states. The codes: `VALIDATION_FAILED`, a `fail` step's refusal, `GATEWAY_TIMEOUT`, `SERIALIZE_KEY_BUSY`,
+`FORBIDDEN`, `END_USER_REQUIRED`, `RATE_LIMITED`, `PUBLIC_ENDPOINT_UNAVAILABLE`, `FLOW_FAILED`. A
+missing or dead credential on a tool that is not public is HTTP `401` with a
+`WWW-Authenticate: Bearer` challenge — for a name the project has no tool by too, so a caller with
+no credential learns nothing of what exists. Three more answers are plain HTTP, given before the
+tool is reached: `429 RATE_LIMITED` for a caller with no credential past 120 requests a minute from
+one address (a public tool's call included) and for a key past its own rate on `tools/list`, `413`
+for a body with no credential over the public body limit, and `400` with a JSON-RPC error for a
+malformed or mismatched protocol request. The run is recorded as started by the tool
+(`source: tool`, naming it). A refused call is on the project's rejected-requests log
+(`GET /v1/rejected-requests`) beside the refused endpoint calls: `endpointKey` is `tool:<key>`,
+`path` is `/mcp`, and `status` is the one an endpoint would answer for the same refusal. A `401`
+on a call is logged with no tool named; a list and a handshake are not logged.
+
+**Changing the flow under a tool** is judged as an endpoint's contract is: a change that breaks
+what its callers send or read is listed in `contractChanges` with `kind: tool` and refused until
+`acceptBreaks.tools` names it. A change that gives the flow a required `internal` input is
+refused `TOOL_FLOW_NOT_CALLABLE` while a tool runs it: no app could send that input. Moving a tool to another flow (`PATCH /v1/mcp-tools/{id}` with
+`flowId`, or the document's `flow`) is judged the same way against the new flow: the patch takes
+`acceptBreaks`, and answers `contractChanges` and `acceptBreaksNotNeeded`; its `validateOnly`
+answer carries `contractChanges` and `permissions`, so a dry run says what a save would break
+and whether the caller may accept it. A flow a public tool runs cannot gain `caller: user`: that
+change is refused naming the tool.
+
+**When a tool was last used.** A tool row carries `lastUsedAt`, the newest run that started from
+it, and `lastUsedMeasured`. `lastUsedAt` is null until such a run is among the project's newest
+5,000 tool runs. When `lastUsedMeasured` is false the read ran out of time:
+`lastUsedAt` is null and means "not measured", never "never used".
 
 ## Checklist for an endpoint that actually works
 

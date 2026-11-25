@@ -72,7 +72,7 @@ run, not a rehearsal. `kipory-build` covers it.
 
 ## Change many things at once: the document
 
-**Check the format first.** A document states its format in its `kipory:` key (`kipory: 12`), and the
+**Check the format first.** A document states its format in its `kipory:` key (`kipory: 13`), and the
 deployment reads exactly one, with no overlap: `documentFormat.version` on
 `GET /v1/platform-status`, beside a line saying what it is. A document in any other format is
 refused whole with `DOCUMENT_VERSION_UNSUPPORTED` before anything is planned, and nothing converts

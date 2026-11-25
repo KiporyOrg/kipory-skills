@@ -61,7 +61,6 @@ Each item of `apiEndpoints`:
 | `paramsAsWritten` | `object` | no | Set by the save. On an endpoint bound by name, its `params` as its write stated them, before anything was worked out: a parameter's `type` and `required` left out stay worked out, and the query parameters declared for its bindings are not among them. The contract's `params` are worked out from these again whenever the endpoint is bound again. A write may send a read back as it came, this beside `inputsByName`: it is then saved from these, and the `inputs` and `params` it also sends must be what binding by name works out from them — change neither, or send neither. |
 | `async` | `true` | no | With `flow`: answer 202 and a run handle at once instead of waiting for the run. Left out, the caller waits. |
 | `timeoutMs` | `integer` | no | With `flow`: how long the caller waits for the run, in ms (1000–120000). |
-| `serialize` | `object` | no | With `flow` and no `async`: run calls that carry the same key one at a time, in order of arrival — for example every booking of one slot — so each call reads what the one before it wrote. |
 | `delta` | `string` | no | With `stream`: the output sent as it grows, in `delta` frames. Left out, the stream sends stage and result frames only. |
 | `retry` | `object` | no | With `stream`: run the flow again when its output says to retry. Left out, it runs once. |
 | `events` | `string[]` | no | With `stream`: the event types the flow emits that reach the caller, each as an `event` frame. Left out, none. |
@@ -121,7 +120,6 @@ Create one endpoint: a method and path under the project's host, bound to a flow
 | `paramsAsWritten` | `object` | no | Set by the save. On an endpoint bound by name, its `params` as its write stated them, before anything was worked out: a parameter's `type` and `required` left out stay worked out, and the query parameters declared for its bindings are not among them. The contract's `params` are worked out from these again whenever the endpoint is bound again. A write may send a read back as it came, this beside `inputsByName`: it is then saved from these, and the `inputs` and `params` it also sends must be what binding by name works out from them — change neither, or send neither. |
 | `async` | `true` | no | With `flow`: answer 202 and a run handle at once instead of waiting for the run. Left out, the caller waits. |
 | `timeoutMs` | `integer` | no | With `flow`: how long the caller waits for the run, in ms (1000–120000). |
-| `serialize` | `object` | no | With `flow` and no `async`: run calls that carry the same key one at a time, in order of arrival — for example every booking of one slot — so each call reads what the one before it wrote. |
 | `delta` | `string` | no | With `stream`: the output sent as it grows, in `delta` frames. Left out, the stream sends stage and result frames only. |
 | `retry` | `object` | no | With `stream`: run the flow again when its output says to retry. Left out, it runs once. |
 | `events` | `string[]` | no | With `stream`: the event types the flow emits that reach the caller, each as an `event` frame. Left out, none. |
@@ -153,8 +151,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -187,7 +185,6 @@ Each item of `contractChanges`:
 | `paramsAsWritten` | `object` | no | Set by the save. On an endpoint bound by name, its `params` as its write stated them, before anything was worked out: a parameter's `type` and `required` left out stay worked out, and the query parameters declared for its bindings are not among them. The contract's `params` are worked out from these again whenever the endpoint is bound again. A write may send a read back as it came, this beside `inputsByName`: it is then saved from these, and the `inputs` and `params` it also sends must be what binding by name works out from them — change neither, or send neither. |
 | `async` | `true` | no | With `flow`: answer 202 and a run handle at once instead of waiting for the run. Left out, the caller waits. |
 | `timeoutMs` | `integer` | no | With `flow`: how long the caller waits for the run, in ms (1000–120000). |
-| `serialize` | `object` | no | With `flow` and no `async`: run calls that carry the same key one at a time, in order of arrival — for example every booking of one slot — so each call reads what the one before it wrote. |
 | `delta` | `string` | no | With `stream`: the output sent as it grows, in `delta` frames. Left out, the stream sends stage and result frames only. |
 | `retry` | `object` | no | With `stream`: run the flow again when its output says to retry. Left out, it runs once. |
 | `events` | `string[]` | no | With `stream`: the event types the flow emits that reach the caller, each as an `event` frame. Left out, none. |
@@ -257,7 +254,6 @@ Read one endpoint. `expand` takes the list's keys (`contract`, `flowLabel`, `sha
 | `paramsAsWritten` | `object` | no | Set by the save. On an endpoint bound by name, its `params` as its write stated them, before anything was worked out: a parameter's `type` and `required` left out stay worked out, and the query parameters declared for its bindings are not among them. The contract's `params` are worked out from these again whenever the endpoint is bound again. A write may send a read back as it came, this beside `inputsByName`: it is then saved from these, and the `inputs` and `params` it also sends must be what binding by name works out from them — change neither, or send neither. |
 | `async` | `true` | no | With `flow`: answer 202 and a run handle at once instead of waiting for the run. Left out, the caller waits. |
 | `timeoutMs` | `integer` | no | With `flow`: how long the caller waits for the run, in ms (1000–120000). |
-| `serialize` | `object` | no | With `flow` and no `async`: run calls that carry the same key one at a time, in order of arrival — for example every booking of one slot — so each call reads what the one before it wrote. |
 | `delta` | `string` | no | With `stream`: the output sent as it grows, in `delta` frames. Left out, the stream sends stage and result frames only. |
 | `retry` | `object` | no | With `stream`: run the flow again when its output says to retry. Left out, it runs once. |
 | `events` | `string[]` | no | With `stream`: the event types the flow emits that reach the caller, each as an `event` frame. Left out, none. |
@@ -321,12 +317,11 @@ Change one endpoint: its settings — method and path, parameters, target and th
 | `paramsAsWritten` | `object` | no | Set by the save. On an endpoint bound by name, its `params` as its write stated them, before anything was worked out: a parameter's `type` and `required` left out stay worked out, and the query parameters declared for its bindings are not among them. The contract's `params` are worked out from these again whenever the endpoint is bound again. A write may send a read back as it came, this beside `inputsByName`: it is then saved from these, and the `inputs` and `params` it also sends must be what binding by name works out from them — change neither, or send neither. |
 | `async` | `true` | no | With `flow`: answer 202 and a run handle at once instead of waiting for the run. Left out, the caller waits. |
 | `timeoutMs` | `integer` | no | With `flow`: how long the caller waits for the run, in ms (1000–120000). |
-| `serialize` | `object` | no | With `flow` and no `async`: run calls that carry the same key one at a time, in order of arrival — for example every booking of one slot — so each call reads what the one before it wrote. |
 | `delta` | `string` | no | With `stream`: the output sent as it grows, in `delta` frames. Left out, the stream sends stage and result frames only. |
 | `retry` | `object` | no | With `stream`: run the flow again when its output says to retry. Left out, it runs once. |
 | `events` | `string[]` | no | With `stream`: the event types the flow emits that reach the caller, each as an `event` frame. Left out, none. |
 | `version` | `integer` | yes | The `version` you last read. REQUIRED here: the endpoint's settings are replaced whole, so a blind write would silently discard a concurrent edit. A mismatch is refused with 409. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
-| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints and tables named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
+| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints, tables and tools named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
@@ -359,7 +354,6 @@ Shape 1, with `id`, `project`, `key`, `invokeUrl`, `access`, `resolutionRank`, `
 | `paramsAsWritten` | `object` | no | Set by the save. On an endpoint bound by name, its `params` as its write stated them, before anything was worked out: a parameter's `type` and `required` left out stay worked out, and the query parameters declared for its bindings are not among them. The contract's `params` are worked out from these again whenever the endpoint is bound again. A write may send a read back as it came, this beside `inputsByName`: it is then saved from these, and the `inputs` and `params` it also sends must be what binding by name works out from them — change neither, or send neither. |
 | `async` | `true` | no | With `flow`: answer 202 and a run handle at once instead of waiting for the run. Left out, the caller waits. |
 | `timeoutMs` | `integer` | no | With `flow`: how long the caller waits for the run, in ms (1000–120000). |
-| `serialize` | `object` | no | With `flow` and no `async`: run calls that carry the same key one at a time, in order of arrival — for example every booking of one slot — so each call reads what the one before it wrote. |
 | `delta` | `string` | no | With `stream`: the output sent as it grows, in `delta` frames. Left out, the stream sends stage and result frames only. |
 | `retry` | `object` | no | With `stream`: run the flow again when its output says to retry. Left out, it runs once. |
 | `events` | `string[]` | no | With `stream`: the event types the flow emits that reach the caller, each as an `event` frame. Left out, none. |
@@ -393,8 +387,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -426,8 +420,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table"` | yes | Whether `key` names an endpoint or a table. |
-| `key` | `string` | yes | The endpoint's or table's key. |
+| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |

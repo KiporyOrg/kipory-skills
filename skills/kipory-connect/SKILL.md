@@ -31,17 +31,18 @@ kipory check checks.json                run the checks again, without a plan
 kipory call alice GET "/v1/app/notes"   one request as test user alice (- for no one); -H 'name: value', --pages, --times 5, --out f, --body-file f --type t
 kipory preview <flow> --as alice        run one flow as alice, a line per write; --apply keeps them, not with --as
 kipory preview --schedule daily         run a schedule's flow the way it fires: as nobody, with its inputs
+kipory tools [-] [<tool> '{"a":1}']     the tools AI apps see, as the key (- none); a name calls one
 kipory find "sign a webhook"            can Kipory do it? the functions that do, or an honest cannot (--report files it)
 kipory docs record query cursor         the best-matching section of the deeper skills
 ```
 
-**app.mjs** is a script that prints the document as JSON; a `.json` or `.yaml` file works too. Exit 1: refused or a check failed, 2: usage; `--json` prints the raw answer.
+**app.mjs** prints the document as JSON; a `.json` or `.yaml` file works too. Exit 1: refused or a check failed, 2: usage; `--json` prints the raw answer.
 
 **A plan never undoes someone else's edit unseen.** Each file is bound to its read (its `basedOn`, else its last apply's); an element changed since is `moved`, refusing the plan with each field's old and new value. Take those in (or keep yours), then run the `--seen <version>` line it prints. On a project you did not build, start with `kipory pull`. Limits: an element added under a taken name updates it; a file with no `basedOn`, restored, plans at its last read.
 
 ## Check: prove it as people, in one call
 
-A check file lists requests sent to the project's host as test users, in order, with what each should answer. Test users are made once and remembered in `.kipory/`. A project holds 20; the refusal past that says how to raise it.
+A check file lists requests to the project's host as test users, in order, with what each should answer. Test users are made once and remembered in `.kipory/` (20 a project; the refusal says how to raise it).
 
 <!-- prettier-ignore -->
 ```json
@@ -60,16 +61,16 @@ A check file lists requests sent to the project's host as test users, in order, 
 ```
 
 - **A request**: `as`, the method as a key with the path, then `headers`, `body` (JSON), `bodyText`, or `bodyFile` with `contentType`; `sign: {"header", "secret", "value": "sha256={{signature}}"}` adds an HMAC of the exact body sent. `{{name}}` reads a value an earlier request saved (`save` takes a dotted path into its answer, as `items[0].id`), `{{user.bob.id}}` a test user's id, `{{nonce}}` a value new to each run, `{{i}}` the index inside `times`.
-- **Running**: in order; `{"parallel": [...]}` runs its requests at once; `times: n` sends one request n times at once (races, idempotency, quotas); `{"wait": 2000}` pauses; `pages: true` follows `nextCursor` with `?after=` and joins the list as `items` (a named query's `items`, or the `records` of a flow returning a `record.query` page; `{"param": "cursor"}` for that flow's own cursor input), up to 20 pages; `eventually: ms` asks a GET again each second until the answer holds. `{{timestamp}}` is the time in seconds; redirects are not followed.
+- **Running**: in order; `{"parallel": [...]}` runs its requests at once; `times: n` sends one request n times at once; `{"wait": 2000}` pauses; `pages: true` follows `nextCursor` with `?after=` and joins the list as `items` (a named query's `items`, or the `records` of a flow returning a `record.query` page; `{"param": "cursor"}` for that flow's own cursor input), up to 20 pages; `eventually: ms` asks a GET again each second until the answer holds. `{{timestamp}}` is the time in seconds; redirects are not followed.
 - **What it should answer**: `status` (a number, a list, or `"4xx"`; a 2xx when left out), `statuses` (counts across `times`), `body` (a subset: each key given must match, a list item by item), `has` and `absent` (paths), `count` (`{path: n}`), `includes` (`{path: {fields}}`: the list holds an item like it), `unique` and `sorted` (`{path: "field"}`, `"-field"` for descending), `contains` (text in the raw body), `headers` (each must contain the text), `bytes`, `type`. With `times`, what a body holds is asked of the 2xx answers.
 - **Repeatable**: test users and what they wrote persist between runs, so assert what this run made: a saved id (`has`, `body`), `includes`, values carrying `{{nonce}}`; never a `count` over a remembered user's whole list.
-- Keep the file beside the document and pass it to every `ship`, so each change is proved with everything before it.
+- Pass the file to every `ship`, so each change is proved with everything before it.
 
 ## The document
 
 <!-- prettier-ignore -->
 ```yaml
-kipory: 12
+kipory: 13
 project:
   name: Notes
 types:
@@ -225,6 +226,8 @@ endpoints:
     flow: close-overdue
     async: true                            # 202 { id, status, statusPath }
     inputs: { before: { from: query.before } }
+tools:
+  get-note: { description: "Read one of my notes." }   # AI apps pick it by this (bare: the flow's)
 schedules:
   daily:
     label: Nightly clean-up
@@ -250,12 +253,12 @@ schedules:
 - **`null` at an endpoint.** An answer carries every field its declared type marks optional, `null` when it has no value — type a record output with its table's type (`link: Link`), never `object`. An optional input sent as `null` means not sent. To clear vs keep on an update, bind one object input `{"from": "patch"}` (its type's fields all optional) and pass it to `record.update` as `data`: a field sent `null` is removed, one left out is kept; `$exists(changes.x)` is true when `x` was sent. In a flow, clear a field with `{literal: null}` in `record.update`'s `fields` (a merge removes it; under `mode: replace`, leave it out).
 - **CSV**: return a `text.csv` step's text as a required output named in `responseBody`, with `responseType: "text/csv"`; errors stay JSON.
 - **A daily job runs as nobody**: `expire-notices` sees every row, people's too (`clauses: []`: all). A start for everyone (`flow.start-per-person`, `people: { kind: project }`) starts real people only and answers `testUsersLeftOut`: while you test, `PATCH /v1/projects/{nodeId}/settings {"testUsersInStarts": true}`, off before real people use it.
-- **Mail sends from the project's own address**, its name at the environment's mail domain, when `email.send` names none. Another is claimed, bound in `project.mail.senders` and named as `sender: support` (`kipory-channels`). A test user receives no mail. A model call is `text.generate` (a `prompt`, `outputSchema` for a typed answer) or `text.decide` for yes/no, a pick or a score (`kipory-build`'s `references/models.md`).
+- **Mail sends from the project's own address** unless `email.send` names a `sender` bound in `project.mail.senders` (`kipory-channels`); a test user receives no mail. A model call is `text.generate` (a `prompt`, `outputSchema` for a typed answer) or `text.decide` for yes/no, a pick or a score (`kipory-build`'s `references/models.md`).
 - **`project`** holds settings (`builtInRoutes`, `identity`, `ai`, `credits`, `mail.senders`, `config`); `requires` what it needs from outside: planned, never applied.
 
 ## Rules that keep the first plan clean
 
-1. **`kipory: 12`** at the top; send the document alone, never an export's `{ version, document }` envelope. A document is partial: an element you leave out is untouched, but each element you state is whole, and a flow's `steps` are its whole list. Removal is `delete: true` on the element. Two exceptions keep what you leave out: in `project.identity` and `project.credits` a setting you do not state is unchanged (the plan lists it as `kept`), and only an explicit `off` clears it. `off` and `false` mean the same, and so do `google:` and `google: {}`.
+1. **`kipory: 13`** at the top; send the document alone, never an export's `{ version, document }` envelope. A document is partial: an element you leave out is untouched, but each element you state is whole, and a flow's `steps` are its whole list. Removal is `delete: true` on the element. Two exceptions keep what you leave out: in `project.identity` and `project.credits` a setting you do not state is unchanged (the plan lists it as `kept`), and only an explicit `off` clears it. `off` and `false` mean the same, and so do `google:` and `google: {}`.
 2. **Every required read is proved present.** A signed-in-only flow states `caller: user`: a run with no user is refused, so `userInfo.userId` is always there (a schedule on it is refused). An optional input, or `userInfo` in a flow without it: fail first with your own code (`if` on `{ not: { has: x } }`), run the step under `{ filled: x }`, or read it `{ path: x, optional: true }` (the setting is left out). An item of a list or query result (`rows.records[0]`) needs an `if` on `{ not: { filled: rows.records } }` that fails first (`STEP_INPUT_MAY_BE_ABSENT`); a `record.read` with `failIfEmpty: true` proves its first row (not under `onOversize: cut`), as `get-note` reads `found[0]`. A default only for a real fallback (`[]`, 0, a label), never an id, owner, amount or status; `x ?? …` and `$exists(x) ? x : …` keep a `null` and are refused.
 3. **A required output is proved like a required read** (`FLOW_OUTPUT_MAY_BE_NOTHING`). A create's `recordId` is always there: `return { noteId: save.recordId }` needs no guard.
 4. **`fail.status` is 400–499**, but not 405, 408 or 426 (left out, 422); there is no 5xx of your own (`FAIL_STATUS_INVALID`). `fail.code` is capitals, digits and underscores, starting with a capital (`BOX_PACKED`); the caller gets it as `details.reason`.
@@ -266,7 +269,7 @@ schedules:
 9. **Keys**: step, table and input keys are camelCase, and no two steps of a flow share a key at any depth (`STEP_KEY_TAKEN`); flow and relation keys are kebab-case; type keys are PascalCase. Record fields never use `id`, `status`, `createdAt`, `updatedAt`, `processing` or `statusError`.
 10. **Blocks nest at most 4 deep** (move the inside to a flow and `flow.invoke` it); `repeat.max` is at most 50; a schedule's `failurePolicy` is `pause` or `keep-running`. A credential goes in `url.send`'s or `url.fetch`'s `secret`, never in `headers`.
 11. **Endpoints**: method GET, POST, PATCH or DELETE (no PUT); a path starts `/v1/<a word of yours>/` (`/v1/app/boxes`; `/v1/boxes` is a platform route); a parameter is `{ in: path }` or `{ in: query }`, and a stated `inputs` reads only declared ones (`ENDPOINT_INPUT_UNSATISFIED`); `status` is 200, 201, 202, 204 or 206. A public endpoint (`auth: none`) is unlimited unless `project.credits.publicEndpointsLimit` sets credits a day (1 = 1 µUSD; `1000000` = $1); if its flow calls a model or vendor, the plan warns its worst day and what bounds it.
-12. **Changing a flow or a type an endpoint already serves**: a safe change applies unasked; a break needs an admin to name every breaking row (the 409's fix names them) in the top-level `acceptBreaks` (an editor key: `CONTRACT_BREAK_FORBIDDEN`).
+12. **Changing a flow or type an endpoint or tool serves**: a safe change applies unasked; a break needs an admin to name every breaking row (the 409's fix names them) in the top-level `acceptBreaks` (an editor key: `CONTRACT_BREAK_FORBIDDEN`).
 
 **A refused plan** prints one line per error with its path and, mostly, a `fix:` (step `edit`s, or `set` at document paths): apply each error's first fix in one edit, then ship again. Only `error` refuses, but read every warning: one naming a slot inside `[…]` (`JSONATA_ITEM_FIELD_NAMED_LIKE_SLOT`) means an expression reads the wrong value. `kipory docs <CODE>` explains any code.
 
@@ -518,6 +521,6 @@ schedules:
 
 ## When a refusal or a check names something this page does not settle
 
-`kipory docs <words or CODE>` first; then the skill named for the subject: `kipory-build`, `kipory-expose` (endpoints, webhooks, sign-in), `kipory-model`, `kipory-evolve` (changing what holds records), `kipory-data`, `kipory-operate` (schedules, triggers, spend), `kipory-diagnose`, `kipory-gather`, `kipory-extract`, `kipory-retrieve`, `kipory-secrets`, `kipory-channels`, `kipory-prove`, `kipory-plan`. Here: `references/refusal-codes.md`, `references/packs/limits.md` (what Kipory cannot do).
+`kipory docs <words or CODE>` first; then the skill named for the subject: `kipory-build`, `kipory-expose` (endpoints, tools, webhooks, sign-in), `kipory-model`, `kipory-evolve` (changing what holds records), `kipory-data`, `kipory-operate` (schedules, triggers, spend), `kipory-diagnose`, `kipory-gather`, `kipory-extract`, `kipory-retrieve`, `kipory-secrets`, `kipory-channels`, `kipory-prove`, `kipory-plan`. Here: `references/refusal-codes.md`, `references/packs/limits.md` (what Kipory cannot do).
 
 **401** is a missing or dead key (ask for another); **403** names `details.requiredRole`, or is `END_USER_REQUIRED`: call as a person (`kipory call <user>`); **404** is the path, host, then an id your key cannot see; **402** is out of credits or at a ceiling. If something is broken, file `POST /v1/reports { project, trying, happened, impact }` (`impact`: `blocked`, `worked-around` or `annoyance`) and carry on.

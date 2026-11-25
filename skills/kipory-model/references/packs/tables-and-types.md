@@ -51,11 +51,11 @@ POST /v1/types/seed
 ```
 
 A flow may type a slot by a seeded type (`UserInfo`, `ProjectInfo`), so a seed that rewrites one
-changes what the callers of the endpoints and tables bound to that flow meet. The seed is judged
+changes what the callers of the endpoints, tools and tables bound to that flow meet. The seed is judged
 like any design write: its answer is the registry read plus `contractChanges`, and a change that
 breaks callers is refused, writing nothing — 403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN, 409
 `CONTRACT_BREAK_NOT_ACCEPTED` for an admin until the body's `acceptBreaks` names each broken
-endpoint or table.
+endpoint, tool or table (`acceptBreaks.tools` for a flow offered to AI apps).
 
 ### A table and its type together
 
