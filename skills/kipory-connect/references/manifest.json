@@ -746,7 +746,7 @@
       "hash": "cc578abb9285"
     },
     "GET /v1/authorize-requests/{id}": {
-      "hash": "dc2cb22375a8"
+      "hash": "b7bb5254795b"
     },
     "GET /v1/bootstrap/": {
       "hash": "f04bddeb629e",

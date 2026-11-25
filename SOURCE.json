@@ -1,7 +1,8 @@
 {
-  "source": "82680f9e4a24adfe91a9c8fe1123c1bed92d8df2",
+  "source": "ef05e34e597c557ba3da062a9fcc59d72e3f8b46",
   "since": "2026-08-19",
   "history": [
+    {"sha":"ef05e34e597c","skills":"An AI app that returns to a custom scheme (cursor://, vscode://) can sign in to a project (#3822)"},
     {"sha":"82680f9e4a24","skills":"A project offers its flows as tools to AI apps at /mcp, with a sign-in server for them, and the one-at-a-time rule moves to the flow (441, format 13) (#3821)"},
     {"sha":"d191f6691816"},
     {"sha":"15041b38ac67"},
@@ -1000,7 +1001,6 @@
     {"sha":"83b31af855a5"},
     {"sha":"600165fd976a"},
     {"sha":"344a47ac645a"},
-    {"sha":"baf5bb42ffc2"},
-    {"sha":"bf74c1c8101e"}
+    {"sha":"baf5bb42ffc2"}
   ]
 }
