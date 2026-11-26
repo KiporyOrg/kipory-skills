@@ -78,7 +78,7 @@ Each item of `routes`:
 | --- | --- | --- | --- |
 | `method` | `"GET" \| "POST" \| "PATCH" \| "DELETE" \| "PUT"` | yes | The HTTP method the platform serves on this path. |
 | `path` | `string` | yes | The full path template under /v1, using the same {param} grammar as a dynamic endpoint's path, so the two are directly comparable. |
-| `group` | `"auth" \| "account" \| "keys" \| "usage" \| "files" \| "docs" \| "management" \| "platform"` | yes | The functional group the route belongs to — the unit a project enables or disables, not the raw path segment. |
+| `group` | `"auth" \| "account" \| "keys" \| "usage" \| "files" \| "docs" \| "ui" \| "management" \| "platform"` | yes | The functional group the route belongs to — the unit a project enables or disables, not the raw path segment. |
 | `plane` | `"platform" \| "management" \| "project" \| "both"` | yes | Who this route is served to — its group's plane, unless the route declares its own: the project file library, attach and detach on `/v1/files` are served to operators only ("management") inside a "both" group. |
 | `streaming` | `boolean` | yes | True when the success response is Server-Sent Events rather than JSON. |
 
@@ -86,7 +86,7 @@ Each item of `groups`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `group` | `"auth" \| "account" \| "keys" \| "usage" \| "files" \| "docs" \| "management" \| "platform"` | yes | The functional group the route belongs to — the unit a project enables or disables, not the raw path segment. |
+| `group` | `"auth" \| "account" \| "keys" \| "usage" \| "files" \| "docs" \| "ui" \| "management" \| "platform"` | yes | The functional group the route belongs to — the unit a project enables or disables, not the raw path segment. |
 | `label` | `string` | yes | Display name for the group. |
 | `description` | `string` | yes | One line on what the group exposes. |
 | `plane` | `"platform" \| "management" \| "project" \| "both"` | yes | Who the group is written for: "project" (an end user of your product), "management" (you, building on Kipory), "platform" (Kipory staff), or "both". |

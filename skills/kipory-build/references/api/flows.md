@@ -95,6 +95,7 @@ Create a flow — its key, label and typed signature (`inputs`, `outputs`); its 
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
 | `contractChanges` | `object[]` | no | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
 | `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `brokenPages` | `string[]` | no | The written pages of the project's `ui` section that are broken in the state this write leaves: each still uses an endpoint, input or field the project no longer has, and visitors see it as unavailable until a later write makes it whole. A write that newly breaks one is refused until `acceptBreaks.pages` names it. Absent when the project has no written page. |
 | `permissions` | `object` | no | What the caller's role lets the write do. |
 | `renames` | `object[]` | no | Present when the checked patch renames (a new `key`, `renameFields`, or a flow's `renameInputs` / `renameOutputs`): what the write would move, the expression candidates and how each is resolved, and every external caller it would break. Absent when it renames nothing. |
 
@@ -132,8 +133,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
-| `key` | `string` | yes | The endpoint's, table's or tool's key. |
+| `kind` | `"endpoint" \| "table" \| "tool" \| "page"` | yes | Whether `key` names an endpoint, a table, a tool, or a written page of the `ui` section. A `page` row is breaking when the write leaves the page using what the project no longer has: each change names the place in the page (`ui.pages.<key>…`), the `UI_*` code in `keyword` and rule `not-classified`. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key, or the page's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -337,7 +338,7 @@ Change a flow's label, description, signature (`inputs` or `outputs`, either sid
 | `keepExpressions` | `string[]` | no | With `renameOutputs` or `renameInputs`: the steps (`<flowKey>.<stepKey>`) of calling flows, and the eval cases (`<suite>.<case>`), whose remaining occurrences of the old name stay AS WRITTEN. Every candidate the plan lists must be kept here, changed by hand, or (for an output) written through `rewriteExpressions`, or the write is refused `RENAME_CANDIDATE_UNRESOLVED`. Name each as the plan's candidate `path` lists it. Refused 422 when sent with neither. |
 | `rewriteExpressions` | `string[]` | no | With `renameOutputs`: the steps (`<flowKey>.<stepKey>`) of calling flows whose remaining occurrences of the old name the platform REWRITES to the `proposed` text the plan lists. Read the plan (`validateOnly`) first: an occurrence may spell the old name and mean something else. An entry the platform cannot act on is refused `RENAME_REWRITE_NOT_POSSIBLE`: a step with no listed candidate, or one whose only candidate is a path. Refused 422 when sent with no `renameOutputs`. |
 | `version` | `integer` | yes | The flow's `version` as you last read it. REQUIRED: the patch is refused with 409 `VERSION_CONFLICT` if the flow changed since — another patch, a checkpoint restore, or a project document apply — so a concurrent edit is never silently overwritten. |
-| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints, tables and tools named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
+| `acceptBreaks` | `object` | no | Accept that this write breaks the callers of the endpoints, tables and tools, and the written pages, named here, by key. Needed for every row of `contractChanges` that is `breaking`; only an admin of the project may send it for one. A name whose contract this write does not break is answered in `acceptBreaksNotNeeded`, and a name the project does not have is refused. A statement about this write only, never stored. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored flow and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did. Default false. |
 
 **Response `200`**
@@ -368,6 +369,7 @@ Shape 1, with `id`, `scope`, `project`, `label`, `key`, `description`, `caller`,
 | `warnings` | `object[]` | no | Present when the write removed something a use the platform only guessed may still read (`REMOVED_MAY_BE_USED`): each names the user and where. The write went through; check each by hand. |
 | `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
 | `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `brokenPages` | `string[]` | no | The written pages of the project's `ui` section that are broken in the state this write leaves: each still uses an endpoint, input or field the project no longer has, and visitors see it as unavailable until a later write makes it whole. A write that newly breaks one is refused until `acceptBreaks.pages` names it. Absent when the project has no written page. |
 | `renames` | `object[]` | no | Present when the PATCH carried `renameInputs` or `renameOutputs`: each input or output renamed, every place the write moved to the new name (`references`), the occurrences it left for you and how each was settled (`candidates`), and what callers of a bound endpoint see change (`exposures`). The flow's `version` and each row under `touched` are as they stand after every move. Absent on an edit that renames nothing. |
 
 Each item of `touched`:
@@ -393,8 +395,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
-| `key` | `string` | yes | The endpoint's, table's or tool's key. |
+| `kind` | `"endpoint" \| "table" \| "tool" \| "page"` | yes | Whether `key` names an endpoint, a table, a tool, or a written page of the `ui` section. A `page` row is breaking when the write leaves the page using what the project no longer has: each change names the place in the page (`ui.pages.<key>…`), the `UI_*` code in `keyword` and rule `not-classified`. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key, or the page's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -427,6 +429,7 @@ Shape 2, with `ok`, `diagnostics`, `complete`, `permissions`:
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
 | `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
 | `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `brokenPages` | `string[]` | no | The written pages of the project's `ui` section that are broken in the state this write leaves: each still uses an endpoint, input or field the project no longer has, and visitors see it as unavailable until a later write makes it whole. A write that newly breaks one is refused until `acceptBreaks.pages` names it. Absent when the project has no written page. |
 | `permissions` | `object` | yes | What the caller's role lets the write do. |
 | `renames` | `object[]` | no | Present when the checked patch renames (a new `key`, `renameFields`, or a flow's `renameInputs` / `renameOutputs`): what the write would move, the expression candidates and how each is resolved, and every external caller it would break. Absent when it renames nothing. |
 
@@ -464,8 +467,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
-| `key` | `string` | yes | The endpoint's, table's or tool's key. |
+| `kind` | `"endpoint" \| "table" \| "tool" \| "page"` | yes | Whether `key` names an endpoint, a table, a tool, or a written page of the `ui` section. A `page` row is breaking when the write leaves the page using what the project no longer has: each change names the place in the page (`ui.pages.<key>…`), the `UI_*` code in `keyword` and rule `not-classified`. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key, or the page's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |

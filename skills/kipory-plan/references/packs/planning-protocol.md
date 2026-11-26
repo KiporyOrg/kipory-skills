@@ -126,6 +126,10 @@ would have to sign, or a write whose answer the flow needs, is a `code` row.
 What can the outside world call? Each answer becomes a **dynamic endpoint** over a flow — sync,
 async or streaming — plus the auth that reaches it.
 
+Will people open it in a browser? Then the project carries its own **pages**: the document's `ui`
+section, drawn by the platform on the project's host. `ui: {}` derives them from the endpoints;
+written pages replace the derived ones. Say whether sign-up is open or by invitation only.
+
 → Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)
 
 ### 5 — Classification and linking
@@ -182,7 +186,7 @@ One row per object to be built:
 | ---- | --------- | ---- | ----------- | ----- |
 
 - **Step** — which of the eight produced it.
-- **Primitive** — table, type, query, selection, embedding, flow, step, endpoint, schedule,
+- **Primitive** — table, type, query, selection, embedding, flow, step, endpoint, page, schedule,
   trigger (and what it watches), vocabulary, relation, event, project-config namespace, secret,
   task-model binding, eval suite, eval case.
   ⚠️ Four of those are easy to leave out of a sheet and expensive to discover later: a

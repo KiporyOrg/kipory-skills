@@ -638,7 +638,9 @@ their `validateOnly` dry runs answer the same report plus `permissions.mayAccept
 in `acceptBreaks` the project does not have is a 422 (a dry-run finding at
 `acceptBreaks.endpoints[0]`); one the write does not break comes back in
 `acceptBreaksNotNeeded`. A row of `contractChanges` names its `kind` — `endpoint`, `table` or
-`tool` (a flow a project offers to AI apps, whose callers meet the flow's own inputs and outputs).
+`tool` (a flow a project offers to AI apps, whose callers meet the flow's own inputs and outputs) —
+or `page`, a written page of the project's `ui` section the write leaves broken, accepted by
+`acceptBreaks.pages` (the answer then lists the pages still broken in `brokenPages`).
 
 A pair decides which tables a query's linked read through the relation reaches, so adding or
 removing one can change what an endpoint answering that query answers. Restating the ends is judged

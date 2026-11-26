@@ -48,6 +48,14 @@ Read this before a change to a project that already holds records or serves call
   (`details.reason: DOCUMENT_APPLY_FAILED`) with the finding in `details.plan.diagnostics`. Every caller of an accepted endpoint meets the change at
   once (`kipory-expose`). A name that is no row is `422`; one the write does not break comes back
   in `acceptBreaksNotNeeded`.
+- **A written page of the project's `ui` section is a caller too.** Any write that answers
+  `contractChanges`, an endpoint's DELETE among them, lists a page it would break as a row of kind
+  `page`, accepted by `acceptBreaks.pages` (an endpoint's DELETE takes `acceptBreaks` in an
+  optional body), and on a project that writes pages its answer lists `brokenPages`. A flow input
+  rename does not rewrite what a page passes, so a page passing the old name needs fixing or
+  naming. One `acceptBreaks` names every break of every kind at once. A change that breaks
+  the section itself (`ui.data`, `home`, a menu item) cannot be accepted: edit that part of `ui` in
+  the same document (`kipory-ui`).
 - **Restating `inputs` under a new name is a removal and an addition, not a rename.** Every reader
   of the old name is then refused (`STEP_READS_UNKNOWN`, `ENDPOINT_INPUT_UNSATISFIED`) until you
   restate each yourself. `renameInputs` / `renameOutputs` on the same PATCH move them for you

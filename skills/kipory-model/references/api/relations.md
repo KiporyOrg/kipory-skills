@@ -96,6 +96,7 @@ Create one relation with where its links run — `from`/`to` for one pair, `betw
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
 | `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `brokenPages` | `string[]` | no | The written pages of the project's `ui` section that are broken in the state this write leaves: each still uses an endpoint, input or field the project no longer has, and visitors see it as unavailable until a later write makes it whole. A write that newly breaks one is refused until `acceptBreaks.pages` names it. Absent when the project has no written page. |
 | `permissions` | `object` | yes | What the caller's role lets the write do. |
 | `derived` | `object` | no | What the write WOULD have computed. Present whenever the body was coherent enough to derive it, which is not the same as `ok` — a draft with a warning still derives. |
 
@@ -112,8 +113,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
-| `key` | `string` | yes | The endpoint's, table's or tool's key. |
+| `kind` | `"endpoint" \| "table" \| "tool" \| "page"` | yes | Whether `key` names an endpoint, a table, a tool, or a written page of the `ui` section. A `page` row is breaking when the write leaves the page using what the project no longer has: each change names the place in the page (`ui.pages.<key>…`), the `UI_*` code in `keyword` and rule `not-classified`. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key, or the page's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -151,6 +152,7 @@ Each item of `contractChanges`:
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
 | `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `brokenPages` | `string[]` | no | The written pages of the project's `ui` section that are broken in the state this write leaves: each still uses an endpoint, input or field the project no longer has, and visitors see it as unavailable until a later write makes it whole. A write that newly breaks one is refused until `acceptBreaks.pages` names it. Absent when the project has no written page. |
 
 Each item of `between`:
 
@@ -180,8 +182,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
-| `key` | `string` | yes | The endpoint's, table's or tool's key. |
+| `kind` | `"endpoint" \| "table" \| "tool" \| "page"` | yes | Whether `key` names an endpoint, a table, a tool, or a written page of the `ui` section. A `page` row is breaking when the write leaves the page using what the project no longer has: each change names the place in the page (`ui.pages.<key>…`), the `UI_*` code in `keyword` and rule `not-classified`. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key, or the page's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -320,6 +322,7 @@ Shape 1, with `id`, `project`, `key`, `label`, `description`, `minConfidence`, `
 | `readiness` | `object` | no | Whether this relation is doing anything and why not, present only when you pass `expand=readiness`. `blocked` cannot produce a link; `inert` is wired to nothing; `unproven` is wired and has produced nothing; `ready` is carrying links. NOT derivable from the counts — an unpaired relation and a relation declared a minute ago both report zero. |
 | `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
 | `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `brokenPages` | `string[]` | no | The written pages of the project's `ui` section that are broken in the state this write leaves: each still uses an endpoint, input or field the project no longer has, and visitors see it as unavailable until a later write makes it whole. A write that newly breaks one is refused until `acceptBreaks.pages` names it. Absent when the project has no written page. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `renames` | `object[]` | no | Present when the PATCH changed `key`: the relation renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
 
@@ -343,8 +346,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
-| `key` | `string` | yes | The endpoint's, table's or tool's key. |
+| `kind` | `"endpoint" \| "table" \| "tool" \| "page"` | yes | Whether `key` names an endpoint, a table, a tool, or a written page of the `ui` section. A `page` row is breaking when the write leaves the page using what the project no longer has: each change names the place in the page (`ui.pages.<key>…`), the `UI_*` code in `keyword` and rule `not-classified`. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key, or the page's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -385,6 +388,7 @@ Shape 2, with `ok`, `diagnostics`, `complete`, `permissions`:
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
 | `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
 | `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `brokenPages` | `string[]` | no | The written pages of the project's `ui` section that are broken in the state this write leaves: each still uses an endpoint, input or field the project no longer has, and visitors see it as unavailable until a later write makes it whole. A write that newly breaks one is refused until `acceptBreaks.pages` names it. Absent when the project has no written page. |
 | `permissions` | `object` | yes | What the caller's role lets the write do. |
 | `renames` | `object[]` | no | Present when the checked patch renames (a new `key`, `renameFields`, or a flow's `renameInputs` / `renameOutputs`): what the write would move, the expression candidates and how each is resolved, and every external caller it would break. Absent when it renames nothing. |
 
@@ -422,8 +426,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
-| `key` | `string` | yes | The endpoint's, table's or tool's key. |
+| `kind` | `"endpoint" \| "table" \| "tool" \| "page"` | yes | Whether `key` names an endpoint, a table, a tool, or a written page of the `ui` section. A `page` row is breaking when the write leaves the page using what the project no longer has: each change names the place in the page (`ui.pages.<key>…`), the `UI_*` code in `keyword` and rule `not-classified`. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key, or the page's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -496,6 +500,7 @@ Shape 2, with `ok`, `diagnostics`, `complete`:
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
 | `contractChanges` | `object[]` | no | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
 | `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `brokenPages` | `string[]` | no | The written pages of the project's `ui` section that are broken in the state this write leaves: each still uses an endpoint, input or field the project no longer has, and visitors see it as unavailable until a later write makes it whole. A write that newly breaks one is refused until `acceptBreaks.pages` names it. Absent when the project has no written page. |
 | `permissions` | `object` | no | What the caller's role lets the write do. |
 
 Each item of `diagnostics`:
@@ -532,8 +537,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
-| `key` | `string` | yes | The endpoint's, table's or tool's key. |
+| `kind` | `"endpoint" \| "table" \| "tool" \| "page"` | yes | Whether `key` names an endpoint, a table, a tool, or a written page of the `ui` section. A `page` row is breaking when the write leaves the page using what the project no longer has: each change names the place in the page (`ui.pages.<key>…`), the `UI_*` code in `keyword` and rule `not-classified`. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key, or the page's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |

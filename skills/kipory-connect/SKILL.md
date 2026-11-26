@@ -521,6 +521,6 @@ schedules:
 
 ## When a refusal or a check names something this page does not settle
 
-`kipory docs <words or CODE>` first; then the skill named for the subject: `kipory-build`, `kipory-expose` (endpoints, tools, webhooks, sign-in), `kipory-model`, `kipory-evolve` (changing what holds records), `kipory-data`, `kipory-operate` (schedules, triggers, spend), `kipory-diagnose`, `kipory-gather`, `kipory-extract`, `kipory-retrieve`, `kipory-secrets`, `kipory-channels`, `kipory-prove`, `kipory-plan`. Here: `references/refusal-codes.md`, `references/packs/limits.md` (what Kipory cannot do).
+`kipory docs <words or CODE>` first, then the subject's skill: `kipory-build`, `kipory-expose` (endpoints, tools, webhooks, sign-in), `kipory-ui` (web pages), `kipory-model`, `kipory-evolve` (changing live records), `kipory-data`, `kipory-operate` (schedules, triggers, spend), `kipory-diagnose`, `kipory-gather`, `kipory-extract`, `kipory-retrieve`, `kipory-secrets`, `kipory-channels`, `kipory-prove`, `kipory-plan`. Here: `references/refusal-codes.md`, `references/packs/limits.md` (Kipory's limits).
 
 **401** is a missing or dead key (ask for another); **403** names `details.requiredRole`, or is `END_USER_REQUIRED`: call as a person (`kipory call <user>`); **404** is the path, host, then an id your key cannot see; **402** is out of credits or at a ceiling. If something is broken, file `POST /v1/reports { project, trying, happened, impact }` (`impact`: `blocked`, `worked-around` or `annoyance`) and carry on.

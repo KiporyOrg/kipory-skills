@@ -6,6 +6,10 @@ A key is a machine principal: it carries a grant (one node, one role) and no per
 
 ## Routes that need a signed-in person
 
+Finding other users is something a signed-in person does from the project's own pages; a key acts for the project, not a person.
+
+- `GET /v1/_ui/people`
+
 Your own charges belong to a signed-in person. Read a run's cost at `GET /v1/runs/{runId}/spend` and a project's at `GET /v1/projects/{nodeId}/usage`.
 
 - `GET /v1/credits/events`

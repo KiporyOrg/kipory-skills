@@ -135,7 +135,7 @@ type or relation it reads, its flow's steps or `answer.list` reaches it. Labels 
    document's apply too.)
    Retrying will not help: ask for an admin, or change the write.
 5. **Name each break on purpose**, by key: `"acceptBreaks": { "endpoints": ["create-loan"] }`
-   (`tables`, `tools` beside it). A document states it once, at its top level, never on a row. Without it,
+   (`tables`, `tools`, `pages`). A document states it once, at its top level, never on a row. Without it,
    an admin's write on a row's own route gets `409 CONTRACT_BREAK_NOT_ACCEPTED`, whose
    `details.fixes` names every breaking row. A document's plan answers the same as a
    `CONTRACT_BREAK_NOT_ACCEPTED` finding with that fix, and its apply answers

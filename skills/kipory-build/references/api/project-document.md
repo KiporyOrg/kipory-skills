@@ -44,7 +44,8 @@ Public: no credential needed.
 | `triggers` | `object` | no | Triggers: a flow run on each recorded event of one type, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `schedules` | `object` | no | Schedules: a flow run on a cron pattern, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `evals` | `object` | no | Eval suites keyed by key, each with its cases, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
-| `acceptBreaks` | `object` | no | Accept that this document breaks the callers of the endpoints and tables named here, by key — once for the whole document, never on a row. Needed for every `breaking` row of the plan's `contractChanges`; only an admin of the project may apply one. A statement about this plan and its apply, never part of the project: the export never writes it. |
+| `ui` | `"off" \| object` | no | The project's own web UI: pages from a closed catalog, a menu and a theme, served on the project's host outside `/v1`. `ui: {}` turns it on with pages derived from the endpoints; `pages` with at least one page serves exactly those. Stated whole: what the section leaves out is dropped. `off` turns it off. Every name a page uses is checked against the endpoints as the plan would leave them (`UI_*` codes); a change elsewhere that breaks a written page is refused until `acceptBreaks.pages` names it. |
+| `acceptBreaks` | `object` | no | Accept that this document breaks the callers of the endpoints, tables and tools, and the written pages, named here, by key — once for the whole document, never on a row. Needed for every `breaking` row of the plan's `contractChanges`; only an admin of the project may apply one. A statement about this plan and its apply, never part of the project: the export never writes it. |
 
 ### `GET /v1/project-document/schema`
 
@@ -143,6 +144,7 @@ Apply a kept plan: `{planId, note}`, the plan from `POST …/document/plan` with
 | `renames` | `object[]` | no | Every rename the document states — a table, relation or vocabulary under a new key, a type's `renameFields`, or a flow's `renameInputs` / `renameOutputs` — with what it rewrites and what callers see move. On a plan and on an apply answer. Absent when the document renames nothing. |
 | `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
 | `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `brokenPages` | `string[]` | no | The written pages of the `ui` section that are broken in the state this plan leaves: each still uses an endpoint, input or field the project no longer has, and visitors see it as unavailable until a plan makes it whole. A plan that breaks one is refused until `acceptBreaks.pages` names it. Absent when the project has no written page. |
 | `permissions` | `object` | no | What the caller's role lets an apply of this document do. |
 | `applied` | `true` | yes | The plan is now the project's configuration. Also true when it changed nothing — nothing was written, and the project already says what the document says. |
 | `appliedVersion` | `string` | yes | The project's structure version after the apply and the writes it owed after its commit (seeding or relabelling a vocabulary's terms, each a version of its own): above `version` when anything moved — by more than one when such writes ran — and equal to it when nothing did. When someone else's write landed among those, it is the apply's own version. |
@@ -153,7 +155,7 @@ Each item of `changes`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | Where the row stands in the document, e.g. `tables.Member` or `flows.intake.steps.classify`. |
 | `kind` | `"create" \| "update" \| "move" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `move`: a step whose list or position changes, with its value kept (a field it also changes is listed under `fields`). `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
-| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "tools" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "tools" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases" \| "project-ui"` | yes | The kind of row. |
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
@@ -230,8 +232,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
-| `key` | `string` | yes | The endpoint's, table's or tool's key. |
+| `kind` | `"endpoint" \| "table" \| "tool" \| "page"` | yes | Whether `key` names an endpoint, a table, a tool, or a written page of the `ui` section. A `page` row is breaking when the write leaves the page using what the project no longer has: each change names the place in the page (`ui.pages.<key>…`), the `UI_*` code in `keyword` and rule `not-classified`. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key, or the page's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -281,6 +283,7 @@ _No fields._
 | `renames` | `object[]` | no | Every rename the document states — a table, relation or vocabulary under a new key, a type's `renameFields`, or a flow's `renameInputs` / `renameOutputs` — with what it rewrites and what callers see move. On a plan and on an apply answer. Absent when the document renames nothing. |
 | `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
 | `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `brokenPages` | `string[]` | no | The written pages of the `ui` section that are broken in the state this plan leaves: each still uses an endpoint, input or field the project no longer has, and visitors see it as unavailable until a plan makes it whole. A plan that breaks one is refused until `acceptBreaks.pages` names it. Absent when the project has no written page. |
 | `permissions` | `object` | no | What the caller's role lets an apply of this document do. |
 
 Each item of `changes`:
@@ -289,7 +292,7 @@ Each item of `changes`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | Where the row stands in the document, e.g. `tables.Member` or `flows.intake.steps.classify`. |
 | `kind` | `"create" \| "update" \| "move" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `move`: a step whose list or position changes, with its value kept (a field it also changes is listed under `fields`). `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
-| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "tools" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "tools" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases" \| "project-ui"` | yes | The kind of row. |
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
@@ -366,8 +369,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
-| `key` | `string` | yes | The endpoint's, table's or tool's key. |
+| `kind` | `"endpoint" \| "table" \| "tool" \| "page"` | yes | Whether `key` names an endpoint, a table, a tool, or a written page of the `ui` section. A `page` row is breaking when the write leaves the page using what the project no longer has: each change names the place in the page (`ui.pages.<key>…`), the `UI_*` code in `keyword` and rule `not-classified`. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key, or the page's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |
@@ -406,6 +409,7 @@ A plan kept by `POST …/document/plan`, as it answered, with whether it was app
 | `renames` | `object[]` | no | Every rename the document states — a table, relation or vocabulary under a new key, a type's `renameFields`, or a flow's `renameInputs` / `renameOutputs` — with what it rewrites and what callers see move. On a plan and on an apply answer. Absent when the document renames nothing. |
 | `contractChanges` | `object[]` | yes | Every endpoint and table whose contract this write changes, with each change and its verdict. Empty when the write changes no caller's contract. A breaking row is saved only when an admin of the project names it in `acceptBreaks`. |
 | `acceptBreaksNotNeeded` | `object` | no | Names in `acceptBreaks` that were not needed: their contract does not break. They do not refuse the write; drop them next time. |
+| `brokenPages` | `string[]` | no | The written pages of the `ui` section that are broken in the state this plan leaves: each still uses an endpoint, input or field the project no longer has, and visitors see it as unavailable until a plan makes it whole. A plan that breaks one is refused until `acceptBreaks.pages` names it. Absent when the project has no written page. |
 | `permissions` | `object` | no | What the caller's role lets an apply of this document do. |
 | `state` | `"open" \| "applied"` | yes | `open` until it is applied; an applied plan cannot be applied again. |
 | `plannedBy` | `string` | yes | Who planned it: `user:<id>`, `key:<id>`. |
@@ -418,7 +422,7 @@ Each item of `changes`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | Where the row stands in the document, e.g. `tables.Member` or `flows.intake.steps.classify`. |
 | `kind` | `"create" \| "update" \| "move" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `move`: a step whose list or position changes, with its value kept (a field it also changes is listed under `fields`). `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
-| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "tools" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `resource` | `"project-settings" \| "project-identity" \| "project-credits" \| "project-ai-models" \| "project-default-embedding" \| "project-mail-senders" \| "project-config" \| "route-enablement" \| "types" \| "embeddings" \| "flows" \| "steps" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "selections" \| "queries" \| "event-types" \| "api-endpoints" \| "tools" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases" \| "project-ui"` | yes | The kind of row. |
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
@@ -495,8 +499,8 @@ Each item of `contractChanges`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"endpoint" \| "table" \| "tool"` | yes | Whether `key` names an endpoint, a table or a tool. |
-| `key` | `string` | yes | The endpoint's, table's or tool's key. |
+| `kind` | `"endpoint" \| "table" \| "tool" \| "page"` | yes | Whether `key` names an endpoint, a table, a tool, or a written page of the `ui` section. A `page` row is breaking when the write leaves the page using what the project no longer has: each change names the place in the page (`ui.pages.<key>…`), the `UI_*` code in `keyword` and rule `not-classified`. |
+| `key` | `string` | yes | The endpoint's, table's or tool's key, or the page's key. |
 | `verdict` | `"safe" \| "breaking"` | yes | `breaking` when any of its changes is breaking, else `safe`. A row whose contract did not change is not listed. |
 | `changes` | `object[]` | yes | Each change, ordered by side, then place, then rule, so the plan and the write list them alike. |
 | `mustAccept` | `boolean` | yes | `true` when the row breaks and the write's `acceptBreaks` does not name it: the write is refused until it does. |

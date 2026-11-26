@@ -105,8 +105,8 @@ Three corners worth holding:
   stored records, `shape-behind` and `field-values-hidden` among them:
   Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)), and a change that breaks callers — a delete removes the member they
   read — is refused, writing nothing: 403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN, and for an
-  admin 409 `CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks: {endpoints, tables, tools}` names
-  each broken one by key (in the POST body, or in the DELETE's optional body). Both dry runs answer the
+  admin 409 `CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks: {endpoints, tables, tools, pages}`
+  names each broken one by key (`pages`: a written page of the `ui` section; the answer then lists `brokenPages`) (in the POST body, or in the DELETE's optional body). Both dry runs answer the
   same report plus `permissions`.
 - **The type can refuse on the namespace's behalf** — 422
   `TYPE_UNSAFE_FOR_PROJECT_CONFIG` on a `PATCH /v1/types/{id}`. Removing a declared

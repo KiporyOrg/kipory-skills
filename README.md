@@ -101,6 +101,7 @@ Every generated file opens with a stamp naming its source, and the content hashe
 | `kipory-extract`  | Turn a file into something a flow can use: PDF text, page renders, transcripts, image data, signed links                                                                          |
 | `kipory-retrieve` | Search the project's own records and answer over them: chunk, embed, search, re-rank, and sanitize                                                                                |
 | `kipory-expose`   | Put a flow on HTTP as the product's own endpoint — sync, async or streaming — and sign its users in                                                                               |
+| `kipory-ui`       | Give the project its own web pages as configuration — derived from the endpoints, or written from a closed catalog — on its own host                                              |
 | `kipory-prove`    | Pin what "working" means: eval suites — assertions for pass/fail, scorer flows for quality, the run-to-run delta                                                                  |
 | `kipory-operate`  | Schedules, triggers, the event registry, runtime config, and what it all spent                                                                                                    |
 | `kipory-channels` | Send mail from the project's own address; subscribe to Telegram channels                                                                                                          |

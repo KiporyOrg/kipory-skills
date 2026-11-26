@@ -810,7 +810,9 @@ bigger than a batch of edits.
   (the `record.query` step reads another query, or its paging inputs change). The answer's
   `contractChanges` names the endpoint and each change; an admin resends with
   `acceptBreaks: {endpoints: [...]}`. A save that changes nothing a caller meets answers
-  `contractChanges: []`. See Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`).
+  `contractChanges: []`. A steps save can break a written page of the project's `ui` section only
+  through such a view endpoint's inputs; the page is then a row of kind `page`
+  (`acceptBreaks.pages`), and on a project that writes pages the answer lists `brokenPages`. See Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`).
 
 The flow's label, description and signature change with `PATCH /v1/flows/{id}` (also with its
 `version`). Changing the inputs or outputs re-proves every step, and is checked for every endpoint
@@ -820,7 +822,7 @@ table's row says in `consequences` what the change does to its stored records (`
 change (an optional input, a new output, a label) saves; a breaking one (a required input added, an
 output removed, a type changed) is refused `409 CONTRACT_BREAK_NOT_ACCEPTED` until an admin of the
 project names each broken endpoint or table in `acceptBreaks: {endpoints, tables}`, and
-`403 CONTRACT_BREAK_FORBIDDEN` for anyone below admin. Rehearse it with `validateOnly: true` and read
+`403 CONTRACT_BREAK_FORBIDDEN` for anyone below admin. A written page of the project's `ui` section the write leaves broken is a row of kind `page`, accepted by `acceptBreaks.pages` (Project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)); a name there that is no written page is a 422. Rehearse it with `validateOnly: true` and read
 `contractChanges` first (Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)).
 
 To give an input or an output a NEW NAME, do not restate the map under the new name (that is a
@@ -829,7 +831,9 @@ removal plus an addition, and every reader of the old name is refused). Send `re
 flow's own reads and `return` keys, the key under `inputs` in each call of the flow and every
 `<call>.<output>` read, the endpoints, schedules, triggers and eval cases over the flow, and
 answers each place under `renames[].references`. An endpoint whose callers meet the old name (a
-body field, an answer key) breaks, so name it in `acceptBreaks`; a query parameter keeps its name
+body field, an answer key) breaks, so name it in `acceptBreaks`; so does a written page of the `ui`
+section that passes the old name, which the rename does not rewrite (`acceptBreaks.pages`, or fix the
+page in a document); a query parameter keeps its name
 and breaks nothing. A calling flow that passes the call's whole value on leaves candidates
 (in expressions, templates and paths) you settle with `keepExpressions` or `rewriteExpressions`,
 and so does an eval assertion that reads the run's values (its output, or the inputs) through a filter or

@@ -611,7 +611,8 @@ vocabulary and create another, which removes its terms and strips them off every
   like any write that breaks one (409 `CONTRACT_BREAK_NOT_ACCEPTED` until `acceptBreaks.tables` — or `.endpoints`, `.tools` — names each one,
   403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN), and the dry run says so beside
   `permissions.mayAcceptBreaks`. A name in `acceptBreaks` the project does not have is a 422; one
-  the edit does not break comes back in `acceptBreaksNotNeeded`.
+  the edit does not break comes back in `acceptBreaksNotNeeded`. A written page of the project's
+  `ui` section the edit leaves broken is a row of kind `page`, named in `acceptBreaks.pages`; on a project that writes pages the answer lists `brokenPages`.
 
 The inverse rename is the undo.
 

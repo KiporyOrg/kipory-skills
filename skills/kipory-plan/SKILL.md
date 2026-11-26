@@ -66,7 +66,7 @@ hand-wiring after the apply. By step of the walk:
 | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2 records, 5 classification and linking | `kipory-model`                                                                                                                                             |
 | 3 processing — what a step can do       | `kipory-gather` (reading from and sending to outside services), `kipory-extract` (files), `kipory-retrieve` (search and answer over the project's records) |
-| 4 exposure                              | `kipory-expose`                                                                                                                                            |
+| 4 exposure                              | `kipory-expose`; `kipory-ui` for the pages people open in a browser, written or derived from the endpoints                                                 |
 | 6 time and reaction, 7 signals          | `kipory-operate`; `kipory-channels` for a Telegram source and for mail                                                                                     |
 | 8 correctness                           | `kipory-prove`                                                                                                                                             |
 | a row that needs a stored credential    | `kipory-secrets`                                                                                                                                           |

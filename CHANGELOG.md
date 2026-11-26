@@ -2,6 +2,55 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261126.134136 — 2026-11-26
+
+Synced from the Kipory monorepo at `eb3a1267d`.
+
+Routes added: `GET /v1/_ui/`, `GET /v1/_ui/people`.
+
+- changed: `README.md`
+- changed: `skills/kipory-build/references/api/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/api/flows.md`
+- changed: `skills/kipory-build/references/api/project-document.md`
+- changed: `skills/kipory-build/references/api/steps.md`
+- changed: `skills/kipory-build/references/packs/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/api/platform-reads.md`
+- changed: `skills/kipory-connect/references/api/routes-a-key-cannot-call.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-connect/scripts/kipory.mjs`
+- changed: `skills/kipory-evolve/references/change-order.md`
+- changed: `skills/kipory-evolve/references/pitfalls.md`
+- changed: `skills/kipory-expose/references/api/api-endpoints.md`
+- changed: `skills/kipory-expose/references/api/end-users.md`
+- changed: `skills/kipory-expose/references/api/mcp-tools.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-expose/references/pitfalls.md`
+- changed: `skills/kipory-model/references/api/relations.md`
+- changed: `skills/kipory-model/references/api/tables.md`
+- changed: `skills/kipory-model/references/api/types.md`
+- changed: `skills/kipory-model/references/api/vocabularies-and-terms.md`
+- changed: `skills/kipory-model/references/packs/relations-and-links.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-model/references/packs/vocabularies.md`
+- changed: `skills/kipory-operate/references/api/project-config.md`
+- changed: `skills/kipory-operate/references/packs/project-config.md`
+- changed: `skills/kipory-plan/SKILL.md`
+- changed: `skills/kipory-plan/references/packs/planning-protocol.md`
+- added: `skills/kipory-ui/SKILL.md`
+- added: `skills/kipory-ui/references/checks.md`
+- added: `skills/kipory-ui/references/components.md`
+- added: `skills/kipory-ui/references/default-ui.md`
+- added: `skills/kipory-ui/references/forms-and-actions.md`
+- added: `skills/kipory-ui/references/menu-and-theme.md`
+- added: `skills/kipory-ui/references/pages-and-values.md`
+- added: `skills/kipory-ui/references/sign-in-and-sharing.md`
+
 ## 1.20261125.225452 — 2026-11-25
 
 Synced from the Kipory monorepo at `ef05e34e5`.

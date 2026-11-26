@@ -72,7 +72,7 @@ it back**, so its verdict is the restore's own. It answers `contractChanges`, li
 reaches an endpoint, tool or table over the flow: putting an old signature back is judged as a signature
 edit is, and a table's row says in `consequences` what it does to the table's stored records
 (`shape-behind`, `field-values-hidden`: Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)). `ok: false` with the refusal in `diagnostics` when it would break one the restore's
-`acceptBreaks` (`endpoints`, `tables`, `tools`) does not name (`CONTRACT_BREAK_NOT_ACCEPTED`, 409 on the real call), or when the captured
+`acceptBreaks` (`endpoints`, `tables`, `tools`, `pages`: a written page of the `ui` section, with the pages still broken in `brokenPages`) does not name (`CONTRACT_BREAK_NOT_ACCEPTED`, 409 on the real call), or when the captured
 steps hold an error by today's rules (422 on the real call) — a restore saves its steps through the
 same decision as `PUT /v1/flows/{id}/steps`, so whatever refuses that save refuses the restore, a
 pinned model its function cannot use (`LLM_MODEL_UNSUITED_TO_TASK`) among them. **Any error in

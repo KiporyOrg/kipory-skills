@@ -249,7 +249,10 @@ A coded route occupies its path on **every** host, including one where it answer
 project has disabled, or a management-plane group addressed on a project subdomain, is still a
 registered route and still wins the match. So "it 404s here" is never a reason to author onto it.
 Each row's `plane` says who a route is served to — usually its group's, but a route may declare its
-own (the project file library on `/v1/files` is `management` inside a `both` group).
+own (the project file library on `/v1/files` is `management` inside a `both` group). The group
+`ui` ("Project UI": `GET /v1/_ui`, what the project's own web pages read, and the person
+picker they use) is always on: it cannot be turned off, and turning API docs off leaves it
+serving.
 
 ⚠️ **A coded route's first path word is reserved whole, and the save refuses it.** At run time the
 host gate maps the first word after `/v1/` to its coded group before any endpoint is matched, so an
@@ -510,7 +513,13 @@ reaches, before and after the whole write, and each one whose contract differs g
   `acceptBreaks: { endpoints: [...], tables: [...] }`, and only an admin of the project may send
   that: below it, `403 CONTRACT_BREAK_FORBIDDEN` whatever `acceptBreaks` names (a name that is no
   endpoint or table is refused `422` before the role is asked); an admin who did
-  not name a row, `409 CONTRACT_BREAK_NOT_ACCEPTED`, with a fix that sets `acceptBreaks`.
+  not name a row, `409 CONTRACT_BREAK_NOT_ACCEPTED`, with a fix that sets `acceptBreaks`. A
+  written page of the project's `ui` section that reads or calls the endpoint and would break is a
+  row of kind `page`, named in `acceptBreaks.pages`; the fix sets ONE `acceptBreaks` naming every
+  breaking row of every kind. On a project that writes pages, every such answer and its dry run
+  list the pages still broken in `brokenPages`, and an endpoint PATCH's `validateOnly` rehearses
+  the save and rolls it back when a written page could break, so the dry run reports the same
+  `page` rows the save would.
 
 A label edit (a title, a description, examples, field order, `x-record-ref`) is no change and
 gets no verdict. Every dry run (`validateOnly`, a document plan), every successful write and both
@@ -856,9 +865,13 @@ database constraint the write learns about by attempting it — a collision foun
 absence is not.
 
 ⭐ **A delete has the same dry run.** `DELETE /v1/api-endpoints/{id}?validateOnly=true` answers the
-verdict and removes nothing. Nothing refuses an endpoint delete — an endpoint is a leaf, and the
-flow it binds stays — so it answers `ok: true` for any endpoint you can address; the flag exists so
-every write asks the same way.
+verdict and removes nothing. The flow the endpoint binds stays. What can refuse the delete is a
+written page of the project's `ui` section that reads or calls the endpoint: the answer, dry run or
+not, carries `contractChanges` with a row of kind `page` for each such page, and the delete is
+refused `409 CONTRACT_BREAK_NOT_ACCEPTED` until the DELETE's optional JSON body
+`{ "acceptBreaks": { "pages": ["<page key>"] } }` names every one. Naming a page that is not one is
+`422`. With no written page using it, the delete answers `ok: true` for any endpoint you can
+address.
 
 ⚠️ `validateOnly` is the delete's only query parameter; anything else in the query is refused.
 

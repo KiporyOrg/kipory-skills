@@ -19,7 +19,7 @@ The document you write is the document the platform hands back.
 
 The sections, in order: `kipory: 13` (first, required), `basedOn` (the bound form only),
 `project`, `requires`, `types`, `tables`, `relations`, `vocabularies`, `events`, `flows`,
-`endpoints`, `tools`, `triggers`, `schedules`, `evals`.
+`endpoints`, `tools`, `triggers`, `schedules`, `evals`, `ui`.
 
 Read it before authoring anything larger than one row. The row-by-row API has an order — a
 table needs its type first, a relation its tables, a trigger its flow — and the
@@ -114,6 +114,8 @@ project:
   identity:
     providers: { google } # declared = on; `apple: off` switches one off
     appDomain: https://club.example.com
+    signUp: invite-only # open (the default) or invite-only
+    findPeople: email # off (the default), email or browse
   ai:
     models: { summarization: { model: <model id>, effort: low } }
     defaultEmbedding: default # omitted = the embedding keyed `default`
@@ -132,6 +134,10 @@ project:
   does not state as `kept`. Changing either needs ADMIN. `ai.defaultEmbedding` is kept the same
   way: `ai` stated without it keeps the pointer, and `defaultEmbedding: default` moves it back.
   Everywhere else a left-out field is its default.
+- `identity.signUp: invite-only` lets only people invited by email, and people who are already
+  users, sign in: anyone else is refused `project_access_unavailable`, by every sign-in route.
+  `identity.findPeople` says how a signed-in user finds other users in a page's people picker: `off`
+  refuses, `email` takes the exact address, `browse` part of a name or email.
 - `builtInRoutes`, `ai.models`, `mail.senders` and `config` are owned collections: omitted,
   untouched; stated, whole. `ai.embeddings` is a map of rows, with `delete: true` and `prune: true`.
   `ai.models` refuses `embedding` and `rerank`: an embedding is chosen under `ai.embeddings`, a
@@ -542,9 +548,9 @@ The exception is the owned collections (a flow's `steps`, a suite's `cases`, a
 vocabulary's `terms`): each is stated whole, so when present it replaces the owner's collection —
 and a member the project holds that the collection no longer names is REMOVED, which makes that
 document one that removes something, with the ADMIN floor an apply that removes has.
-The document may carry `acceptBreaks: { endpoints: [...], tables: [...], tools: [...] }` once, at its
-top level beside `kipory`, never on a row. The plan compares every endpoint, tool and flow-backed
-table the document reaches before and after the whole document, and answers `contractChanges`: each one whose
+The document may carry `acceptBreaks: { endpoints: [...], tables: [...], tools: [...], pages: [...] }`
+once, at its top level beside `kipory`, never on a row. The plan compares every endpoint, tool and
+flow-backed table the document reaches before and after the whole document, and answers `contractChanges`: each one whose
 contract moves, by key, its `verdict` (`safe` or `breaking`), each change and `mustAccept`. A
 document that breaks an endpoint and repairs it in the same apply is no change. A safe change
 applies unasked; a breaking one is an error finding until `acceptBreaks` names that endpoint,
@@ -555,6 +561,29 @@ that plan). An admin's plan that does not name a breaking row carries `CONTRACT_
 a name that is no row is `VALIDATION_FAILED` on its path; a name the document does not break is
 listed in `acceptBreaksNotNeeded`. Like `delete`, it is a statement about this apply — never
 stored, never exported.
+
+The `ui` section is the project's own web UI: pages, a menu and a theme, served on the project's
+host outside `/v1`. It is stated whole; `ui: {}` derives the pages from the endpoints, and `ui: off`
+turns it off. A plan checks every name a page uses against the endpoints as the document leaves
+them (`UI_*` findings, each marked `introduced` or not). A document that breaks a written page
+elsewhere — renames an input it passes, removes a field it shows — answers a `contractChanges`
+row of kind `page` and is refused until an admin names the page in `acceptBreaks.pages`; a plan
+of a project with written pages lists those still broken in `brokenPages`. A row write outside a
+document (an endpoint, flow, type, checkpoint or tool save, an endpoint delete) judges the written
+pages the same way, and its answer, dry run included, lists the pages still broken in `brokenPages`.
+A flow input renamed with `renameInputs` is judged against the pages too: the rename does not rewrite
+what a page passes, so a page it breaks is fixed in the same document or named in
+`acceptBreaks.pages`. Every refusal's fix sets one `acceptBreaks` naming every break of every kind. A
+`ui` section that is itself wrong is refused and cannot be accepted, and so is a change elsewhere
+that breaks the section as a whole (its own `data` reads, `home`, a menu item): edit that part of `ui` in the
+same document. An export of a project whose UI is off states no `ui`; `ui: off` turns it off. A page may carry `actions`, the buttons of its header, and a field it
+shows may open another page (`{ field, label, go }`). A page may also carry a `back`
+link, an identity `tile`, a `count` beside its title, a `meta` line under it and a `side` column;
+a table is drawn as a card and may carry a `title`, a `noun` for its footer, a `limit` and a
+`search`; facts may carry a `title` and `labels: above`; a shown field may carry `tile` or, with
+`go`, a `text` field drawn as a chip; a form field may carry a locked `chip`, and a hundredths
+number takes the `amount` control and format. A date that reads as time from now is the
+`relative` format. A badge value with no written tone takes the tone its word suggests.
 
 A type's row may carry `renameFields` (`{"<old path>": "<new name>"}`) beside its schema as it
 reads after the rename, `keepExpressions`, the steps whose expressions or templates keep the

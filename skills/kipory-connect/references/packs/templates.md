@@ -100,6 +100,9 @@ Four things to know about the result:
 - Nothing a template creates is a contract change: a new project has no endpoint or table before
   it, so the create judges no break and asks nobody to accept one. No shipped template states
   `acceptBreaks`.
+- A template's `ui` section is applied as written: `ui: {}` gives the new project the pages
+  derived from its endpoints, with their header buttons and dialogs: a list page is a card with
+  search and a count, a record page has a header, its related lists and a Details column.
 - The answer carries `requires` — the secrets the project will not work without. A template never
   holds a secret value, so storing those is your next call.
 - In the project's history the whole template is ONE entry, a document apply, at the project's

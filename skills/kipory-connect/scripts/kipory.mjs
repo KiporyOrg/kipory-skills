@@ -517,11 +517,18 @@ const printContractChanges = (answer) => {
         );
   }
   const notNeeded = answer?.acceptBreaksNotNeeded;
-  for (const kind of ["endpoints", "tables"])
+  for (const kind of ["endpoints", "tables", "tools", "pages"])
     for (const k of notNeeded?.[kind] ?? [])
       out(
         `acceptBreaks names ${kind.slice(0, -1)} ${k}, which this does not break: drop it`,
       );
+  // Written pages the change leaves broken: visitors see each as unavailable
+  // until a later change makes it whole.
+  const broken = Array.isArray(answer?.brokenPages) ? answer.brokenPages : [];
+  if (broken.length > 0)
+    out(
+      `broken pages (visitors see them as unavailable): ${broken.join(", ")}`,
+    );
   if (!mayAccept && rows.some((r) => r.verdict === "breaking"))
     out(
       "only an admin of the project may accept a break: this key cannot, so ask an admin to apply it, or change the document so it breaks nothing",

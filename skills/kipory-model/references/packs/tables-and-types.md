@@ -55,7 +55,9 @@ changes what the callers of the endpoints, tools and tables bound to that flow m
 like any design write: its answer is the registry read plus `contractChanges`, and a change that
 breaks callers is refused, writing nothing — 403 `CONTRACT_BREAK_FORBIDDEN` below ADMIN, 409
 `CONTRACT_BREAK_NOT_ACCEPTED` for an admin until the body's `acceptBreaks` names each broken
-endpoint, tool or table (`acceptBreaks.tools` for a flow offered to AI apps).
+endpoint, tool or table (`acceptBreaks.tools` for a flow offered to AI apps), and each written page
+of the project's `ui` section it leaves broken (`acceptBreaks.pages`, a row of kind `page`; the answer lists `brokenPages` on a project that
+writes pages).
 
 ### A table and its type together
 

@@ -1,7 +1,8 @@
 {
-  "source": "ef05e34e597c557ba3da062a9fcc59d72e3f8b46",
-  "since": "2026-08-19",
+  "source": "eb3a1267d8445e7ec3d2c14a5370ccec93858588",
+  "since": "2026-08-20",
   "history": [
+    {"sha":"eb3a1267d844","skills":"A project can carry its own web UI as configuration: pages from a closed catalog, checked by every write and drawn on the project's own host (442) (#3820)"},
     {"sha":"ef05e34e597c","skills":"An AI app that returns to a custom scheme (cursor://, vscode://) can sign in to a project (#3822)"},
     {"sha":"82680f9e4a24","skills":"A project offers its flows as tools to AI apps at /mcp, with a sign-in server for them, and the one-at-a-time rule moves to the flow (441, format 13) (#3821)"},
     {"sha":"d191f6691816"},
@@ -1000,7 +1001,6 @@
     {"sha":"9cbb69ecaeb6"},
     {"sha":"83b31af855a5"},
     {"sha":"600165fd976a"},
-    {"sha":"344a47ac645a"},
-    {"sha":"baf5bb42ffc2"}
+    {"sha":"344a47ac645a"}
   ]
 }
