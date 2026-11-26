@@ -103,7 +103,7 @@ tools:
     publicRpm: 30
 ```
 
-Plan it as an admin of the project: `catalogue` makes a flow public that runs `record.query`, a paid read, and that needs ADMIN (below); an editor's plan carries `PUBLIC_TOOL_NEEDS_ADMIN`. The plan refuses a tool whose flow does not exist (`TOOL_FLOW_UNKNOWN`, at `tools.<key>.flow`), whose flow has a required `internal` input no app could send (`TOOL_FLOW_NOT_CALLABLE` — a later change to the flow that gives it one is refused with the same code while a tool runs it), a tool keyed `prune` (under `tools`, `prune: true` removes every tool the document does not name), `publicRpm` without `auth: none` (`TOOL_CONFIG_INVALID`), and more tools than the project's limit (50 by default, `TOOL_LIMIT_REACHED`). It warns `TOOL_NOT_DESCRIBED` when neither the row nor its flow has a description. A flow a tool names cannot be deleted while the tool stands: the tool counts among its dependents. Row by row, the same rows are `GET /v1/mcp-tools?project=`, `POST /v1/mcp-tools`, `GET /v1/mcp-tools/{id}`, `PATCH /v1/mcp-tools/{id}` (with `version`) and `DELETE /v1/mcp-tools/{id}`; each read carries `invokeUrl`, the project's `/mcp` address, and `access`: whether its flow needs a signed-in person, is public, spends, and changes data. The row routes also carry `lastUsedAt`, when a run last started from the tool: it is `null` until such a run is among the project's newest 5,000 tool runs, and `lastUsedMeasured: false` means the read ran out of time, not that the tool was never used.
+Plan it as an admin of the project: `catalogue` makes a flow public that runs `record.query`, a paid read, and that needs ADMIN (below); an editor's plan carries `PUBLIC_TOOL_NEEDS_ADMIN`. The plan refuses a tool whose flow does not exist (`TOOL_FLOW_UNKNOWN`, at `tools.<key>.flow`), whose flow has a required `internal` input no app could send (`TOOL_FLOW_NOT_CALLABLE` — a later change to the flow that gives it one is refused with the same code while a tool runs it), a tool keyed `prune` (under `tools`, `prune: true` removes every tool the document does not name), `publicRpm` without `auth: none` (`TOOL_CONFIG_INVALID`), and more tools than the project's limit (50 by default, `TOOL_LIMIT_REACHED`). It warns `TOOL_NOT_DESCRIBED` when neither the row nor its flow has a description. A flow a tool names cannot be deleted while the tool stands: the tool counts among its dependents. Row by row, the same rows are `GET /v1/mcp-tools?project=`, `POST /v1/mcp-tools`, `GET /v1/mcp-tools/{id}`, `PATCH /v1/mcp-tools/{id}` (with `version`) and `DELETE /v1/mcp-tools/{id}` (ADMIN, as is `delete: true` in a document: an editor key is refused `403` with `requiredRole: admin`, `DOCUMENT_DELETE_FORBIDDEN` in a plan); each read carries `invokeUrl`, the project's `/mcp` address, and `access`: whether its flow needs a signed-in person, is public, spends, and changes data. The row routes also carry `lastUsedAt`, when a run last started from the tool: it is `null` until such a run is among the project's newest 5,000 tool runs, and `lastUsedMeasured: false` means the read ran out of time, not that the tool was never used.
 
 ## What an AI app is shown — and why the words now matter
 
@@ -114,6 +114,34 @@ The model never sees your steps. It picks a tool by the description and fills ea
 ## How an AI app connects
 
 The address is the project host plus `/mcp` (`invokeUrl` on the tool's read). The server speaks the protocol's revision 2026-07-28 and the one before it (2025-11-25, with its opening handshake) on the same address, answers JSON only, and keeps no session.
+
+**What an app sends, with a key** (2025-11-25; `greet` is a tool whose flow takes `name` and returns `greeting`). Every request is a `POST` with these headers, one JSON-RPC message a body:
+
+```
+POST https://<project-host>/mcp
+Authorization: Bearer <key>
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2025-11-25        on every request after initialize (none is read as 2025-11-25)
+
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"my-app","version":"1.0.0"}}}
+→ 200 {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"kipory","version":"1.0.0"},"instructions":"…"}}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+→ 202, no body
+{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}
+→ 200 {"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"greet","description":"…","inputSchema":{…},"outputSchema":{…},"annotations":{"readOnlyHint":true,"destructiveHint":false}}],"ttlMs":60000,"cacheScope":"private"}}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"greet","arguments":{"name":"Ada"}}}
+→ 200 {"jsonrpc":"2.0","id":3,"result":{"resultType":"complete","structuredContent":{"greeting":"Hi Ada"},"content":[{"type":"text","text":"{\"greeting\":\"Hi Ada\"}"}],"_meta":{"com.kipory/runId":"…","com.kipory/creditsCharged":0}}}
+  a tool error: {"result":{"isError":true,"content":[{"type":"text","text":"CODE: message"}],"_meta":{"com.kipory/error":{"code":"…","message":"…"},"com.kipory/creditsCharged":0}}}
+  no or a dead key: 401, WWW-Authenticate: Bearer resource_metadata="https://<project-host>/.well-known/oauth-protected-resource/mcp"
+                    {"jsonrpc":"2.0","id":3,"error":{"code":-32001,"message":"Authentication required"}}
+```
+
+The 2026-07-28 revision has no handshake: send no `initialize` (`server/discover` lists both revisions, if you ask), and give every request `MCP-Protocol-Version: 2026-07-28`, `Mcp-Method: <its method>`, on a call `Mcp-Name: <the tool>`, and the revision again in its `params._meta` — a header that disagrees with the body is `400` with `-32020`:
+
+```
+{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"greet","arguments":{"name":"Ada"},"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}
+```
 
 - **With a project API key** — coding agents and tools that take a header, and the model providers' API connectors. The key goes in `Authorization: Bearer`, with the reach and role it has on `/v1`. A key has no person: a tool whose flow needs a signed-in person (`caller: user`, or reads or writes people's records) is not listed for a key, and a VIEWER key is listed no tool whose flow changes data. In the example, a key sees `find-books` and `catalogue`, never `reserve-book`.
 - **As a signed-in person** — claude.ai and ChatGPT, which take no key. The person adds the address in the app. When the project has no public tool, the app's first request — its handshake or its `tools/list` — gets `401` naming the project's sign-in documents (`/.well-known/oauth-protected-resource/mcp`), and the app starts sign-in; the project host is its own sign-in server. When the project has a public tool, a caller with no credential is answered `200` and listed the public tools, and the `401` comes only on a call of another tool: an app that never makes that call never starts sign-in, so connect it by its own "sign in" control. The person signs in in a browser with a provider the project offers there — Google today; Apple has no browser sign-in (`references/sign-in.md`), so a project that offers Apple only cannot connect an app as a person — and approves on one Kipory page that names the project, the app's host and where the app returns to — a web host, or a desktop app's own scheme such as `cursor://`, which the page warns about, as any program on the computer can claim it; the app is named by its address, and there is no registering an app by hand. The app then holds a token that acts as that person in that project and nowhere else — not at another project's `/mcp`, not on `/v1`. It is listed what the person's role allows, the person-only tools included; each run is the person's, as their endpoint call would be. People see and remove their apps in their account; `GET /v1/projects/{nodeId}/connected-apps` says how many are connected to a project. `GET /v1/projects/{nodeId}/connected-apps/decisions` lists who approved, declined or removed an app, and each request the sign-in server refused, newest first; walk it with `after`.

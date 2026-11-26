@@ -5,6 +5,7 @@
 //
 //   connect                    first call: writes ./kipory (this command, for every later
 //                              call: ./kipory <command>), proves the key, prints the summary
+//                              headed by the key's role (a delete needs admin)
 //   summary                    what the project holds, one line per element
 //   pull [file.yaml] [--plain] [--defaults] [--fingerprints]
 //                              the project as it is now, as YAML carrying its read
@@ -388,6 +389,8 @@ const grant = async () => {
     id,
     host: project?.baseUrl?.replace(/\/+$/, ""),
     keyId: g?.key?.id,
+    // What the key may do over its whole reach: a delete needs admin.
+    role: typeof g?.role === "string" ? g.role : undefined,
   };
   return grantCache;
 };
@@ -2742,9 +2745,12 @@ const summary = async () => {
     ),
     "reading the summary",
   );
-  if (asJson) out(JSON.stringify({ host: g.host, ...s }, null, 2));
+  if (asJson)
+    out(JSON.stringify({ host: g.host, role: g.role, ...s }, null, 2));
   else {
-    out(`project ${g.id}  version ${s.version}  host ${g.host ?? "(none)"}`);
+    out(
+      `project ${g.id}  version ${s.version}  host ${g.host ?? "(none)"}${g.role ? `  role ${g.role}` : ""}`,
+    );
     for (const l of s.lines ?? []) out(l);
   }
   return s;

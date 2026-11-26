@@ -32,7 +32,7 @@ endpoints:
 POST  /v1/api-endpoints   { project, key, <the endpoint's fields> }             → 201
 GET   /v1/api-endpoints/{id}?expand=shadowed                                    shadowedBy is a verdict: null means nothing shadows you; partiallyShadowedBy lists coded literals under your parameters
 PATCH /v1/api-endpoints/{id}   { version, <the endpoint's fields> }             replaces the endpoint whole; version required
-DELETE /v1/api-endpoints/{id}[?validateOnly=true]                               the only off switch — there is no disable; nothing refuses it
+DELETE /v1/api-endpoints/{id}[?validateOnly=true]                               the only off switch (no disable); ADMIN only (403 requiredRole)
 ```
 
 **The row API takes the document's flat row**; its old nested body is a 422 (unknown keys). For a row-API caller:
