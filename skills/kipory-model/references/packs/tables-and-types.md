@@ -1142,8 +1142,11 @@ What the stored records do after such a write:
   counts them: the `older` count and the `unstamped` count. `POST /v1/record-reprocesses` with
   `scope: "not-current"` brings them all to the current shape, a few at a time; `validateOnly: true`
   first answers `records` (how many it would run), an `estimate` of the cost and what it rests on,
-  and `wouldStart` (false, with the `refusal`, while another runs for the table). `POST /v1/records/{id}/reprocess`
-  brings one. Each record is charged like a first processing.
+  and `wouldStart` (false, with the `refusal` and its `reprocessId`, the one under way, to read and
+  stop, while another runs for the table). `scope: "failed"` takes only the records whose last
+  processing failed, to run again once the flow is fixed; `scope: "all"` takes every record but a merged one.
+  `POST /v1/records/{id}/reprocess` brings one. Each record is charged like a first processing:
+  no step answers from a cached result, a model's or a fetch's included.
 
 What a run checks before it stores anything:
 
@@ -1316,7 +1319,7 @@ vocabulary's (which also carries `assignedTerms`); anything else in the query is
   only. A record already stranded this way is processed with
   `POST /v1/records/{id}/reprocess`, which accepts a `pending` record only when
   no processing job is waiting or running for it — the record read's `pendingRun` says which.
-  A reprocess is charged like a first processing and answers no step from the result cache.
+  A reprocess is charged like a first processing and answers no step from a cached result.
 - **How many records wait and run now.** `GET /v1/tables/{id}?expand=processing` answers
   `processing: { pending, running }` — the table's records still pending (queued, waiting for the
   platform to start them again, or created and never queued — `expand=processingGaps` names the

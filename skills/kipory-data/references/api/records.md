@@ -108,7 +108,7 @@ Each item of `relations`:
 
 ### `POST /v1/record-reprocesses`
 
-Reprocess a flow-backed table's records together: `scope: "all"`, or `"not-current"` for the processed records not on the table's current processed shape (what `GET /v1/tables/{id}?expand=shape` counts as `older` and `unstamped`). Each record is re-run as `POST /v1/records/{id}/reprocess` re-runs it, from a clean slate and charged as that route charges it, a few at a time; a record that route would refuse is skipped and counted. Answers 202 with the reprocess to read at `GET /v1/record-reprocesses/{id}`; stop it with `PATCH`. `validateOnly: true` answers how many records it would run and an estimate of what that would charge, starting and charging nothing (VIEWER may ask). One per table at a time (409 `RECORD_REPROCESS_RUNNING`). ADMIN. For one record, use `POST /v1/records/{id}/reprocess`.
+Reprocess a flow-backed table's records together: `scope: "all"`; `"not-current"` for the processed records not on the table's current processed shape (what `GET /v1/tables/{id}?expand=shape` counts as `older` and `unstamped`); or `"failed"` for the records whose last processing failed. Each record is re-run as `POST /v1/records/{id}/reprocess` re-runs it, from a clean slate and charged as that route charges it, a few at a time; a record that route would refuse is skipped and counted. Answers 202 with the reprocess to read at `GET /v1/record-reprocesses/{id}`; stop it with `PATCH`. `validateOnly: true` answers how many records it would run and an estimate of what that would charge, starting and charging nothing (VIEWER may ask). One per table at a time (409 `RECORD_REPROCESS_RUNNING`; a dry run then answers `wouldStart: false` with the running one's `refusal.reprocessId`). ADMIN. For one record, use `POST /v1/records/{id}/reprocess`.
 
 **Request body**
 
@@ -116,7 +116,7 @@ Reprocess a flow-backed table's records together: `scope: "all"`, or `"not-curre
 | --- | --- | --- | --- |
 | `project` | `string` | yes | The project, by its node id. |
 | `table` | `string` | yes | The flow-backed table whose records to reprocess. |
-| `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
+| `scope` | `"all" \| "not-current" \| "failed"` | yes | Which records: `all` of the table's records; `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`); or `failed`, the records whose last processing failed. |
 | `validateOnly` | `boolean` | no | `true` answers how many records it would run and what that is expected to cost, starting and charging nothing. |
 
 **Response `200`**
@@ -126,7 +126,7 @@ Reprocess a flow-backed table's records together: `scope: "all"`, or `"not-curre
 | `wouldStart` | `boolean` | yes | Whether the same request without `validateOnly` would start: `false` while another bulk reprocess of the table is under way. |
 | `refusal` | `object \| null` | yes | Why it would not start; `null` when it would. |
 | `table` | `string` | yes | The table it would reprocess. |
-| `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
+| `scope` | `"all" \| "not-current" \| "failed"` | yes | Which records: `all` of the table's records; `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`); or `failed`, the records whose last processing failed. |
 | `shape` | `string` | yes | The table's processed-shape identifier now. |
 | `records` | `integer` | yes | The records it would run, as counted now. |
 | `estimate` | `object` | yes | An estimate, not a price: each record is charged what its run spends, as `POST /v1/records/{id}/reprocess` charges it. |
@@ -137,7 +137,7 @@ Reprocess a flow-backed table's records together: `scope: "all"`, or `"not-curre
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The bulk reprocess's id. |
 | `table` | `string` | yes | The table whose records it reprocesses. |
-| `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
+| `scope` | `"all" \| "not-current" \| "failed"` | yes | Which records: `all` of the table's records; `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`); or `failed`, the records whose last processing failed. |
 | `status` | `"running" \| "stopping" \| "finished" \| "stopped"` | yes | `running` while it queues records; `stopping` once asked to stop, until the runs it queued end; `finished` when no record was left; `stopped` when it was stopped, ended because its table lost its flow or was deleted, or had not moved for 10 minutes when the next start for its table took over. |
 | `version` | `integer` | yes | The lock `PATCH` sends back to stop it. Progress does not move it. |
 | `shape` | `object` | yes | The table's processed shape over the run. |
@@ -164,7 +164,7 @@ One bulk reprocess: its status, how many records it reprocessed, failed, skipped
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The bulk reprocess's id. |
 | `table` | `string` | yes | The table whose records it reprocesses. |
-| `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
+| `scope` | `"all" \| "not-current" \| "failed"` | yes | Which records: `all` of the table's records; `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`); or `failed`, the records whose last processing failed. |
 | `status` | `"running" \| "stopping" \| "finished" \| "stopped"` | yes | `running` while it queues records; `stopping` once asked to stop, until the runs it queued end; `finished` when no record was left; `stopped` when it was stopped, ended because its table lost its flow or was deleted, or had not moved for 10 minutes when the next start for its table took over. |
 | `version` | `integer` | yes | The lock `PATCH` sends back to stop it. Progress does not move it. |
 | `shape` | `object` | yes | The table's processed shape over the run. |
@@ -198,7 +198,7 @@ Stop a bulk reprocess (`stopped: true`, with its `version`): no further record i
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The bulk reprocess's id. |
 | `table` | `string` | yes | The table whose records it reprocesses. |
-| `scope` | `"all" \| "not-current"` | yes | Which records: `all` of the table's records, or `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`). |
+| `scope` | `"all" \| "not-current" \| "failed"` | yes | Which records: `all` of the table's records; `not-current`, the processed records not stamped with the table's current processed shape (those `GET /v1/tables/{id}?expand=shape` counts as `older` or `unstamped`); or `failed`, the records whose last processing failed. |
 | `status` | `"running" \| "stopping" \| "finished" \| "stopped"` | yes | `running` while it queues records; `stopping` once asked to stop, until the runs it queued end; `finished` when no record was left; `stopped` when it was stopped, ended because its table lost its flow or was deleted, or had not moved for 10 minutes when the next start for its table took over. |
 | `version` | `integer` | yes | The lock `PATCH` sends back to stop it. Progress does not move it. |
 | `shape` | `object` | yes | The table's processed shape over the run. |
@@ -617,7 +617,7 @@ Shape 4, with `type`, `reason`:
 
 ### `POST /v1/records/{id}/reprocess`
 
-Re-run the record's processing flow from a clean slate: its derived output, generated files, vocabularies and vector points are produced again. It removes the record's term assignments before the run, and a failed run does not bring them back. Its processed fields and generated files are replaced only when the run succeeds, and the record is indexed again then; a failed run keeps them. A successful run removes each generated file the record held before it that the run did not attach again and its processed fields do not name, even when it made no new one. Answers 202 once a worker has been asked; the record reads `pending` until it runs. The run is charged like the record's first processing, with nothing reused from the cache, and so is every run it queues. An edit (`PATCH`) never re-runs the flow — this is the gesture that does. To re-run many records of a table together, `POST /v1/record-reprocesses`.
+Re-run the record's processing flow from a clean slate: its derived output, generated files, vocabularies and vector points are produced again. It removes the record's term assignments before the run, and a failed run does not bring them back. Its processed fields and generated files are replaced only when the run succeeds, and the record is indexed again then; a failed run keeps them. A successful run removes each generated file the record held before it that the run did not attach again and its processed fields do not name, even when it made no new one. Answers 202 once a worker has been asked; the record reads `pending` until it runs. The run is charged like the record's first processing, with nothing reused from a cache. Every run it queues is charged too; those read the cache unless queued with `replay: "clean"`. An edit (`PATCH`) never re-runs the flow — this is the gesture that does. To re-run many records of a table together, `POST /v1/record-reprocesses`.
 
 **Path parameters**
 
