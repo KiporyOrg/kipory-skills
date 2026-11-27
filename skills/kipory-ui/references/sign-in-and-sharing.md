@@ -65,7 +65,7 @@ A project that lists its own users through an endpoint, as the worked model's `l
 
 ## Public pages and link previews
 
-A page with `access: public` opens with no sign-in. Its `data` reads only endpoints with `auth: none`, or the plan refuses it (`UI_PUBLIC_READS_PRIVATE`). It is drawn on the server: its HTML already holds its title, its description and its content, so a link pasted into a chat shows the page's own title and text, and a search engine can read it. A read of an asynchronous endpoint, or one that has not answered within 4 seconds, is left to the visitor's browser.
+A page with `access: public` opens with no sign-in, to a visitor signed in elsewhere who is no user of the project too. Its `data` reads only endpoints with `auth: none`, or the plan refuses it (`UI_PUBLIC_READS_PRIVATE`). It may hold no data at all: a contact form to an `auth: none` endpoint, on `/`, is a public page anyone fills in. It is drawn on the server: its HTML already holds its title, its description and its content, so a link pasted into a chat shows the page's own title and text, and a search engine can read it. A read of an asynchronous endpoint, or one that has not answered within 4 seconds, is left to the visitor's browser.
 
 ```yaml
 public-book:

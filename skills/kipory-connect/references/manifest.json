@@ -705,7 +705,7 @@
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "GET /v1/_ui/": {
-      "hash": "5055f17df996"
+      "hash": "398b31d218d6"
     },
     "GET /v1/_ui/people": {
       "hash": "5c0f859c8799"
@@ -1079,7 +1079,7 @@
       "page": "kipory-operate/references/api/project-config.md"
     },
     "GET /v1/project-document/example": {
-      "hash": "5a91451e1fcd",
+      "hash": "289d24e9aa3b",
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/project-document/schema": {
@@ -1123,7 +1123,7 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "GET /v1/projects/{nodeId}/document": {
-      "hash": "aaa5f47f29b4",
+      "hash": "c512b99c8381",
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/projects/{nodeId}/document/plans/{planId}": {
@@ -1343,7 +1343,7 @@
       "page": "kipory-connect/references/api/templates.md"
     },
     "GET /v1/templates/{slug}": {
-      "hash": "4eff3ce361c8",
+      "hash": "c2c6a5e06ccf",
       "page": "kipory-connect/references/api/templates.md"
     },
     "GET /v1/terms/": {

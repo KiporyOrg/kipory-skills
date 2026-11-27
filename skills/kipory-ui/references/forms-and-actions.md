@@ -40,7 +40,7 @@ add-a-book:
 | `as`     | the control, one of the 12 below                                         |
 | `pick`   | where a `pick` takes its options                                         |
 | `value`  | a prefilled value (data): `value: book.title`                            |
-| `hidden` | `true`: not drawn; only for an input `with:` or `value` supplies         |
+| `hidden` | `true`: not drawn; sent only when `with:` or `value` gives it a value    |
 | `chip`   | a word: the input drawn locked, as a chip with this text and its tile    |
 
 A `chip` shows the visitor what a supplied input is set to without letting them change it — the book a review is added to, when the form opens from the book's page. Its value comes from `with:` or `value` (else `UI_VALUE_INVALID`), and it is not `hidden` too:
@@ -55,14 +55,28 @@ A `chip` shows the visitor what a supplied input is set to without letting them 
 
 The form itself draws a field the endpoint does not require with "optional" beside its label and marks a required one; in a dialog it sets short fields (a date, a number, an amount) two in a row. A field's `label` and `help` are plain text, with no fill-ins. An `as` must fit the input's type (`amount` a number, `date` a text), and `as: pick` needs a `pick` source. An edit form follows its prefilled data as it loads; a field that had a value and was cleared is sent as `null` when its input accepts null, and otherwise left out so the old value stays; the form waits for a file still uploading.
 
-Every required input is supplied by `with:`, a `value`, or a field that is drawn. A required input that is hidden and has no value is refused (`UI_INPUT_MISSING`).
+Every required input is supplied by `with:`, a `value`, or a field that is drawn. A required input that is hidden and has no value is refused (`UI_INPUT_MISSING`); an optional one is simply not drawn and not sent.
+
+## An object input: a field per property
+
+A body or query input whose type is an object with `properties` (a whole form taken as one input) is drawn as **one field per property**, each with its own control, labelled from the property's title or name. A property is required when the object lists it in `required` and the input itself is required. The form sends the properties back inside the object, under the input's name, leaving out the empty optional ones, and leaves out an optional object input none of whose properties is filled. Key a property's override `<input>.<property>`. An unknown property is `UI_INPUT_UNKNOWN`, and an `as` must fit the property's type. Hiding an optional property leaves it out of what is sent, as a honeypot a bot fills and a person never sees:
+
+```yaml
+- form:
+    endpoint: contact
+    fields:
+      contactForm.comments: { label: Anything else?, help: Optional }
+      contactForm.website: { hidden: true }
+```
+
+One level only: a property that is itself an object is one field, drawn as an input of that type is. An override on the input itself (`contactForm: { value: … }`, `hidden`, `chip`, `as`, `pick`) draws or supplies the input whole, as does `with:`. An input error the endpoint names at `/contactForm/email` shows on that property's field.
 
 ## The 12 controls
 
 | Control     | Drawn for, when `fields` names none                                               |
 | ----------- | --------------------------------------------------------------------------------- |
 | `text`      | a string                                                                          |
-| `long-text` | a string whose `maxLength` is over 200                                            |
+| `long-text` | a string whose `maxLength` is over 200 and that has no `format`                   |
 | `number`    | a number                                                                          |
 | `select`    | an `enum`                                                                         |
 | `radio`     | an `enum`, only when `fields` names it: every option shown                        |

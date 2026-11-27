@@ -1,7 +1,8 @@
 {
-  "source": "2e6e860d075d6b796a4e24bef7c55ebe98a5692d",
+  "source": "c89ecb7ac397beb9e848eb93e9fdfbda496e87b9",
   "since": "2026-08-20",
   "history": [
+    {"sha":"c89ecb7ac397","skills":"The project UI draws a forms-only page of public endpoints as public, and an object input as one field per property (442 follow-up) (#3825)"},
     {"sha":"2e6e860d075d","skills":"The customer skills say who may delete and show a whole MCP exchange, and the format-13 roll and live walks are recorded (441) (#3824)"},
     {"sha":"eb3a1267d844","skills":"A project can carry its own web UI as configuration: pages from a closed catalog, checked by every write and drawn on the project's own host (442) (#3820)"},
     {"sha":"ef05e34e597c","skills":"An AI app that returns to a custom scheme (cursor://, vscode://) can sign in to a project (#3822)"},
@@ -1000,7 +1001,6 @@
     {"sha":"cafa676730ca"},
     {"sha":"370b6256adfd"},
     {"sha":"9cbb69ecaeb6"},
-    {"sha":"83b31af855a5"},
-    {"sha":"600165fd976a"}
+    {"sha":"83b31af855a5"}
   ]
 }
